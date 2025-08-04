@@ -1,0 +1,1 @@
+/create-command Create a command that creates commands. Fetch research/agentic/prompt-context-engineering-claude-code.md. Also create-command.md can be used as a inspiration. Think deeply and think longly, ULTRATHINK about any knowledge or research you have. 

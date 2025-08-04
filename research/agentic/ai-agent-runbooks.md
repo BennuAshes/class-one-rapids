@@ -22,11 +22,6 @@ Traditional runbooks rely on step-by-step instructions written for humans or rig
 
 ### Enterprise Adoption Patterns (2024-2025)
 
-**Market Growth Indicators:**
-- Enterprise buyers invested $4.6 billion in generative AI applications in 2024, an 8x increase from the previous year
-- 99% of developers building AI applications for enterprise are exploring or developing AI agents
-- 2025 is predicted to be "the year of the agent" with 33% of enterprise software applications expected to include agentic AI by 2028
-
 **Implementation Architecture Trends:**
 - **Agentic Architectures**: Made their debut and already power 12% of implementations in 2024
 - **Multi-Agent Systems**: Each agent operates like a microservice, specializing in particular functions while communicating in coordinated systems

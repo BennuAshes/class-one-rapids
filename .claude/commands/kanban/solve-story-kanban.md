@@ -1,6 +1,6 @@
 # Kanban-Integrated Story Implementation Command
 
-Use the Task tool to invoke the senior-software-engineer agent to implement the following story with full kanban integration:
+Assume role/persona described in role/senior-software-engineer.md and then implement the following story with full kanban integration. Do not generate a subagent or task with an agent:
 
 $ARGUMENTS
 
