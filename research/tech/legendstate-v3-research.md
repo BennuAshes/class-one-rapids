@@ -7,7 +7,7 @@ Legend State v3 is a significant update with improved performance, better React 
 ## Key API Changes from v2 to v3
 
 ### 1. Observable Creation
-- Still use `observable()` but with improved TypeScript support
+- Still use `observable()` but with improved TypeScript support 
 - Lazy computed values can be defined directly in the observable
 - Better support for nested observables
 

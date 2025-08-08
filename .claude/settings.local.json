@@ -23,7 +23,20 @@
       "Bash(./story-status.sh:*)",
       "Bash(./check-dependencies.sh:*)",
       "Bash(./update-story.sh:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(eas:*)",
+      "Bash(rm:*)",
+      "Bash(./generate-full-workflow.sh:*)",
+      "Bash(pgrep:*)",
+      "Bash(./test-runbook-v2.sh:*)",
+      "Bash(timeout 10 npx expo start --web)",
+      "Bash(timeout 8 npx expo start --web)",
+      "Bash(../../../validate-packages.sh)",
+      "Bash(./validate-packages.sh)",
+      "Bash(tree:*)",
+      "WebFetch(domain:docs.cursor.com)"
     ],
     "deny": []
   }

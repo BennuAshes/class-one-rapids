@@ -1,4 +1,5 @@
 # General
 - Don't guess
 - Ask questions if you're not confident about something
-- If you encounter any missing dependencies, unclear requirements, or need to create files not mentioned in the story, stop and ask first.
+- roles are located at the root in the /roles/ folder
+- research is located at the root in the /research/ folder

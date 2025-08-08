@@ -22,7 +22,7 @@ EXECUTE comprehensive PRD technical requirements analysis with ULTRATHINK proces
   <mission>Analyze PRDs and extract comprehensive technical requirements using deep technical knowledge synthesis and ULTRATHINK processing</mission>
 </context>
 
-**PHASE 1: COMPREHENSIVE KNOWLEDGE SYNTHESIS**
+**PHASE 1: COMPREHENSIVE KNOWLEDGE SYNTHESIS WITH RESEARCH VALIDATION**
 Build complete technical knowledge base from research files:
 
 1. **Read and analyze the target PRD** to understand:
@@ -33,27 +33,40 @@ Build complete technical knowledge base from research files:
    - Timeline and delivery expectations
    - Success criteria and acceptance conditions
 
-2. **Load PRD analysis framework** from research/planning/product-document-requirements.md:
+2. **AUTOMATIC RESEARCH CROSS-REFERENCE**:
+   - **Extract all technologies mentioned in PRD**
+   - **Search research/tech/*.md for each technology**:
+     ```bash
+     # For each technology in PRD:
+     grep -r "technology_name" research/tech/ --include="*.md"
+     ```
+   - **Build technology validation map**:
+     - Technology → Research file(s) → Specific versions/patterns
+     - Flag any PRD technologies NOT covered by research
+   - **Extract package versions from research**:
+     - Search for: npm install, yarn add, package.json examples
+     - Map: package → version/tag from research
+
+3. **Load PRD analysis framework** from research/planning/product-document-requirements.md:
    - Extract modern PRD best practices and quality frameworks
    - Understand requirements traceability patterns
    - Apply stakeholder collaboration insights
    - Leverage automated quality assurance principles
 
-3. **Synthesize vertical slicing methodology** from research/planning/vertical-slicing.md:
+4. **Synthesize vertical slicing methodology** from research/planning/vertical-slicing.md:
    - Apply INVEST criteria for feature decomposition
    - Understand end-to-end value delivery principles
    - Extract architectural implementation patterns
    - Apply enterprise scaling considerations
 
-4. **Gather comprehensive technical knowledge** by reading ALL files in research/tech folder:
-   - Expo SDK capabilities and limitations
-   - React Native architecture and performance patterns
-   - Legend State reactive state management
-   - TypeScript type safety and development practices
-   - TanStack Query server state management
-   - SOLID principles and architectural patterns
-   - Automated testing strategies and frameworks
-   - State management best practices and performance implications
+5. **Gather and validate comprehensive technical knowledge** by reading ALL files in research/tech folder:
+   - **Expo SDK**: Extract specific SDK version from research
+   - **React Native**: Extract architecture version (New Architecture, 0.76+)
+   - **Legend State**: Extract @beta tag requirement
+   - **TypeScript**: Extract strict mode configuration
+   - **Testing libraries**: Extract specific package names and versions
+   - **Build comprehensive package requirements list**
+   - **Document all architectural patterns from research**
 
 **PHASE 2: PRD FEATURE EXTRACTION AND MAPPING**
 Systematically extract and categorize features from the PRD:
@@ -95,6 +108,7 @@ ULTRATHINK deeper about technical requirements by considering:
 - What third-party libraries and dependencies are needed?
 - How do features interact and share common technical infrastructure?
 - What are the testing and validation requirements for each feature?
+- What end-to-end testing scenarios are critical for user journey validation?
 - How do security and compliance requirements affect technical design?
 
 **Technology Stack Alignment:**
@@ -109,6 +123,7 @@ ULTRATHINK deeper about technical requirements by considering:
 - What refactoring and code organization patterns should be established?
 - How can vertical slicing principles be maintained during implementation?
 - What automated testing strategies ensure long-term maintainability?
+- How should end-to-end test suites be structured for scalable validation?
 - How do DevOps and deployment considerations affect technical choices?
 
 **Cross-Cutting Concerns:**
@@ -122,9 +137,23 @@ ULTRATHINK deeper about technical requirements by considering:
 **PHASE 4: TECHNICAL REQUIREMENTS SYNTHESIS AND OUTPUT**
 Generate comprehensive technical requirements based on ULTRATHINK analysis:
 
-1. **Preserve original story structure** - DO NOT modify the existing PRD content
+1. **Create a copy of the PRD** - First, create a copy of the original PRD file with `-technical-requirements` suffix (preserving the original filename structure)
 
-2. **Add technical requirements section** with the following structure:
+2. **Preserve original story structure** - Work with the copy, preserving all original PRD content
+
+3. **Add comprehensive technical note immediately after each story's acceptance criteria** in this format:
+
+```markdown
+**Technical Implementation Note:**
+[Brief technical context for this specific story based on ULTRATHINK analysis]
+- **Architecture**: [Relevant architectural patterns/components]
+- **State Management**: [Required state management approach]  
+- **Performance**: [Performance considerations and targets]
+- **Testing**: [Testing strategy for this feature]
+- **Dependencies**: [Key technical dependencies]
+```
+
+4. **Add technical requirements section** with the following structure:
 
 ```markdown
 ## Technical Requirements Analysis
@@ -142,7 +171,12 @@ Generate comprehensive technical requirements based on ULTRATHINK analysis:
 [Security patterns and compliance requirements]
 
 ### Testing and Quality Assurance Strategy
-[Comprehensive testing approach for technical implementation]
+[Comprehensive testing approach including unit, integration, and end-to-end testing]
+- **Unit Testing**: Component and function-level validation
+- **Integration Testing**: Feature interaction and API integration validation  
+- **End-to-End Testing**: Critical user journey validation using Maestro for Expo projects (iOS focus)
+- **Performance Testing**: Load testing and performance benchmarking
+- **Accessibility Testing**: WCAG compliance and screen reader compatibility
 
 ### Third-Party Dependencies and Integrations
 [Required libraries, services, and integration patterns]
@@ -160,7 +194,7 @@ Generate comprehensive technical requirements based on ULTRATHINK analysis:
 [Measurable technical success criteria aligned with business requirements]
 ```
 
-3. **Include traceability mapping**:
+5. **Include traceability mapping**:
    - Link each technical requirement back to specific PRD features
    - Reference relevant research insights that influenced decisions
    - Provide implementation priority and dependency information
@@ -174,9 +208,34 @@ Ensure technical requirements meet the following criteria:
 - **Scalability**: Support future growth and feature additions
 - **Traceability**: Clear connections between business and technical requirements
 
-**DELIVERABLE**: Enhanced PRD with comprehensive technical requirements section that:
-- Preserves all original PRD content without modification
+## MANDATORY IMPLEMENTATION CONSTRAINTS
+Based on research synthesis, implementations MUST:
+- Use feature-based folder structure (research/planning/vertical-slicing.md:83-84)
+- Implement custom hooks over utilities (research/tech/react-native.md:1589-1614)
+- Use modular Legend State patterns (research/tech/legend-state.md:388-417)
+- Follow React Native component organization (research/tech/react-native.md:1656-1673)
+
+## RESEARCH-VALIDATED PACKAGE REQUIREMENTS
+**ALL package installations MUST use versions extracted from research:**
+- **@legendapp/state**: @beta (from research/tech/legend-state.md)
+- **React Native**: 0.76+ with New Architecture (from research/tech/react-native.md)
+- **Expo SDK**: Latest stable version from research
+- **Testing Libraries**: Specific versions from research files
+- [Complete list auto-generated from research scan]
+
+**If a package is NOT in research**: Flag as "NEEDS RESEARCH VALIDATION"
+
+Any deviation from these patterns or package versions should HALT implementation.
+
+**DELIVERABLE**: Enhanced PRD copy with comprehensive technical requirements section that:
+- Creates a new file with `-technical-requirements` suffix, preserving the original PRD unchanged
+- **INCLUDES RESEARCH VALIDATION SECTION** with:
+  - Complete package version requirements from research
+  - Architecture pattern requirements from research
+  - Technologies cross-referenced with research files
+  - List of any technologies needing research validation
 - Adds detailed technical analysis based on ULTRATHINK processing
 - Provides actionable technical guidance for development teams
 - Maintains traceability from business requirements to technical implementation
 - Leverages full spectrum of available technical knowledge and best practices
+- Establishes mandatory implementation constraints that enforce research principles
