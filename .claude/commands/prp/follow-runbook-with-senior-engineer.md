@@ -14,15 +14,15 @@ This command processes implementation runbooks and executes them using the techn
 
 1. **Automatic Package Extraction**: When encountering any install command, automatically:
    - Parse package name and version from command
-   - Search ALL research/tech/*.md files for package references
-   - Build comprehensive version map
+   - Load research/quick-ref.md (200 tokens) for ALL package versions
+   - Use pre-validated version map from quick-ref
 
 2. **Intelligent Version Resolution**:
    ```
    ALGORITHM:
    - Extract package from command (e.g., @legendapp/state)
-   - Search research files with: grep -r "packagename" research/tech/
-   - If found in research:
+   - Check package in research/quick-ref.md table
+   - If found in quick-ref:
      - Extract version/tag (@beta, @next, specific version)
      - OVERRIDE runbook version with research version
      - Log: "✅ Using research version: package@version"
@@ -51,14 +51,14 @@ This command processes implementation runbooks and executes them using the techn
 
 ### Architecture Pattern Auto-Validation
 
-**Directory structures and code patterns are AUTOMATICALLY validated against research-requirements.json:**
+**Directory structures and code patterns are AUTOMATICALLY validated against research patterns:**
 
 1. **Architecture Rules Loading**:
    ```
    On command start:
-   - Load research-requirements.json from runbook directory
-   - Extract architectureRules section
-   - Build validation engine from rules
+   - Load research/quick-ref.md for architecture patterns
+   - Check for local research-requirements.md if present
+   - Build validation engine from patterns
    ```
 
 2. **Real-Time Architecture Validation**:

@@ -1,77 +1,220 @@
 {
-  "packages": {
-    "@legendapp/state": "@beta",
-    "@legendapp/state/react": "@beta",
-    "@legendapp/state/persist": "@beta",
-    "react-native": "0.76.0",
-    "expo": "~52.0.0",
-    "typescript": "^5.8.0",
-    "@testing-library/react-native": "^12.4.0",
-    "jest-expo": "^51.0.0",
-    "react-native-reanimated": "~3.10.0",
-    "expo-av": "~14.0.0",
-    "react-native-mmkv": "^3.0.0",
-    "@react-navigation/native": "latest",
-    "@react-navigation/native-stack": "latest",
-    "react-native-screens": "latest",
-    "react-native-safe-area-context": "latest"
-  },
-  "patterns": {
-    "architecture": "vertical-slicing",
-    "state": "modular-observables",
-    "components": "feature-colocated",
-    "hooks": "custom-hooks-over-utils"
-  },
-  "architectureRules": {
-    "folderStructure": {
-      "pattern": "feature-based-vertical-slicing",
-      "source": "research/planning/vertical-slicing.md:83-84",
-      "rules": [
-        {
-          "type": "folder_structure",
-          "check": "no root-level entities/ or services/ folders",
-          "correction": "move to features/*/entities/ or features/*/services/",
-          "message": "Entities and services must be colocated with features"
-        },
-        {
-          "type": "folder_structure",
-          "check": "features/* folders must not be empty",
-          "correction": "populate with {components/, hooks/, services/, state/}",
-          "message": "Features must contain complete vertical slices"
-        }
-      ]
+  "research_items": [
+    {
+      "id": "legend-state-beta-deep-dive",
+      "title": "Legend State Beta Performance Analysis",
+      "priority": "high",
+      "status": "pending",
+      "phase": "00-analysis",
+      "description": "Deep dive into Legend State @beta performance characteristics vs Redux",
+      "research_questions": [
+        "What are the breaking changes in Legend State beta?",
+        "Performance comparison benchmarks with Redux Toolkit",
+        "Production stability and bug reports from community",
+        "Migration path if fallback to Redux is needed",
+        "Memory usage characteristics under heavy state updates"
+      ],
+      "deliverables": [
+        "Performance benchmark comparison report",
+        "Risk assessment for production usage",
+        "Fallback implementation plan"
+      ],
+      "estimated_hours": 4
     },
-    "stateManagement": {
-      "pattern": "modular-observables",
-      "source": "research/tech/legend-state.md:606-631",
-      "rules": [
-        {
-          "type": "state_pattern",
-          "check": "no single monolithic state observable",
-          "correction": "split into feature-specific observables composed at app level",
-          "example": "gameState$ → {codeProductionState$, departmentState$, prestigeState$}"
-        }
-      ]
+    {
+      "id": "react-native-076-new-arch",
+      "title": "React Native 0.76 New Architecture Impact",
+      "priority": "high",
+      "status": "pending",
+      "phase": "00-analysis",
+      "description": "Understand implications of mandatory New Architecture in RN 0.76",
+      "research_questions": [
+        "Breaking changes from previous RN versions",
+        "Performance improvements and tradeoffs",
+        "Third-party library compatibility issues",
+        "Development and debugging workflow changes",
+        "Platform-specific implementation differences"
+      ],
+      "deliverables": [
+        "New Architecture migration checklist",
+        "Library compatibility matrix",
+        "Performance optimization strategies"
+      ],
+      "estimated_hours": 3
     },
-    "codePatterns": {
-      "pattern": "custom-hooks-over-utils",
-      "source": "research/tech/react-native.md:1589-1614",
-      "rules": [
-        {
-          "type": "logic_pattern",
-          "check": "no utility functions for React-specific logic",
-          "correction": "convert to custom hooks in features/*/hooks/",
-          "message": "React logic should use hooks pattern"
-        }
-      ]
+    {
+      "id": "expo-sdk-52-features",
+      "title": "Expo SDK 52 New Features and Changes",
+      "priority": "medium",
+      "status": "pending",
+      "phase": "01-foundation",
+      "description": "Research new features and changes in Expo SDK 52 that could benefit PetSoft Tycoon",
+      "research_questions": [
+        "New APIs and modules available",
+        "Breaking changes from SDK 51",
+        "Performance improvements in runtime",
+        "Build and deployment workflow changes",
+        "Platform-specific enhancements"
+      ],
+      "deliverables": [
+        "SDK 52 feature utilization plan",
+        "Migration guide from previous SDK versions",
+        "New optimization opportunities"
+      ],
+      "estimated_hours": 2
+    },
+    {
+      "id": "mobile-game-performance-benchmarks",
+      "title": "Mobile Game Performance Benchmarks and Best Practices",
+      "priority": "medium",
+      "status": "pending",
+      "phase": "02-core-features",
+      "description": "Research industry benchmarks for mobile idle/tycoon games",
+      "research_questions": [
+        "Industry standard FPS targets for different device tiers",
+        "Memory usage benchmarks for idle games",
+        "Battery consumption optimization techniques",
+        "Animation performance optimization patterns",
+        "State management scalability patterns for games"
+      ],
+      "deliverables": [
+        "Performance target matrix by device category",
+        "Optimization technique implementation guide",
+        "Battery usage optimization checklist"
+      ],
+      "estimated_hours": 3
+    },
+    {
+      "id": "idle-game-progression-curves",
+      "title": "Idle Game Progression Curve Mathematics",
+      "priority": "medium",
+      "status": "pending",
+      "phase": "03-integration",
+      "description": "Research mathematical models for balanced progression in idle games",
+      "research_questions": [
+        "Exponential vs logarithmic cost scaling formulas",
+        "Prestige system timing and reward optimization",
+        "Department synergy balance calculations",
+        "Player retention curve optimization",
+        "Endgame content pacing strategies"
+      ],
+      "deliverables": [
+        "Balanced progression formula library",
+        "Prestige system optimization model",
+        "Department interaction balance matrix"
+      ],
+      "estimated_hours": 4
+    },
+    {
+      "id": "cross-platform-audio-optimization",
+      "title": "Cross-Platform Audio Performance and Compatibility",
+      "priority": "low",
+      "status": "pending",
+      "phase": "04-quality",
+      "description": "Research audio optimization techniques for React Native apps",
+      "research_questions": [
+        "Platform-specific audio format optimization",
+        "Memory-efficient audio loading strategies",
+        "Dynamic audio system performance impact",
+        "Audio file size optimization techniques",
+        "Platform-specific audio API differences"
+      ],
+      "deliverables": [
+        "Audio optimization implementation guide",
+        "Platform-specific audio configuration",
+        "Audio asset preparation workflow"
+      ],
+      "estimated_hours": 2
+    },
+    {
+      "id": "app-store-optimization-strategies",
+      "title": "App Store Optimization for Idle Games",
+      "priority": "low",
+      "status": "pending",
+      "phase": "05-deployment",
+      "description": "Research ASO strategies specific to idle/tycoon games",
+      "research_questions": [
+        "Effective keywords for idle tycoon games",
+        "Screenshot composition best practices",
+        "App description optimization techniques",
+        "Review and rating optimization strategies",
+        "Launch timing and marketing strategies"
+      ],
+      "deliverables": [
+        "ASO strategy implementation plan",
+        "App store listing optimization checklist",
+        "Launch marketing timeline"
+      ],
+      "estimated_hours": 2
+    },
+    {
+      "id": "save-corruption-prevention",
+      "title": "Save System Corruption Prevention Techniques",
+      "priority": "high",
+      "status": "pending",
+      "phase": "04-quality",
+      "description": "Research robust save system implementation patterns for mobile games",
+      "research_questions": [
+        "Atomic save operation implementation patterns",
+        "Checksum and validation strategies",
+        "Multiple save slot and backup strategies",
+        "Save migration and versioning systems",
+        "Recovery from corrupted save data"
+      ],
+      "deliverables": [
+        "Robust save system implementation guide",
+        "Save corruption recovery procedures",
+        "Save system testing checklist"
+      ],
+      "estimated_hours": 3
     }
+  ],
+  "research_schedule": {
+    "phase_00_research_hours": 7,
+    "phase_01_research_hours": 2,
+    "phase_02_research_hours": 3,
+    "phase_03_research_hours": 4,
+    "phase_04_research_hours": 5,
+    "phase_05_research_hours": 2,
+    "total_estimated_research_hours": 23
   },
-  "validationStatus": "PASS",
-  "platformDecision": "REACT_NATIVE_EXPO",
-  "conflictResolution": {
-    "prd_specified": "web-vanilla-js",
-    "research_stack": "react-native-expo",
-    "decision": "Using React Native/Expo for cross-platform capability",
-    "rationale": "Research stack provides better long-term scalability despite 4-week timeline"
-  }
+  "knowledge_gaps": [
+    {
+      "area": "Legend State @beta production readiness",
+      "impact": "high",
+      "mitigation": "Prepare Redux fallback implementation"
+    },
+    {
+      "area": "React Native 0.76 New Architecture performance characteristics",
+      "impact": "medium",
+      "mitigation": "Thorough performance testing on target devices"
+    },
+    {
+      "area": "Idle game progression balance",
+      "impact": "medium",
+      "mitigation": "Implement A/B testing framework for tuning"
+    }
+  ],
+  "external_resources": [
+    {
+      "title": "Legend State Documentation",
+      "url": "https://legendapp.com/open-source/state/",
+      "type": "official_docs"
+    },
+    {
+      "title": "React Native New Architecture Guide",
+      "url": "https://reactnative.dev/docs/the-new-architecture/landing-page",
+      "type": "official_docs"
+    },
+    {
+      "title": "Expo SDK 52 Release Notes",
+      "url": "https://expo.dev/changelog/2024/11-12-sdk-52",
+      "type": "changelog"
+    },
+    {
+      "title": "Mobile Game Performance Optimization",
+      "url": "https://developer.android.com/games/optimize",
+      "type": "guide"
+    }
+  ]
 }

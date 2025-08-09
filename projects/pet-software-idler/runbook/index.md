@@ -1,177 +1,102 @@
-# PetSoft Tycoon Implementation Runbook
+# PetSoft Tycoon Development Runbook
+## Version 8.0 | React Native + Legend State Architecture
 
-## Generated from: petsoft-tycoon-advanced-prd-technical-requirements.md
-## Generated on: 2025-08-08
-## Platform Decision: React Native with Expo SDK
+### Overview
+This runbook provides a comprehensive, step-by-step development guide for implementing PetSoft Tycoon using React Native with Expo SDK 52 and Legend State for optimal performance. Each phase includes specific tasks, validation criteria, and executable commands.
 
-## ⚠️ Critical Platform Note
-The original PRD specified a web-based vanilla JavaScript game. This runbook implements with React Native/Expo for cross-platform mobile capability based on research stack validation. The 4-week timeline remains achievable using Expo's rapid development tools.
+### Architecture Summary
+- **Framework**: React Native 0.76+ (New Architecture mandatory)
+- **Platform**: Expo ~52.0.0 
+- **State Management**: Legend State @beta (40% performance improvement)
+- **Animation**: React Native Reanimated 3.x
+- **Routing**: Expo Router ~4.0.0
+- **TypeScript**: ^5.8.0 (strict mode enforced)
 
-## Phase Files
-1. [Analysis](./00-analysis.md) - Requirements extraction and research validation
-2. [Foundation](./01-foundation.md) - Project setup and core infrastructure (5.5 hours)
-3. [Core Features](./02-core-features.md) - Primary gameplay implementation (7.5 hours)
-4. [Integration](./03-integration.md) - Feature connections and synergies (5.5 hours)
-5. [Quality](./04-quality.md) - Testing and performance optimization (7 hours)
-6. [Deployment](./05-deployment.md) - Build and release preparation (7.5 hours)
+### Development Phases
 
-## Research Validation Status
-✅ **All packages validated against research/**
-- @legendapp/state: @beta (research/tech/legend-state.md)
-- React Native: 0.76.0 (research/tech/react-native.md)
-- Expo SDK: ~52.0.0 (research/tech/expo.md)
-- TypeScript: ^5.8.0 (research/tech/typescript.md)
+#### Phase 0: Analysis & Planning
+**File**: `00-analysis.md`
+- Requirements validation
+- Tech stack verification
+- Architecture planning
+- Risk assessment
+**Duration**: 1 day
 
-✅ **Architecture patterns enforced**
-- Vertical slicing (research/planning/vertical-slicing.md)
-- Modular observables (research/tech/legend-state.md)
-- Custom hooks pattern (research/tech/react-native.md)
+#### Phase 1: Foundation Setup
+**File**: `01-foundation.md`
+- Project initialization with Expo
+- Dependencies and configuration
+- Base architecture implementation
+- Development environment setup
+**Duration**: 2-3 days
 
-## Phase Dependencies
-```mermaid
-graph LR
-    A[Foundation] --> B[Core Features]
-    B --> C[Integration]
-    C --> D[Quality]
-    D --> E[Deployment]
-```
+#### Phase 2: Core Game Features
+**File**: `02-core-features.md`
+- Game loop implementation
+- Resource management system
+- Click mechanics and progression
+- Basic UI components
+**Duration**: 3-4 days
 
-## Quick Start Commands
+#### Phase 3: Department Systems
+**File**: `03-integration.md`
+- All 7 department implementations
+- Employee hiring and management
+- Manager automation systems
+- Prestige and investor mechanics
+**Duration**: 4-5 days
+
+#### Phase 4: Quality & Polish
+**File**: `04-quality.md`
+- Performance optimization
+- Audio and animation systems
+- Cross-platform testing
+- Save/Load robustness
+**Duration**: 3-4 days
+
+#### Phase 5: Deployment Preparation
+**File**: `05-deployment.md`
+- Build optimization
+- Platform-specific configurations
+- Testing and quality assurance
+- Launch preparation
+**Duration**: 2-3 days
+
+### Progress Tracking
+- **Progress Status**: `progress.json` - Tracks completion of each phase and task
+- **Research Queue**: `research-requirements.json` - Items requiring investigation
+
+### Prerequisites
+- Node.js 18+
+- Expo CLI latest
+- React Native development environment
+- iOS Simulator / Android Emulator
+- VS Code with TypeScript support
+
+### Quick Start
 ```bash
-# Initialize project (Phase 1)
-npx create-expo-app PetSoftTycoon --template expo-template-blank-typescript
-cd PetSoftTycoon
+# Navigate to project
+cd /mnt/c/dev/class-one-rapids/projects/pet-software-idler
 
-# Install core dependencies (Phase 1)
-npm install @legendapp/state@beta react-native-mmkv
-npm install react-native-reanimated@~3.10.0 expo-av@~14.0.0
+# Start with analysis phase
+open runbook/00-analysis.md
 
-# Start development
-npx expo start
-
-# Run tests
-npm test
-
-# Build for production (Phase 5)
-eas build --platform all --profile production
+# Track progress
+cat runbook/progress.json
 ```
 
-## Architecture Overview
-```
-src/
-├── features/              # Vertical slices
-│   ├── codeProduction/   # Complete feature
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   ├── services/
-│   │   └── state/
-│   ├── departments/
-│   ├── featureShipping/
-│   ├── prestige/
-│   └── achievements/
-├── shared/               # Cross-cutting only
-│   ├── components/
-│   ├── hooks/
-│   └── types/
-└── app/                  # Composition layer
-    ├── store/           # State composition
-    └── screens/         # Screen components
-```
+### Critical Success Factors
+1. **Performance**: Maintain 60 FPS on target devices
+2. **Cross-Platform**: Ensure consistent experience iOS/Android
+3. **State Management**: Leverage Legend State for optimal performance
+4. **Save System**: Implement robust save/load with corruption protection
+5. **User Experience**: Smooth animations and responsive interactions
 
-## Progress Tracking
-Use the progress tracking script to monitor completion:
-```bash
-./runbook-progress.sh
-```
-
-Or manually track in `progress.json`:
-```json
-{
-  "currentPhase": 1,
-  "completedTasks": [],
-  "blockers": [],
-  "notes": ""
-}
-```
-
-## Development Timeline
-
-### Week 1: Foundation + Core
-- **Day 1-2**: Phase 1 - Foundation (5.5 hours)
-- **Day 3-5**: Phase 2 - Core Features (7.5 hours)
-
-### Week 2: Integration + Polish
-- **Day 6-7**: Phase 3 - Integration (5.5 hours)
-- **Day 8-9**: Phase 4 - Quality (7 hours)
-
-### Week 3: Testing + Deployment
-- **Day 10-12**: Complete testing, bug fixes
-- **Day 13-14**: Phase 5 - Deployment (7.5 hours)
-
-### Week 4: Polish + Launch
-- **Day 15-17**: Final polish, balance tuning
-- **Day 18-19**: Store submissions
-- **Day 20**: Launch preparation
-
-## Key Implementation Decisions
-
-### State Management
-Using Legend State v3 (@beta) with modular observables:
-- Feature-specific state slices
-- Composition at app level
-- MMKV persistence
-- Computed values for derived state
-
-### Performance Targets
-- 60 FPS on mid-range devices (A12 Bionic / Snapdragon 855)
-- <150MB memory usage
-- <16ms input response time
-- <3 second cold start
-
-### Testing Strategy
-- Unit tests with Jest (>80% coverage)
-- Integration tests for features
-- E2E tests with Maestro
-- Performance profiling throughout
-
-## Risk Mitigation
-
-### High Priority
-1. **Platform Change Risk**: Using React Native instead of vanilla JS
-   - Mitigation: Expo's tools accelerate development
-   
-2. **Performance Risk**: 60 FPS target on older devices
-   - Mitigation: Continuous profiling, React.memo, optimization
-
-### Medium Priority
-1. **State Complexity**: Legend State learning curve
-   - Mitigation: Start simple, refactor as needed
-   
-2. **Cross-Platform Issues**: iOS/Android differences
-   - Mitigation: Regular testing on both platforms
-
-## Success Criteria
-- [ ] All user stories implemented
-- [ ] 60 FPS performance achieved
-- [ ] Test coverage >80%
-- [ ] iOS and Android builds working
-- [ ] Store submissions approved
-- [ ] Offline progression functional
-- [ ] Save system reliable
-
-## Support Resources
-- [Expo Documentation](https://docs.expo.dev)
-- [Legend State v3 Docs](https://legendapp.com/open-source/state/v3)
-- [React Native Testing Library](https://callstack.github.io/react-native-testing-library/)
-- [Maestro Documentation](https://maestro.mobile.dev)
-
-## Notes
-- This runbook follows research-validated patterns and package versions
-- Architecture enforces vertical slicing with no horizontal layers
-- All state management uses modular observables
-- Custom hooks required for React logic (no utils)
+### Support Resources
+- Technical Requirements: `petsoft-tycoon-advanced-prd-technical-requirements.md`
+- Research Quick-Ref: `/research/quick-ref.md`
+- Architecture Patterns: Vertical slicing by feature
+- Performance Monitoring: Built-in FPS and memory tracking
 
 ---
-
-*Total Estimated Development Time: 33 hours*
-*Recommended Schedule: 4 weeks with buffer for testing and polish*
+**Next Step**: Begin with Phase 0 - Analysis (`00-analysis.md`)

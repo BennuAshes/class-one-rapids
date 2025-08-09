@@ -101,38 +101,22 @@ echo "✅ Creating runbook in: $OUTPUT_DIR"
    - Feature specifications
    - Dependencies and constraints
 
-2. Load decomposition methodology from research/planning/structured-task-decomposition-research.md
+2. **OPTIMIZED RESEARCH LOADING** - Load ultra-condensed research summary
+   - Read research/quick-ref.md (200 tokens total) for ALL package versions and patterns
+   - This single file contains all critical information from research/*
 
 3. **AUTOMATIC RESEARCH VALIDATION AND PACKAGE EXTRACTION**
    
-   **Step 3.1: Build Package Version Map from Research**
-   - Scan ALL research/tech/*.md files automatically:
-     ```bash
-     # Pseudo-code for extraction logic
-     for file in research/tech/*.md:
-       - Search for: npm install, yarn add, pnpm add, package.json dependencies
-       - Extract package names and versions/tags
-       - Build version map: { package: version/tag }
-     ```
-   - Common patterns to extract:
-     - `@legendapp/state@beta` → Use @beta tag
-     - `react-native@0.76` → Use specific version
-     - `expo@~52.0.0` → Use SDK version
-     - Any @next, @canary, @latest tags
+   **Step 3.1: Extract Package Versions from Quick-Ref**
+   - Package versions are pre-validated in research/quick-ref.md
+   - All versions include correct tags (@beta, @next, specific versions)
+   - No need to scan multiple files - everything is in quick-ref.md
    
-   **Step 3.2: Extract Architecture Patterns from Research**
-   - From research/planning/vertical-slicing.md:
-     - Feature-based folder organization
-     - Single responsibility per feature
-     - Co-location of related code
-   - From research/tech/react-native.md:
-     - Custom hooks over utility functions
-     - Component organization patterns
-     - Platform-specific code patterns
-   - From research/tech/legend-state.md:
-     - Modular observable patterns
-     - Computed observable usage
-     - Batch update patterns
+   **Step 3.2: Extract Architecture Patterns from Quick-Ref**
+   - Vertical slicing: features/* structure
+   - Modular observables with $ suffix
+   - Custom hooks over utility functions
+   - All patterns pre-validated and condensed
    
    **Step 3.3: Validate PRD Against Research**
    - For EVERY technology mentioned in PRD:
