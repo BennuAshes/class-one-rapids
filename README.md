@@ -1,53 +1,92 @@
 # Class One Rapids
 Class one rapids are straight, fast, and a smooth ride. That's what this system aims to be.
-
 ## Main flow in the end
 ```
-/create-prd (outputs: "prd.md")
-/add-tech-prd [prd.md] (outputs: "prd-technical.md")
-/create-runbook [technical-prd] (outputs: runbook folder)
+# outputs: "prd.md"
+/create-prd
+# outputs: "prd-technical.md"
+/add-tech-prd prd.md
+# outputs: runbook folder
+/create-runbook technical-prd.md
+```
+## Phase 0 - Setup
+Create a CLAUDE.md, Cursor rule or similar that says,
+```
+Be concise
+If doing research, make sure you look in the /research folder before searching the web. Do not search the web if there is something that matches in the /research folder
+Do not guess, ask questions if you are not confident about something
+
+```
+## Phase 1 - Create the basic commands
+### A system for self-bootstrapping a context engineering system.
+```
+/create-command # create a command that creates commands 
+/research # use that to create a command that researches a topic:
+/research best practices for context engineering and prompt engineering and put it in /research/agentic
+/research best practices for [LLM] prompting and context and put it in /research/agentic
+/research best practices creating slash commands in [for your IDE/host, eg Cursor, Claude Code, etc] using the most recent documentation and put it in /research/agentic
+/create-command-advanced - read all the files in the folder /research to create an advanced create-command 
+
+```
+## Phase 2 - Create Research
+```
+/research-advanced - use research and the new advanced command to create an advanced research command
+(optional) /research-advanced [any of the research topics in phase 1]
+/research-advanced product requirements document
+/research-advanced best practices for [each framework used]
+/research-advanced best practices for [language used]
+/research-advanced best practices for state management
+/research-advanced best practices for [specific state management you like] {optional}
+/research-advanced software development cycle
+/research Create a file "roles.md" of the different roles within the software development cycle. Be concise and only list the roles as a bulleted list (using '-')
+/research-advanced each role in roles.md and save a different file for each role. put these in a folder "/research/roles"
+/research-advanced vertical slicing
+/research-advanced SOLID principles
+(optiona) /research-advanced automated testing best practices for [framework or language] including unit, component, integration, e2e, and contract testing
+(optional) /research-advanced [specific framework + testing suite, eg "react-native expo component testing with testing-library"
+
+```
+Phase 3 - Create Flow Commands
+```
+/create-command-advanced that creates a file for a prd based on a md file or text entered using a name based on the contents of the PRD
+/create-command-advanced that adds a section to each user-story, directly under the user-story. do not change any part of the user story itself, only add technical details
+/create-command-advanced that creates a runbook for an AI Agent to follow using the research in /research/agentic. This runbook should follow the specifications in the technical section of the inputed PRD (which should have a technical section under each story)
+/create-command-advanced that executes a runbook by assuming the role of the /research/roles/
 ```
 
-## Phase 1 - create-command and research
-A system for self-bootstrapping a context engineering system.
+Phase 3 - Generate an app/create features
+```
+/research-advanced Idler/clicker games
+/research-advanced design documents for games
+/create-command-advanced Create a command that does the follow, "Use /research/games folder to create a design document by using ULTRATHINK and think deeper and think longer"
+/create-prp design-doc.md
+/add-tech-prd prp.md
+/create-runbook prp-technical.md
+/execute-runbook /path/to/runbook/
+```
+## Paradigm and other commands to create
 
-1) /create-command - create a command that creates commands 
-2) /research - use that to create a command that researches a topic:
-    - research best practices for context engineering and prompt engineering
-    - research best practices for gpt5 prompting and context    
-    - research best practices creating slash commands in [for your IDE/host, eg Cursor, Claude Code, etc] using the most recent documentation
-3) /create-command-advanced - use research to create an advanced create-command
-4) /research-advanced - use research and the new advanced command to create an advanced research command
-
-
-## Paradigm
+### Explanation
 - Research folder organized by topic (planning, tech, etc)
-- Commands reference the research folder as needed
-- Runbook created using gates that confirm with research based on a PRD with technical details
-- Runbook is split into files that can be internally marked or physically moved for local kanban
+- Commands reference the research folder and subfolders as needed
+- Runbook created using gates that confirm with research based on a PRD+technical details
+- Runbook is split into files, verstile:
+  - mark progress in the file
+  - physically moved for local kanban system
 - Each step validates itself against the research
-- Role assumed for each step
-- Final step: use role + runbook to execute
+- Role/persona used for each step
 
-## Generating the Main Commands
+### Experimental
+```
+# checks the flow by looking at the README.md (which should list the flow, can be created via a prompt) and the commands being used, and traces down what is causing concerns with the results
+/analyze-flow [what went wrong with the flow]
 
-### Research first
-/research product requirements document
-/research best practices for [each framework used]
-/research best practices for [language used]
-/research best practices for state management
-/research best practices for [specific state management you like] {optional}
-/research software development cycle
-Using [research for software-development-cycle.md] , create a role/persona for each role typically used during the 
-/research vertical slicing
-/research SOLID principles
-/research automated testing best practices for [framework or language] including unit, component, e2e, and contract testing. 
-/create-command-advanced that creates a prd based on a md file or text entered. create a file called "prd-[timestamp].md"
-/create-command-advanced that adds a section to each user-story, with the story, underneath the main details. do not change any part of the user story itself, only add technical details.
+# "Compresses" research into smaller chunks to reduce token usage = uses /research/agentic to make smart decisions about what to keep and what to remove
+/compress-research [research-file.md] 
+```
 
-## Self-healing
-/analyze-flow - checks the flow and the commands being used, and traces down what is causing concerns with the results
-
-
-## Experimental
-/compress-research - takes in a research md and outputs a stripped down version that contains only a summary optimized for use by Agentic AI.
+### Brainstorming
+- the idea of having the "creative" mind of the LLM create logical checks by creating scripts that can, in a very concrete way, verify logic. This is a human approach (e.g. using a linter to prevent silly mistakes).
+- research organized and used via tags
+- hook watching for changes in research folder -> update single files? INDEX.md within each subfolder? "Read each INDEX.md within each subfolder of the /research folder
+- once things are working more consistently, condense into two commands, generate + execute
