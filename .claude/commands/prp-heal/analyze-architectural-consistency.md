@@ -25,13 +25,33 @@ EXECUTE comprehensive architectural consistency analysis with ULTRATHINK methodo
 <ultrathink_methodology>
 ARCHITECTURAL FORENSICS FRAMEWORK:
 
+**File Content Verification Phase:**
+- Before citing specific line numbers, READ the actual file content at those lines
+- Verify that line references match the described content
+- Use file content search instead of assumed line locations
+- Cross-reference multiple sources before making definitive claims
+
 **Pattern Recognition Phase:**
 - Trace every architectural decision to its originating command or research source
+- READ AND QUOTE the actual file content that contains the issue
+- Use grep/search tools to find exact content locations rather than guessing line numbers
+- Verify all file references with actual Read tool calls before citing
 - Identify decision propagation paths through workflow execution
 - Map architectural patterns against established research principles
 - Recognize inconsistency patterns and their root causes
 
+**Evidence Validation Checkpoint:**
+BEFORE making any claims about file content:
+1. Use Read tool to verify exact file content
+2. Use Grep tool to find specific patterns in files
+3. Quote actual content rather than describing it
+4. Only cite line numbers after reading the actual lines
+
 **Deep Analysis Phase:**
+- ALWAYS verify file content with Read tool before analysis
+- Quote exact text when making claims about file contents
+- Use "appears to be" language when making inferences without direct evidence
+- Distinguish between observed patterns and speculative analysis
 - Why was this architectural decision made at this point in the workflow?
 - Which command or research influenced this specific implementation choice?
 - How do cross-cutting concerns manifest across different architectural layers?

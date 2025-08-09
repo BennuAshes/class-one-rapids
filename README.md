@@ -13,13 +13,15 @@
    - Flags any technologies not covered by research
 
 ### Phase 2: Runbook Generation
-3. **NAVIGATE TO PROJECT DIRECTORY FIRST**: `cd projects/{project-name}/`
+3. **⚠️ CRITICAL: NAVIGATE TO PROJECT DIRECTORY FIRST**: `cd projects/{project-name}/`
+   - The command will ERROR if not run from a project directory
+   - This prevents runbooks being created in wrong locations
 4. `/create-development-runbook-v2` ./prd-filename.md
    - Automatically scans research/ for package versions
    - Injects correct versions into all install commands
    - Validates architecture patterns against research
    - Creates research-requirements.json with all validations
-   - Default output: ./runbook/ directory
+   - Default output: ./runbook/ directory (relative to PRD location)
 
 ### Phase 3: Architecture Validation
 5. `/validate-architecture-alignment` ./runbook/

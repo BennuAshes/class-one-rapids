@@ -1,7 +1,7 @@
 ---
-description: Validate planned runbook architecture against research principles before implementation begins
-argument-hint: <runbook-path>
-allowed-tools: ["Task", "Read", "Glob", "Write", "Edit", "Bash", "TodoWrite", "LS"]
+description: Validate project architecture against research patterns with automatic violation detection and optional auto-correction
+argument-hint: <project-or-runbook-path> [--fix] [--verbose]
+allowed-tools: ["Task", "Read", "Glob", "Write", "Edit", "Bash", "TodoWrite", "LS", "Grep"]
 ---
 
 EXECUTE architecture validation gateway with research principle verification: $ARGUMENTS
@@ -24,82 +24,147 @@ EXECUTE architecture validation gateway with research principle verification: $A
 
 <parallel_execution>Optimize validation by concurrent verification of: directory structure patterns, state management design, component organization, and naming conventions against research standards</parallel_execution>
 
-**PHASE 1: RUNBOOK ARCHITECTURE EXTRACTION**
-Parse implementation runbook to extract planned architectural decisions:
+**PHASE 1: ARCHITECTURE RULES LOADING AND PROJECT ANALYSIS**
 
-1. **Read and analyze the runbook** to extract:
-   - Planned directory structure and organization
-   - State management architecture approach
-   - Component organization patterns
-   - Naming convention standards
-   - Technology integration patterns
-   - Feature boundary definitions
+1. **Load Architecture Rules from JSON**:
+   ```bash
+   # Check for research-requirements.json
+   if [ -f "$PROJECT_PATH/runbook/research-requirements.json" ]; then
+     RULES=$(cat "$PROJECT_PATH/runbook/research-requirements.json")
+   else
+     # Extract rules from research if not present
+     RULES=$(extract_architecture_rules_from_research)
+   fi
+   ```
 
-2. **Map runbook architecture** against intended patterns:
-   - Identify vertical slicing application
-   - Extract feature-based organization approach
-   - Analyze component placement strategy
-   - Review state management modularization
+2. **Analyze Current Project Structure**:
+   - Scan actual directory structure
+   - Identify state management patterns
+   - Detect component organization
+   - Find utility vs hook patterns
+   - Map feature boundaries
 
-**PHASE 2: RESEARCH PRINCIPLE VALIDATION**
-Validate planned architecture against established research foundations:
+3. **Extract Architecture Rules from JSON**:
+   ```json
+   architectureRules: {
+     folderStructure: { rules: [...] },
+     stateManagement: { rules: [...] },
+     codePatterns: { rules: [...] },
+     componentPatterns: { rules: [...] }
+   }
+   ```
 
-## VERTICAL SLICING COMPLIANCE CHECK
-Load research/planning/vertical-slicing.md and validate:
-- [ ] **Feature-Based Organization**: Each feature in own folder with complete functionality
-- [ ] **High Cohesion Within Slices**: Related functionality grouped together
-- [ ] **Low Coupling Between Slices**: Minimal dependencies between features
-- [ ] **INVEST Criteria Application**: Features are Independent, Negotiable, Valuable, Estimable, Small, Testable
-- [ ] **No Horizontal Layering**: Entities/utilities integrated within features, not separate layers
+**PHASE 2: AUTOMATED ARCHITECTURE VALIDATION**
+Apply architecture rules from JSON to detect violations:
 
-## REACT NATIVE STANDARDS COMPLIANCE CHECK
-Load research/tech/react-native.md and validate:
-- [ ] **Component Organization**: Follows established React Native project structure patterns
-- [ ] **Custom Hooks Pattern**: Reusable logic implemented as hooks, not utility functions
-- [ ] **Naming Conventions**: Consistent PascalCase for components, established patterns followed
-- [ ] **Direct Import Patterns**: No unnecessary index.ts re-export files
-- [ ] **Platform Standards**: Mobile-specific patterns, not web development translations
+## FOLDER STRUCTURE VALIDATION
+For each rule in `architectureRules.folderStructure.rules`:
+```bash
+# Example validation check
+if [ -d "src/entities" ]; then
+  VIOLATION: "Root-level entities folder detected"
+  SOURCE: "research/planning/vertical-slicing.md:83-84"
+  FIX: "Move to features/*/entities/"
+  if [ "$FIX_FLAG" = true ]; then
+    # Auto-correct: Move entities to features
+    mv src/entities/* src/features/*/entities/
+  fi
+fi
+```
 
-## LEGEND STATE ARCHITECTURE COMPLIANCE CHECK
-Load research/tech/legend-state.md and validate:
-- [ ] **Modular State Architecture**: Feature-specific observables, not monolithic state
-- [ ] **State Co-location**: State managed within features where used
-- [ ] **Observable Composition**: Higher-level state composed from feature-specific observables
-- [ ] **Performance Patterns**: Proper fine-grained reactivity implementation
+## STATE MANAGEMENT VALIDATION
+For each rule in `architectureRules.stateManagement.rules`:
+```bash
+# Check for monolithic state
+if grep -q "observable({.*resources.*departments.*prestige.*})" src/**/*.ts; then
+  VIOLATION: "Monolithic state store detected"
+  SOURCE: "research/tech/legend-state.md:606-631"
+  FIX: "Split into feature observables"
+  if [ "$FIX_FLAG" = true ]; then
+    # Auto-correct: Generate modular state files
+    create_feature_state_files()
+  fi
+fi
+```
 
-## TASK DECOMPOSITION COMPLIANCE CHECK
-Load research/planning/structured-task-decomposition-research.md and validate:
-- [ ] **Atomic Actionability**: Each task fully implementable as described
-- [ ] **Cognitive Load Management**: Directory structure respects Miller's 7±2 rule
-- [ ] **Progressive Elaboration**: Detailed tasks for near-term work, high-level for future
-- [ ] **No Empty Structures**: All planned directories have implementation content
+## CODE PATTERN VALIDATION
+For each rule in `architectureRules.codePatterns.rules`:
+```bash
+# Check for utils instead of hooks
+if [ -f "src/shared/utils/*.ts" ]; then
+  VIOLATION: "Utility functions for React logic"
+  SOURCE: "research/tech/react-native.md:1589-1614"
+  FIX: "Convert to custom hooks"
+  if [ "$FIX_FLAG" = true ]; then
+    # Auto-correct: Convert utils to hooks
+    convert_utils_to_hooks()
+  fi
+fi
+```
 
-**PHASE 3: VALIDATION GATE DECISION**
-Apply strict validation criteria to determine implementation approval:
+## COMPONENT PATTERN VALIDATION
+For each rule in `architectureRules.componentPatterns.rules`:
+```bash
+# Check component organization
+if [ -d "src/components" ]; then
+  VIOLATION: "Type-based component organization"
+  SOURCE: "research/planning/vertical-slicing.md:16-19"
+  FIX: "Move to feature-scoped components"
+  if [ "$FIX_FLAG" = true ]; then
+    # Auto-correct: Reorganize components by feature
+    reorganize_components_by_feature()
+  fi
+fi
+```
 
-<validation_gate>
-IMPLEMENTATION GATE CRITERIA:
+**PHASE 3: AUTO-CORRECTION IMPLEMENTATION (if --fix flag)**
+When violations are detected and --fix is enabled:
 
-**PASS CONDITIONS (All must be true):**
-- Vertical slicing compliance: 100% (all checklist items pass)
-- React Native standards compliance: 100% (all checklist items pass)
-- Legend State architecture compliance: 100% (all checklist items pass)
-- Task decomposition compliance: 100% (all checklist items pass)
-- No forbidden architectural patterns detected
-- All planned features have complete implementation tasks
+## MONOLITHIC STATE FIX
+```typescript
+// BEFORE: src/app/store/gameStore.ts
+export const gameState$ = observable({
+  resources: {...},
+  departments: {...},
+  prestige: {...}
+})
 
-**FAIL CONDITIONS (Any triggers implementation block):**
-- Any research compliance check fails
-- Horizontal layering patterns detected (src/entities/, src/utils/ outside features)
-- Monolithic state architecture planned
-- Empty directory creation without implementation content
-- Non-React Native patterns (index.ts files, utility functions instead of hooks)
-- Inconsistent naming conventions
+// AFTER AUTO-CORRECTION:
+// src/features/resources/state/index.ts
+export const resourceState$ = observable({...})
 
-**VALIDATION ACTIONS:**
-- **PASS**: Generate approval with research principle confirmation
-- **FAIL**: Block implementation with specific violation details and remediation guidance
-</validation_gate>
+// src/features/departments/state/index.ts  
+export const departmentState$ = observable({...})
+
+// src/app/store/index.ts
+export const gameState$ = observable({
+  resources: resourceState$,
+  departments: departmentState$
+})
+```
+
+## EMPTY FEATURE FIX
+```bash
+# Auto-populate empty feature directories
+for feature in src/features/*; do
+  if [ -z "$(ls -A $feature)" ]; then
+    mkdir -p $feature/{components,hooks,services,state}
+    echo "export {}" > $feature/index.ts
+  fi
+done
+```
+
+## UTILS TO HOOKS CONVERSION
+```typescript
+// BEFORE: src/shared/utils/formatting.ts
+export function formatNumber(n) { return n.toLocaleString() }
+
+// AFTER: src/features/display/hooks/useFormatting.ts
+export const useFormatting = () => {
+  const formatNumber = useCallback((n) => n.toLocaleString(), [])
+  return { formatNumber }
+}
+```
 
 **PHASE 4: VIOLATION REPORTING AND REMEDIATION GUIDANCE**
 When validation fails, provide specific guidance for runbook correction:
@@ -133,39 +198,61 @@ VIOLATION REMEDIATION FRAMEWORK:
 </remediation_guidance>
 
 **PHASE 5: VALIDATION REPORT GENERATION**
-Generate comprehensive validation report:
+Generate comprehensive JSON-based validation report:
 
-<report_structure>
+```markdown
 # Architecture Validation Report
 
-## Validation Summary
+## Summary
+- **Project**: [path]
+- **Date**: [timestamp]
+- **Mode**: [validate-only | auto-fix]
 - **Overall Status**: [PASS/FAIL]
-- **Research Compliance Score**: [X/4 frameworks passed]
-- **Critical Violations**: [Count of blocking issues]
-- **Implementation Approval**: [APPROVED/BLOCKED]
+- **Total Violations**: [count]
+- **Auto-Fixed**: [count if --fix enabled]
 
-## Research Principle Compliance
-### Vertical Slicing Compliance: [PASS/FAIL]
-- [Detailed checklist results]
+## Violations by Category
 
-### React Native Standards Compliance: [PASS/FAIL]
-- [Detailed checklist results]
+### Folder Structure (X violations)
+| Violation | Location | Rule Source | Fix Applied |
+|-----------|----------|-------------|-------------|
+| Root-level entities folder | /src/entities | research/planning/vertical-slicing.md:83-84 | ✅ Moved to features/*/entities |
+| Empty feature folders | /src/features/codeProduction | research/planning/vertical-slicing.md:16-19 | ✅ Populated with required structure |
 
-### Legend State Architecture Compliance: [PASS/FAIL]
-- [Detailed checklist results]
+### State Management (X violations)
+| Violation | File | Rule Source | Fix Applied |
+|-----------|------|-------------|-------------|
+| Monolithic state store | /src/app/store/gameStore.ts | research/tech/legend-state.md:606-631 | ✅ Split into feature observables |
 
-### Task Decomposition Compliance: [PASS/FAIL]
-- [Detailed checklist results]
+### Code Patterns (X violations)
+| Violation | File | Rule Source | Fix Applied |
+|-----------|------|-------------|-------------|
+| Utility functions for React logic | /src/shared/utils/gameUtils.ts | research/tech/react-native.md:1589-1614 | ✅ Converted to custom hooks |
 
-## Violation Details
-[Specific violations with remediation guidance]
+## Architecture Rules Applied
+```json
+{
+  "source": "research-requirements.json",
+  "rulesApplied": {
+    "folderStructure": 5,
+    "stateManagement": 3,
+    "codePatterns": 4,
+    "componentPatterns": 2
+  }
+}
+```
 
-## Remediation Requirements
-[Required changes before implementation approval]
+## Recommendations
+- Review auto-corrections in version control before committing
+- Run tests to ensure functionality preserved
+- Update imports after file reorganization
 
-## Research References
-[Specific research file citations supporting validation decisions]
-</report_structure>
+## Research Alignment Score
+- **Vertical Slicing**: 95% compliant
+- **Legend State Patterns**: 90% compliant
+- **React Native Standards**: 88% compliant
+- **Overall Architecture Score**: 91%
+```
 
 **QUALITY ASSURANCE VALIDATION**
 Ensure validation completeness and accuracy:

@@ -51,22 +51,48 @@ This command processes implementation runbooks and executes them using the techn
 
 ### Architecture Pattern Auto-Validation
 
-**Directory structures and code patterns are AUTOMATICALLY validated:**
+**Directory structures and code patterns are AUTOMATICALLY validated against research-requirements.json:**
 
-1. **Vertical Slicing Enforcement**:
-   - When creating directories: Auto-check against research/planning/vertical-slicing.md
-   - If non-compliant structure detected: Auto-correct to feature-based organization
-   - Log all structural corrections
+1. **Architecture Rules Loading**:
+   ```
+   On command start:
+   - Load research-requirements.json from runbook directory
+   - Extract architectureRules section
+   - Build validation engine from rules
+   ```
 
-2. **Code Pattern Enforcement**:
-   - Custom hooks over utilities (from react-native.md)
-   - Modular observables (from legend-state.md)
-   - Component co-location (from vertical-slicing.md)
+2. **Real-Time Architecture Validation**:
+   ```
+   For EVERY file creation/modification:
+   - Check against architectureRules.folderStructure
+   - Check against architectureRules.stateManagement
+   - Check against architectureRules.codePatterns
+   - Check against architectureRules.componentPatterns
+   ```
 
-3. **Real-Time Validation During Execution**:
-   - Every file creation checked against patterns
-   - Every import validated for correct patterns
-   - Automatic suggestions for pattern improvements
+3. **Automatic Architecture Corrections**:
+   ```bash
+   # Example: Creating monolithic state
+   Task: Create gameStore.ts with all game state
+   
+   ⚠️ Architecture Violation Detected:
+   Rule: stateManagement.modular-observables
+   Source: research/tech/legend-state.md:606-631
+   Issue: Monolithic state observable detected
+   
+   ✅ Auto-Correction Applied:
+   - Created: features/resources/state/resourceState.ts
+   - Created: features/departments/state/departmentState.ts
+   - Created: features/prestige/state/prestigeState.ts
+   - Created: app/store/index.ts (composition only)
+   Log: "Split monolithic state into feature observables"
+   ```
+
+4. **Pattern Enforcement Examples**:
+   - **Folder Structure**: Empty features → populate with required subdirs
+   - **State Management**: Single store → modular feature stores
+   - **Code Patterns**: Utils → custom hooks for React logic
+   - **Components**: Shared components → feature-scoped components
 
 ## Core Capabilities
 
@@ -158,21 +184,28 @@ This command processes implementation runbooks and executes them using the techn
 └── Create session context summary
 ```
 
-### 3. Phase-by-Phase Execution
+### 3. Phase-by-Phase Execution with Architecture Validation
 ```
 🚀 EXECUTING CURRENT PHASE
 ├── Load complete current phase file
+├── Load research-requirements.json with architecture rules
 ├── Load summary of previous phases (if any)
 ├── For each Work Package in phase:
 │   ├── Read task requirements
-│   ├── **AUTO-VALIDATE: Check ALL install commands against research**
+│   ├── **AUTO-VALIDATE PACKAGES: Check ALL install commands against research**
 │   │   ├── Automatically correct versions to match research
-│   │   ├── Log all corrections for transparency
+│   │   ├── Log all package corrections for transparency
 │   │   └── Proceed with corrected versions
+│   ├── **AUTO-VALIDATE ARCHITECTURE: Check ALL code generation**
+│   │   ├── Validate folder structure against architectureRules
+│   │   ├── Validate state patterns against architectureRules
+│   │   ├── Auto-correct violations (split stores, move files, etc.)
+│   │   ├── Log all architecture corrections with research references
+│   │   └── Generate compliant code structure
 │   ├── Write tests (TDD approach)
-│   ├── Implement solution
+│   ├── Implement solution with validated architecture
 │   ├── Validate success criteria
-│   ├── Update progress.json
+│   ├── Update progress.json with architecture decisions
 │   └── Log decisions made
 ├── Generate phase completion summary
 └── Prepare handoff for next phase
