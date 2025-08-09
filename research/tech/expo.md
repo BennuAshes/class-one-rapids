@@ -26,8 +26,8 @@ Expo is a comprehensive platform and framework for React Native development that
 - **Cloud-Based Infrastructure**: Provides cloud services for building, updating, and deploying apps
 - **Developer Experience**: Streamlines the entire mobile development lifecycle
 
-### Official Status (2024)
-As of 2024, Expo has become the **official framework** recommended by the React Native team for building React Native projects, marking a significant shift in the mobile development landscape.
+### Official Status (2024-2025)
+As of 2024-2025, Expo has become the **official framework** recommended by the React Native team for building React Native projects, with over 50% market share of React Native projects now using Expo.
 
 ### Key Benefits
 - Zero native configuration required to get started
@@ -56,7 +56,7 @@ The Expo SDK provides access to nearly all device and system functionality:
 - **Authentication**: Social logins, biometric authentication
 
 ### Modern Architecture Support
-- **New Architecture**: React Native's new architecture is enabled by default in SDK 52+
+- **New Architecture**: React Native's new architecture is enabled by default in SDK 53+
 - **JSI Integration**: JavaScript Interface for seamless native code communication
 - **Fabric Renderer**: Improved UI rendering performance
 - **TurboModules**: Enhanced native module performance
@@ -985,19 +985,20 @@ describe('CustomButton', () => {
 
 ## Recent Updates and Future Direction
 
-### 2024 Major Updates
+### 2024-2025 Major Updates
 
-#### Expo SDK 52 (November 2024)
+#### Expo SDK 53 (Current Stable - Mid 2025)
+- **React Native 0.79 Support**: Latest stable React Native version
 - **New Architecture by Default**: All new projects use React Native's new architecture
-- **React Navigation v7**: Updated navigation library with breaking changes
-- **expo-video Stable**: Complete rewrite of video handling library
-- **expo-audio Beta**: New audio library with modern API
-- **React Server Components**: Early preview support
+- **Platform Support**: Android 7+ and iOS 15.1+
+- **Enhanced Performance**: Continued JSI and TurboModule optimizations
+- **Build Infrastructure**: M4 Pro workers for faster EAS Build times
 
 #### Platform Requirements Updates
-- **iOS**: Minimum deployment target raised from 13.4 to 15.1
-- **Android**: minSdkVersion bumped from 23 to 24, compileSdkVersion from 34 to 35
-- **React Native 0.77**: Default React Native version in SDK 52
+- **iOS**: Minimum deployment target 15.1, requires Xcode 16.0+
+- **Android**: Minimum SDK 24 (Android 7.0)
+- **React Native 0.79**: Current stable version in SDK 53
+- **React Native 0.80 Preview**: Available in canary releases
 
 #### New Libraries and APIs
 - **expo/fetch**: WinterCG-compliant Fetch API with streaming support
@@ -1007,10 +1008,15 @@ describe('CustomButton', () => {
 
 ### 2025 Roadmap
 
-#### Upcoming SDK Releases
-- **SDK 53 (Spring 2025)**: React Native 0.79 support, New Architecture enabled by default
-- **SDK 54 (Late Summer 2025)**: React Native 0.81 support
-- **Release Cadence**: Three releases per year, targeting every second React Native release
+#### Current Status (Mid 2025)
+- **SDK 53**: Current stable release with React Native 0.79
+- **SDK 54 Development**: React Native 0.80 support in canary releases
+- **Release Cadence**: Three releases per year, following React Native major versions
+
+#### Development Tools Evolution
+- **EAS Build Improvements**: M4 Pro workers for faster builds
+- **Enhanced Dashboard**: New project sidebar, custom avatars, project icons
+- **Build Comparison Tools**: Improved analysis and debugging capabilities
 
 #### React Server Components
 - **Full Implementation**: Complete React Server Components support

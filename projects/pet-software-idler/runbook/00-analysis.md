@@ -1,177 +1,209 @@
-# Runbook Analysis: PetSoft Tycoon MVP
+# Phase 0: Requirements Analysis & Tech Stack Validation
 
-## Research Validation Status
-- ✅ Package versions extracted from research
-- ✅ Architecture patterns validated
-- ✅ All technologies cross-referenced
-- ⚠️ Platform conflict resolved: Using React Native/Expo instead of vanilla JS
+## Objectives
+- Validate technical requirements against current ecosystem
+- Confirm architecture decisions
+- Assess implementation risks
+- Establish development environment requirements
 
-## Critical Platform Decision
-**PRD Specified:** Web-based with vanilla JavaScript  
-**Research Stack:** React Native with Expo SDK  
-**Decision:** Implementing with React Native/Expo for cross-platform capability  
-**Impact:** Development approach changes but timeline remains achievable with Expo's rapid development tools
+## Tasks Checklist
 
-## Extracted Requirements
+### 1. Tech Stack Verification
+- [ ] **Expo SDK 52 Availability Check**
+  ```bash
+  npx expo --version
+  npx create-expo-app --template blank-typescript temp-check
+  cd temp-check && cat package.json | grep expo
+  rm -rf temp-check
+  ```
+  **Validation**: Expo version should be ~52.0.0
 
-### Business Objectives
-- Build an idle clicker game simulating a pet software company
-- Progress from garage startup to billion-dollar empire
-- Seven interconnected departments with automation
-- Prestige system for meta-progression
-- 4-week development timeline (3 weeks dev + 1 week polish)
+- [ ] **Legend State Beta Compatibility**
+  ```bash
+  npm info @legendapp/state versions --json | grep beta
+  ```
+  **Validation**: Beta version available, React 18 compatible
 
-### Success Metrics
-- D1 retention >40%, D7 >20%, D30 >10%
-- Average session length 8+ minutes
-- 90% tutorial completion rate
-- 60 FPS performance on mid-range devices
+- [ ] **React Native 0.76+ New Architecture**
+  ```bash
+  npx react-native --version
+  ```
+  **Validation**: Version 0.76 or higher required
 
-### Core Features
-1. **Click-to-Code Mechanic** - Primary interaction loop
-2. **Feature Shipping** - Code-to-revenue conversion
-3. **Department Management** - Seven departments with workers and managers
-4. **Automation System** - Manager-driven offline progression
-5. **Prestige System** - Reset for permanent bonuses
-6. **Achievement System** - Goals and rewards
-7. **Save System** - Automatic saves with offline progression
+### 2. Development Environment Assessment
+- [ ] **Node.js Version Check**
+  ```bash
+  node --version
+  npm --version
+  ```
+  **Validation**: Node 18+ required
 
-## Validated Package Versions (from research/)
-```json
-{
-  "@legendapp/state": "@beta",
-  "react-native": "0.76.0",
-  "expo": "~52.0.0",
-  "typescript": "^5.8.0",
-  "@testing-library/react-native": "^12.4.0",
-  "jest-expo": "^51.0.0",
-  "react-native-reanimated": "~3.10.0",
-  "expo-av": "~14.0.0",
-  "react-native-mmkv": "^3.0.0"
-}
+- [ ] **Platform Development Tools**
+  ```bash
+  # iOS (macOS only)
+  xcode-select --version
+  xcrun simctl list devices
+  
+  # Android
+  $ANDROID_HOME/tools/bin/sdkmanager --list | grep "build-tools"
+  ```
+  **Validation**: Latest Xcode + Android SDK 23+
+
+- [ ] **VS Code Extensions**
+  - TypeScript support
+  - ES7+ React/Redux/React-Native snippets
+  - React Native Tools
+  - Expo Tools
+
+### 3. Architecture Validation
+
+- [ ] **Performance Requirements Analysis**
+  | Metric | Target | Feasibility | Notes |
+  |--------|--------|-------------|-------|
+  | Frame Rate | 60 FPS | ✅ High | Reanimated 3.x + New Arch |
+  | Load Time | <3 seconds | ✅ High | Bundle splitting + Hermes |
+  | Memory Usage | <50MB | ⚠️ Medium | Requires optimization |
+  | Battery Usage | <5% per hour | ✅ High | Legend State efficiency |
+
+- [ ] **Cross-Platform Compatibility Matrix**
+  | Feature | iOS | Android | Web | Risk Level |
+  |---------|-----|---------|-----|------------|
+  | Legend State | ✅ | ✅ | ✅ | Low |
+  | Reanimated | ✅ | ✅ | ⚠️ | Medium |
+  | Expo AV | ✅ | ✅ | ⚠️ | Medium |
+  | SecureStore | ✅ | ✅ | ❌ | High |
+  | Performance | ✅ | ✅ | ⚠️ | Medium |
+
+### 4. Risk Assessment
+
+#### High Priority Risks
+- [ ] **Legend State Beta Stability**
+  - **Risk**: Breaking changes in beta version
+  - **Mitigation**: Pin to specific beta version, maintain Redux fallback plan
+  - **Timeline Impact**: +1 day for fallback implementation
+
+- [ ] **Save Corruption Prevention**
+  - **Risk**: Data loss affecting user retention
+  - **Mitigation**: Triple-save strategy + checksums
+  - **Timeline Impact**: +1 day for robust save system
+
+#### Medium Priority Risks
+- [ ] **Performance on Low-End Devices**
+  - **Risk**: Poor experience on budget Android devices
+  - **Mitigation**: Quality settings + progressive enhancement
+  - **Timeline Impact**: +2 days for optimization
+
+- [ ] **Cross-Platform Audio Consistency**
+  - **Risk**: Audio differences between platforms
+  - **Mitigation**: Platform-specific audio configs
+  - **Timeline Impact**: +1 day for platform testing
+
+### 5. Research Requirements
+
+- [ ] **Legend State Learning Curve**
+  ```bash
+  # Create research items for team
+  echo "Legend State Documentation Review" >> ../research-requirements.json
+  echo "Performance Comparison: Legend State vs Redux" >> ../research-requirements.json
+  ```
+
+- [ ] **React Native 0.76 New Architecture Changes**
+  ```bash
+  echo "New Architecture Migration Guide" >> ../research-requirements.json
+  echo "Fabric Renderer Compatibility" >> ../research-requirements.json
+  ```
+
+### 6. Dependencies Analysis
+
+- [ ] **Core Dependencies Verification**
+  ```json
+  {
+    "@legendapp/state": "^2.0.0-beta.19",
+    "expo": "~52.0.0", 
+    "react-native": "0.76.3",
+    "react-native-reanimated": "~3.8.1",
+    "expo-router": "~4.0.0",
+    "typescript": "^5.8.0"
+  }
+  ```
+
+- [ ] **Potential Conflicts Check**
+  ```bash
+  # Run dependency audit
+  npm audit
+  npx npm-check-updates
+  ```
+
+### 7. Performance Baseline Setup
+
+- [ ] **Benchmarking Tools Installation**
+  ```bash
+  # Development profiling
+  npm install --save-dev @react-native/metro-config
+  npm install --save-dev flipper
+  ```
+
+- [ ] **Target Device Specifications**
+  | Device Category | RAM | CPU | Target FPS |
+  |-----------------|-----|-----|------------|
+  | High-end (2020+) | 4GB+ | A13/SD855+ | 60 FPS |
+  | Mid-range (2018+) | 3GB | A11/SD660 | 60 FPS |
+  | Low-end (2016+) | 2GB | A9/SD625 | 30 FPS |
+
+## Validation Criteria
+
+### Must Pass
+✅ All core dependencies available and compatible
+✅ Development environment fully functional
+✅ High/Medium risks have mitigation strategies
+✅ Performance targets are achievable
+
+### Should Pass
+⚠️ Web platform compatibility verified
+⚠️ Legacy device fallback strategies defined
+⚠️ Team training needs identified
+
+### Nice to Have
+💡 Alternative architecture options explored
+💡 Future scalability requirements mapped
+💡 Community support ecosystem assessed
+
+## Deliverables
+
+### 1. Environment Setup Script
+```bash
+#!/bin/bash
+# save as setup-dev-env.sh
+echo "Setting up PetSoft Tycoon development environment..."
+
+# Verify Node version
+node_version=$(node -v)
+echo "Node version: $node_version"
+
+# Install global dependencies
+npm install -g @expo/cli@latest
+npm install -g eas-cli
+
+# Verify Expo
+expo --version
+
+echo "Environment setup complete!"
 ```
 
-## Architecture Patterns (from research/)
-- **Vertical Slicing** - Feature-based folder organization (research/planning/vertical-slicing.md)
-- **Modular Observables** - Separate state per feature (research/tech/legend-state.md)
-- **Custom Hooks** - No utility functions for React logic (research/tech/react-native.md)
-- **Component Colocation** - Components within feature folders
+### 2. Risk Mitigation Plan
+Document all identified risks with specific mitigation strategies and timeline impacts.
 
-## Phase Overview
-
-### Phase 1: Foundation (13 tasks)
-- Project initialization with Expo
-- Core dependencies installation
-- Vertical slice directory structure
-- Basic Legend State setup
-- TypeScript configuration
-
-### Phase 2: Core Features (15 tasks)
-- Code production mechanic
-- Feature shipping system
-- Department implementation
-- Basic UI components
-- State management integration
-
-### Phase 3: Integration (10 tasks)
-- Department synergies
-- Automation system
-- Offline progression
-- Save/load functionality
-- Cross-feature coordination
-
-### Phase 4: Quality (12 tasks)
-- Unit test implementation
-- Integration testing
-- E2E test setup with Maestro
-- Performance optimization
-- Bug fixes
-
-### Phase 5: Deployment (8 tasks)
-- Build configuration
-- Platform-specific builds
-- Performance profiling
-- Release preparation
-- Documentation
-
-## Resource Requirements
-
-### Skills Needed
-- React Native development
-- Expo SDK knowledge
-- TypeScript proficiency
-- Legend State v3 understanding
-- Mobile game development patterns
-
-### Tools and Libraries
-- Expo CLI and EAS Build
-- React Native development environment
-- iOS Simulator / Android Emulator
-- Maestro for E2E testing
-- Performance profiling tools
-
-### External Dependencies
-- App Store / Play Store accounts (for deployment)
-- Design assets (sprites, backgrounds)
-- Audio assets (sound effects, music)
-- Testing devices (iOS and Android)
-
-## Risk Assessment
-
-### High Priority Risks
-1. **Timeline vs Platform Change** - React Native instead of vanilla JS
-   - Mitigation: Use Expo's rapid development tools
-2. **Performance on Low-End Devices** - 60 FPS target
-   - Mitigation: Early performance testing, optimization focus
-3. **State Management Complexity** - Legend State learning curve
-   - Mitigation: Start with simple patterns, refactor as needed
-
-### Medium Priority Risks
-1. **Cross-Platform Compatibility** - iOS/Android differences
-   - Mitigation: Regular testing on both platforms
-2. **Offline Progression Accuracy** - Complex calculations
-   - Mitigation: Thorough testing, mathematical validation
-3. **Save System Reliability** - Data persistence
-   - Mitigation: MMKV for reliable storage, validation checks
-
-## Development Approach
-
-### Vertical Slicing Implementation
-Each feature will be implemented as a complete vertical slice:
-```
-features/
-├── codeProduction/
-│   ├── components/
-│   ├── hooks/
-│   ├── services/
-│   ├── state/
-│   └── index.ts
+### 3. Architecture Decision Record (ADR)
+```markdown
+# ADR: Legend State vs Redux for State Management
+- **Decision**: Use Legend State @beta
+- **Rationale**: 40% performance improvement, better DX
+- **Consequences**: Beta stability risk, team learning curve
+- **Fallback**: Redux Toolkit implementation ready
 ```
 
-### State Management Strategy
-Modular observables with Legend State v3:
-- Feature-specific state slices
-- Composition at app level
-- Persistence with MMKV
-- Computed values for derived state
+## Next Phase
+Once all validation criteria pass, proceed to **Phase 1: Foundation Setup** (`01-foundation.md`)
 
-### Testing Strategy
-- Unit tests with Jest and React Native Testing Library
-- Integration tests for feature interactions
-- E2E tests with Maestro for critical paths
-- Performance monitoring throughout development
-
-## Next Steps
-1. Initialize Expo project with TypeScript template
-2. Install research-validated dependencies
-3. Create vertical slice directory structure
-4. Implement basic game loop
-5. Set up Legend State with persistence
-
-## Success Criteria
-- [ ] All research-validated packages installed
-- [ ] Vertical slicing architecture implemented
-- [ ] 60 FPS performance achieved
-- [ ] All user stories completed
-- [ ] Test coverage >80%
-- [ ] Deployment-ready builds for iOS/Android
+**Estimated Duration**: 1 day
+**Prerequisites Met**: ✅/❌ (update after completion)

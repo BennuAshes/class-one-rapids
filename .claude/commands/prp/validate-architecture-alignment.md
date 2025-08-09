@@ -24,16 +24,16 @@ EXECUTE architecture validation gateway with research principle verification: $A
 
 <parallel_execution>Optimize validation by concurrent verification of: directory structure patterns, state management design, component organization, and naming conventions against research standards</parallel_execution>
 
-**PHASE 1: ARCHITECTURE RULES LOADING AND PROJECT ANALYSIS**
+**PHASE 1: OPTIMIZED ARCHITECTURE RULES LOADING**
 
-1. **Load Architecture Rules from JSON**:
+1. **Load Architecture Rules from Quick-Ref**:
    ```bash
-   # Check for research-requirements.json
-   if [ -f "$PROJECT_PATH/runbook/research-requirements.json" ]; then
-     RULES=$(cat "$PROJECT_PATH/runbook/research-requirements.json")
-   else
-     # Extract rules from research if not present
-     RULES=$(extract_architecture_rules_from_research)
+   # Primary source: Ultra-condensed research/quick-ref.md
+   RULES=$(cat research/quick-ref.md)
+   
+   # Fallback: Check for local research-requirements.md (markdown format)
+   if [ -f "$PROJECT_PATH/runbook/research-requirements.md" ]; then
+     LOCAL_RULES=$(cat "$PROJECT_PATH/runbook/research-requirements.md")
    fi
    ```
 

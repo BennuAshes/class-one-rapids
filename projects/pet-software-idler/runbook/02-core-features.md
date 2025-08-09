@@ -1,597 +1,729 @@
-# Phase 2: Core Feature Implementation
+# Phase 2: Core Game Features
 
-## Objective
-Implement primary gameplay mechanics including code production, feature shipping, department management, and basic automation following vertical slicing architecture.
+## Objectives
+- Implement fundamental game loop mechanics
+- Create resource management system with Legend State
+- Build click interaction and automation
+- Develop essential UI components with animations
 
 ## Prerequisites
-- [ ] Phase 1 completed successfully
-- [ ] Legend State configured with modular observables
-- [ ] Basic UI components rendering
-- [ ] Testing infrastructure operational
+- Phase 1 Foundation completed ✅
+- Basic Expo project running ✅
+- Legend State configured and tested ✅
 
-## Work Packages
+## Tasks Checklist
 
-### WP 2.1: Code Production System
+### 1. Core Game Loop Implementation
 
-#### Task 2.1.1: Enhance Code Production State
-Update `src/features/codeProduction/state/codeProductionState.ts`:
-```typescript
-import { observable, computed } from '@legendapp/state';
-import { batch } from '@legendapp/state';
-import Decimal from 'decimal.js';
-
-export const codeProductionState$ = observable({
-  linesOfCode: new Decimal(0),
-  totalLinesProduced: new Decimal(0),
-  clickPower: 1,
-  workers: {
-    juniorDevs: { count: 0, baseProd: 0.1, cost: new Decimal(10) },
-    seniorDevs: { count: 0, baseProd: 1, cost: new Decimal(100) },
-    architects: { count: 0, baseProd: 10, cost: new Decimal(1000) }
-  }
-});
-
-// Computed production rate
-export const productionRate$ = computed(() => {
-  const workers = codeProductionState$.workers.get();
-  let rate = new Decimal(0);
+- [ ] **Create Game Engine Service**
+  ```typescript
+  // src/features/game-core/services/gameEngine.ts
+  import { gameState$ } from '../state/gameState$';
+  import { departmentState$ } from '../../departments/state/departmentState$';
+  import { batch } from '@legendapp/state';
   
-  rate = rate.plus(workers.juniorDevs.count * workers.juniorDevs.baseProd);
-  rate = rate.plus(workers.seniorDevs.count * workers.seniorDevs.baseProd);
-  rate = rate.plus(workers.architects.count * workers.architects.baseProd);
-  
-  return rate;
-});
-```
-**Validation:** Production rate updates with worker changes
-**Time:** 45 minutes
-
-#### Task 2.1.2: Implement Auto-Production Loop
-Create `src/features/codeProduction/hooks/useAutoProduction.ts`:
-```typescript
-import { useEffect, useRef } from 'react';
-import { productionRate$, codeProductionState$ } from '../state/codeProductionState';
-import { batch } from '@legendapp/state';
-
-export function useAutoProduction() {
-  const lastUpdateRef = useRef(Date.now());
-  
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const deltaTime = (now - lastUpdateRef.current) / 1000;
-      lastUpdateRef.current = now;
-      
-      const rate = productionRate$.get();
-      if (rate.gt(0)) {
-        batch(() => {
-          const produced = rate.times(deltaTime);
-          codeProductionState$.linesOfCode.set(prev => 
-            prev.plus(produced)
-          );
-          codeProductionState$.totalLinesProduced.set(prev => 
-            prev.plus(produced)
-          );
-        });
+  export class GameEngine {
+    private static gameLoopInterval: NodeJS.Timeout | null = null;
+    
+    static start() {
+      this.gameLoopInterval = setInterval(() => {
+        this.updateProduction();
+      }, 100); // 10 FPS game logic update
+    }
+    
+    static stop() {
+      if (this.gameLoopInterval) {
+        clearInterval(this.gameLoopInterval);
+        this.gameLoopInterval = null;
       }
-    }, 100); // Update 10 times per second
-    
-    return () => clearInterval(interval);
-  }, []);
-}
-```
-**Validation:** Lines of code increase automatically with workers
-**Time:** 30 minutes
-
-#### Task 2.1.3: Create Worker Purchase UI
-Create `src/features/codeProduction/components/WorkerShop.tsx`:
-```typescript
-import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { useSelector } from '@legendapp/state/react';
-import { codeProductionState$, purchaseWorker } from '../state/codeProductionState';
-
-export function WorkerShop() {
-  const workers = useSelector(codeProductionState$.workers);
-  const linesOfCode = useSelector(codeProductionState$.linesOfCode);
-  
-  return (
-    <View style={styles.container}>
-      <WorkerButton
-        type="juniorDevs"
-        name="Junior Dev"
-        count={workers.juniorDevs.count}
-        cost={workers.juniorDevs.cost}
-        canAfford={linesOfCode.gte(workers.juniorDevs.cost)}
-        onPurchase={() => purchaseWorker('juniorDevs')}
-      />
-      {/* Repeat for other worker types */}
-    </View>
-  );
-}
-```
-**Validation:** Workers can be purchased when affordable
-**Time:** 45 minutes
-
-### WP 2.2: Feature Shipping System
-
-#### Task 2.2.1: Create Feature Shipping State
-Create `src/features/featureShipping/state/featureShippingState.ts`:
-```typescript
-import { observable, computed } from '@legendapp/state';
-import Decimal from 'decimal.js';
-
-export const featureShippingState$ = observable({
-  featuresShipped: 0,
-  totalFeatures: 0,
-  codePerFeature: new Decimal(10),
-  moneyPerFeature: new Decimal(15),
-  conversionMultiplier: 1
-});
-
-export const canShipFeature$ = computed(() => {
-  const linesOfCode = codeProductionState$.linesOfCode.get();
-  const required = featureShippingState$.codePerFeature.get();
-  return linesOfCode.gte(required);
-});
-```
-**Validation:** Feature shipping state tracks correctly
-**Time:** 30 minutes
-
-#### Task 2.2.2: Implement Feature Conversion Logic
-Create `src/features/featureShipping/services/conversionService.ts`:
-```typescript
-import { batch } from '@legendapp/state';
-import { codeProductionState$ } from '@features/codeProduction/state';
-import { featureShippingState$ } from '../state/featureShippingState';
-import { resourceState$ } from '@features/resources/state';
-
-export function shipFeature() {
-  const canShip = canShipFeature$.get();
-  if (!canShip) return false;
-  
-  batch(() => {
-    // Deduct code
-    const cost = featureShippingState$.codePerFeature.get();
-    codeProductionState$.linesOfCode.set(prev => prev.minus(cost));
-    
-    // Add feature and money
-    featureShippingState$.featuresShipped.set(prev => prev + 1);
-    featureShippingState$.totalFeatures.set(prev => prev + 1);
-    
-    const earnings = featureShippingState$.moneyPerFeature.get()
-      .times(featureShippingState$.conversionMultiplier.get());
-    resourceState$.money.set(prev => prev.plus(earnings));
-  });
-  
-  return true;
-}
-```
-**Validation:** Features convert code to money correctly
-**Time:** 30 minutes
-
-#### Task 2.2.3: Create Ship Feature Button
-Create `src/features/featureShipping/components/ShipFeatureButton.tsx`:
-```typescript
-import React from 'react';
-import { Pressable, Text, StyleSheet } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withSpring,
-} from 'react-native-reanimated';
-import { useSelector } from '@legendapp/state/react';
-import { canShipFeature$ } from '../state/featureShippingState';
-import { shipFeature } from '../services/conversionService';
-import { playSound } from '@shared/feedback/audio';
-
-export function ShipFeatureButton() {
-  const canShip = useSelector(canShipFeature$);
-  const scale = useSharedValue(1);
-  
-  const handlePress = async () => {
-    if (shipFeature()) {
-      scale.value = withSequence(
-        withSpring(1.2),
-        withSpring(1)
-      );
-      await playSound('cashRegister');
     }
+    
+    private static updateProduction() {
+      const departments = departmentState$.get();
+      let codeProduction = 0;
+      let featureProduction = 0;
+      let moneyProduction = 0;
+      let leadProduction = 0;
+      
+      // Calculate production from all departments
+      Object.entries(departments).forEach(([deptName, dept]) => {
+        if (!dept.unlocked) return;
+        
+        Object.entries(dept.employees).forEach(([empType, emp]) => {
+          const count = emp.count;
+          const baseProduction = emp.production;
+          
+          // Apply manager bonuses
+          const managerMultiplier = dept.manager?.hired ? 2.0 : 1.0;
+          const production = baseProduction * count * managerMultiplier;
+          
+          // Department-specific resource allocation
+          switch (deptName) {
+            case 'development':
+              codeProduction += production;
+              break;
+            case 'sales':
+              leadProduction += production;
+              moneyProduction += production * 0.5;
+              break;
+            // Add other departments...
+          }
+        });
+      });
+      
+      // Batch update for 40% performance improvement
+      batch(() => {
+        gameState$.resources.code.set(prev => prev + (codeProduction * 0.1));
+        gameState$.resources.features.set(prev => prev + (featureProduction * 0.1));
+        gameState$.resources.money.set(prev => prev + (moneyProduction * 0.1));
+        gameState$.resources.leads.set(prev => prev + (leadProduction * 0.1));
+      });
+    }
+  }
+  ```
+
+- [ ] **Create Game Loop Hook**
+  ```typescript
+  // src/features/game-core/hooks/useGameLoop.ts
+  import { useEffect } from 'react';
+  import { GameEngine } from '../services/gameEngine';
+  import { gameState$ } from '../state/gameState$';
+  
+  export const useGameLoop = () => {
+    useEffect(() => {
+      GameEngine.start();
+      
+      return () => {
+        GameEngine.stop();
+      };
+    }, []);
+    
+    // Return current game state for components
+    return {
+      resources: gameState$.resources.get(),
+      performance: gameState$.performance.get(),
+      settings: gameState$.settings.get()
+    };
   };
+  ```
+
+### 2. Click Mechanics and Progression
+
+- [ ] **Implement Click Handler**
+  ```typescript
+  // src/features/game-core/hooks/useClickHandling.ts
+  import { useCallback } from 'react';
+  import { gameState$ } from '../state/gameState$';
+  import { batch } from '@legendapp/state';
   
-  return (
-    <Animated.View style={[{ transform: [{ scale }] }]}>
-      <Pressable
-        style={[styles.button, !canShip && styles.disabled]}
-        onPress={handlePress}
-        disabled={!canShip}
-      >
-        <Text style={styles.text}>Ship Feature 🚀</Text>
-      </Pressable>
-    </Animated.View>
-  );
-}
-```
-**Validation:** Button ships features with feedback
-**Time:** 30 minutes
+  export const useClickHandling = () => {
+    const handleClick = useCallback(() => {
+      const currentCode = gameState$.resources.code.get();
+      const clickPower = 1 + Math.floor(currentCode / 100) * 0.1; // Scale with progress
+      
+      batch(() => {
+        gameState$.resources.code.set(prev => prev + clickPower);
+        gameState$.meta.totalClicks.set(prev => prev + 1);
+      });
+      
+      // Trigger click animation and sound
+      return { clickPower, position: { x: 0, y: 0 } };
+    }, []);
+    
+    return { handleClick };
+  };
+  ```
 
-### WP 2.3: Department System Foundation
-
-#### Task 2.3.1: Create Department State Structure
-Create `src/features/departments/state/departmentState.ts`:
-```typescript
-import { observable } from '@legendapp/state';
-import Decimal from 'decimal.js';
-
-export interface Department {
-  id: string;
-  name: string;
-  unlocked: boolean;
-  unlockCost: Decimal;
-  workers: number;
-  managers: number;
-  baseProduction: number;
-  efficiency: number;
-}
-
-export const departmentState$ = observable({
-  departments: {
-    development: {
-      id: 'development',
-      name: 'Development',
-      unlocked: true,
-      unlockCost: new Decimal(0),
-      workers: 0,
-      managers: 0,
-      baseProduction: 0.1,
-      efficiency: 1
-    },
-    sales: {
-      id: 'sales',
-      name: 'Sales',
-      unlocked: false,
-      unlockCost: new Decimal(500),
-      workers: 0,
-      managers: 0,
-      baseProduction: 0.2,
-      efficiency: 1
-    },
-    customerExperience: {
-      id: 'customerExperience',
-      name: 'Customer Experience',
-      unlocked: false,
-      unlockCost: new Decimal(2000),
-      workers: 0,
-      managers: 0,
-      baseProduction: 0.15,
-      efficiency: 1
-    }
-    // Add remaining departments...
-  }
-});
-```
-**Validation:** Department state structure correct
-**Time:** 45 minutes
-
-#### Task 2.3.2: Implement Department Unlocking
-Create `src/features/departments/services/departmentService.ts`:
-```typescript
-import { batch } from '@legendapp/state';
-import { departmentState$ } from '../state/departmentState';
-import { resourceState$ } from '@features/resources/state';
-
-export function unlockDepartment(departmentId: string): boolean {
-  const dept = departmentState$.departments[departmentId].get();
-  const money = resourceState$.money.get();
+- [ ] **Create Main Click Button Component**
+  ```typescript
+  // src/features/game-core/components/ClickButton.tsx
+  import React from 'react';
+  import { Pressable, Text, StyleSheet } from 'react-native';
+  import Animated, { 
+    useAnimatedStyle, 
+    useSharedValue, 
+    withSequence, 
+    withTiming 
+  } from 'react-native-reanimated';
+  import { observer } from '@legendapp/state/react';
+  import { useClickHandling } from '../hooks/useClickHandling';
   
-  if (!dept || dept.unlocked || money.lt(dept.unlockCost)) {
-    return false;
-  }
-  
-  batch(() => {
-    resourceState$.money.set(prev => prev.minus(dept.unlockCost));
-    departmentState$.departments[departmentId].unlocked.set(true);
-  });
-  
-  // Trigger unlock animation/celebration
-  return true;
-}
-
-export function hireDepartmentWorker(departmentId: string): boolean {
-  const dept = departmentState$.departments[departmentId].get();
-  if (!dept?.unlocked) return false;
-  
-  const cost = calculateWorkerCost(dept.workers);
-  const money = resourceState$.money.get();
-  
-  if (money.lt(cost)) return false;
-  
-  batch(() => {
-    resourceState$.money.set(prev => prev.minus(cost));
-    departmentState$.departments[departmentId].workers.set(prev => prev + 1);
-  });
-  
-  return true;
-}
-```
-**Validation:** Departments unlock and hire correctly
-**Time:** 45 minutes
-
-#### Task 2.3.3: Create Department UI Components
-Create `src/features/departments/components/DepartmentCard.tsx`:
-```typescript
-import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { useSelector } from '@legendapp/state/react';
-import { Department } from '../state/departmentState';
-
-interface Props {
-  departmentId: string;
-}
-
-export function DepartmentCard({ departmentId }: Props) {
-  const dept = useSelector(departmentState$.departments[departmentId]);
-  const money = useSelector(resourceState$.money);
-  
-  if (!dept.unlocked && money.lt(dept.unlockCost)) {
+  const ClickButton = observer(() => {
+    const { handleClick } = useClickHandling();
+    const scale = useSharedValue(1);
+    const opacity = useSharedValue(1);
+    
+    const animatedStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: scale.value }],
+      opacity: opacity.value,
+    }));
+    
+    const onPress = () => {
+      const result = handleClick();
+      
+      // Animate button press
+      scale.value = withSequence(
+        withTiming(1.1, { duration: 50 }),
+        withTiming(1.0, { duration: 100 })
+      );
+      
+      opacity.value = withSequence(
+        withTiming(0.8, { duration: 50 }),
+        withTiming(1.0, { duration: 100 })
+      );
+    };
+    
     return (
-      <View style={[styles.card, styles.locked]}>
-        <Text style={styles.lockedText}>
-          🔒 Unlock for ${dept.unlockCost.toString()}
+      <Pressable onPress={onPress}>
+        <Animated.View style={[styles.button, animatedStyle]}>
+          <Text style={styles.buttonText}>Code!</Text>
+        </Animated.View>
+      </Pressable>
+    );
+  });
+  
+  const styles = StyleSheet.create({
+    button: {
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      backgroundColor: '#4CAF50',
+      justifyContent: 'center',
+      alignItems: 'center',
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+    },
+    buttonText: {
+      color: 'white',
+      fontSize: 18,
+      fontWeight: 'bold',
+    },
+  });
+  
+  export default ClickButton;
+  ```
+
+### 3. Resource Management UI
+
+- [ ] **Create Resource Counter Component**
+  ```typescript
+  // src/features/ui/components/ResourceCounter.tsx
+  import React, { useMemo } from 'react';
+  import { View, Text, StyleSheet } from 'react-native';
+  import Animated, { 
+    useAnimatedStyle, 
+    useSharedValue, 
+    withTiming 
+  } from 'react-native-reanimated';
+  import { observer } from '@legendapp/state/react';
+  import { formatNumber } from '../utils/formatters';
+  
+  interface ResourceCounterProps {
+    type: 'code' | 'features' | 'money' | 'leads';
+    value: number;
+    growth?: number;
+    icon?: string;
+  }
+  
+  const ResourceCounter = observer<ResourceCounterProps>(({ 
+    type, 
+    value, 
+    growth = 0, 
+    icon = '💰' 
+  }) => {
+    const formattedValue = useMemo(() => formatNumber(value), [value]);
+    const scale = useSharedValue(1);
+    
+    // Animate on value change
+    React.useEffect(() => {
+      scale.value = withTiming(1.1, { duration: 100 }, () => {
+        scale.value = withTiming(1.0, { duration: 100 });
+      });
+    }, [value]);
+    
+    const animatedStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: scale.value }],
+    }));
+    
+    return (
+      <View style={styles.container}>
+        <Text style={styles.icon}>{icon}</Text>
+        <Animated.Text style={[styles.value, animatedStyle]}>
+          {formattedValue}
+        </Animated.Text>
+        <Text style={styles.type}>{type.toUpperCase()}</Text>
+        {growth > 0 && (
+          <Text style={styles.growth}>+{formatNumber(growth)}/s</Text>
+        )}
+      </View>
+    );
+  });
+  
+  const styles = StyleSheet.create({
+    container: {
+      alignItems: 'center',
+      padding: 10,
+      margin: 5,
+      backgroundColor: '#f5f5f5',
+      borderRadius: 8,
+      minWidth: 80,
+    },
+    icon: {
+      fontSize: 20,
+      marginBottom: 4,
+    },
+    value: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#333',
+    },
+    type: {
+      fontSize: 10,
+      color: '#666',
+      marginTop: 2,
+    },
+    growth: {
+      fontSize: 8,
+      color: '#4CAF50',
+      marginTop: 2,
+    },
+  });
+  
+  export default ResourceCounter;
+  ```
+
+- [ ] **Create Resource Bar Component**
+  ```typescript
+  // src/features/ui/components/ResourceBar.tsx
+  import React from 'react';
+  import { View, StyleSheet } from 'react-native';
+  import { observer } from '@legendapp/state/react';
+  import { gameState$ } from '../../game-core/state/gameState$';
+  import ResourceCounter from './ResourceCounter';
+  
+  const ResourceBar = observer(() => {
+    const resources = gameState$.resources.get();
+    
+    return (
+      <View style={styles.container}>
+        <ResourceCounter 
+          type="code" 
+          value={resources.code} 
+          icon="💻"
+        />
+        <ResourceCounter 
+          type="features" 
+          value={resources.features} 
+          icon="⚡"
+        />
+        <ResourceCounter 
+          type="money" 
+          value={resources.money} 
+          icon="💰"
+        />
+        <ResourceCounter 
+          type="leads" 
+          value={resources.leads} 
+          icon="📈"
+        />
+      </View>
+    );
+  });
+  
+  const styles = StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      backgroundColor: '#fff',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: '#eee',
+    },
+  });
+  
+  export default ResourceBar;
+  ```
+
+### 4. Progress Tracking System
+
+- [ ] **Create Progress Bar Component**
+  ```typescript
+  // src/features/ui/components/ProgressBar.tsx
+  import React from 'react';
+  import { View, Text, StyleSheet } from 'react-native';
+  import Animated, { 
+    useAnimatedStyle, 
+    withTiming 
+  } from 'react-native-reanimated';
+  
+  interface ProgressBarProps {
+    current: number;
+    target: number;
+    label: string;
+    color?: string;
+  }
+  
+  const ProgressBar: React.FC<ProgressBarProps> = ({ 
+    current, 
+    target, 
+    label, 
+    color = '#4CAF50' 
+  }) => {
+    const progress = Math.min(current / target, 1);
+    
+    const animatedStyle = useAnimatedStyle(() => ({
+      width: withTiming(`${progress * 100}%`, { duration: 300 }),
+    }));
+    
+    return (
+      <View style={styles.container}>
+        <Text style={styles.label}>{label}</Text>
+        <View style={styles.progressTrack}>
+          <Animated.View 
+            style={[
+              styles.progressFill, 
+              { backgroundColor: color },
+              animatedStyle
+            ]} 
+          />
+        </View>
+        <Text style={styles.fraction}>
+          {Math.floor(current)}/{target}
         </Text>
       </View>
     );
+  };
+  
+  const styles = StyleSheet.create({
+    container: {
+      margin: 10,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '500',
+      marginBottom: 5,
+    },
+    progressTrack: {
+      height: 8,
+      backgroundColor: '#e0e0e0',
+      borderRadius: 4,
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      borderRadius: 4,
+    },
+    fraction: {
+      fontSize: 12,
+      color: '#666',
+      textAlign: 'right',
+      marginTop: 2,
+    },
+  });
+  
+  export default ProgressBar;
+  ```
+
+### 5. Basic Achievement System
+
+- [ ] **Create Achievement State**
+  ```typescript
+  // src/features/achievements/state/achievementState$.ts
+  import { observable } from '@legendapp/state';
+  
+  export interface Achievement {
+    id: string;
+    title: string;
+    description: string;
+    icon: string;
+    unlocked: boolean;
+    progress: number;
+    target: number;
+    reward?: {
+      type: 'multiplier' | 'bonus';
+      value: number;
+    };
   }
   
-  return (
-    <View style={styles.card}>
-      <Text style={styles.title}>{dept.name}</Text>
-      <Text>Workers: {dept.workers}</Text>
-      <Text>Managers: {dept.managers}</Text>
-      <Text>Production: {calculateProduction(dept)}/s</Text>
-      
-      <Pressable
-        style={styles.hireButton}
-        onPress={() => hireDepartmentWorker(departmentId)}
-      >
-        <Text>Hire Worker</Text>
-      </Pressable>
-    </View>
-  );
-}
-```
-**Validation:** Department cards display and interact correctly
-**Time:** 45 minutes
+  export const achievementState$ = observable({
+    achievements: [
+      {
+        id: 'first_click',
+        title: 'First Steps',
+        description: 'Write your first line of code',
+        icon: '👶',
+        unlocked: false,
+        progress: 0,
+        target: 1,
+      },
+      {
+        id: 'code_master',
+        title: 'Code Master',
+        description: 'Write 1000 lines of code',
+        icon: '💻',
+        unlocked: false,
+        progress: 0,
+        target: 1000,
+      },
+      // Add more achievements...
+    ] as Achievement[],
+    
+    get unlockedCount() {
+      return this.achievements.filter(a => a.unlocked).length;
+    },
+    
+    get totalCount() {
+      return this.achievements.length;
+    }
+  });
+  ```
 
-### WP 2.4: Resource Management System
-
-#### Task 2.4.1: Create Unified Resource State
-Create `src/features/resources/state/resourceState.ts`:
-```typescript
-import { observable, computed } from '@legendapp/state';
-import Decimal from 'decimal.js';
-
-export const resourceState$ = observable({
-  money: new Decimal(0),
-  customerLeads: new Decimal(0),
-  bugs: new Decimal(0),
-  designs: new Decimal(0),
-  testCoverage: 0,
-  marketingReach: new Decimal(0)
-});
-
-// Computed values for UI display
-export const formattedResources$ = computed(() => {
-  const resources = resourceState$.get();
-  return {
-    money: formatNumber(resources.money),
-    customerLeads: formatNumber(resources.customerLeads),
-    // ... other formatted values
-  };
-});
-
-function formatNumber(value: Decimal): string {
-  if (value.gte(1e12)) return `${value.div(1e12).toFixed(2)}T`;
-  if (value.gte(1e9)) return `${value.div(1e9).toFixed(2)}B`;
-  if (value.gte(1e6)) return `${value.div(1e6).toFixed(2)}M`;
-  if (value.gte(1e3)) return `${value.div(1e3).toFixed(2)}K`;
-  return value.toFixed(0);
-}
-```
-**Validation:** Resources track and format correctly
-**Time:** 30 minutes
-
-#### Task 2.4.2: Create Resource Display Component
-Create `src/features/resources/components/ResourceDisplay.tsx`:
-```typescript
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useSelector } from '@legendapp/state/react';
-import { formattedResources$ } from '../state/resourceState';
-import { codeProductionState$ } from '@features/codeProduction/state';
-
-export function ResourceDisplay() {
-  const resources = useSelector(formattedResources$);
-  const linesOfCode = useSelector(() => 
-    formatNumber(codeProductionState$.linesOfCode.get())
-  );
+- [ ] **Create Achievement Checker Service**
+  ```typescript
+  // src/features/achievements/services/achievementChecker.ts
+  import { achievementState$ } from '../state/achievementState$';
+  import { gameState$ } from '../../game-core/state/gameState$';
   
-  return (
-    <View style={styles.container}>
-      <ResourceItem icon="💵" label="Money" value={resources.money} />
-      <ResourceItem icon="💻" label="Code" value={linesOfCode} />
-      <ResourceItem icon="👥" label="Leads" value={resources.customerLeads} />
-    </View>
-  );
-}
-
-function ResourceItem({ icon, label, value }) {
-  return (
-    <View style={styles.item}>
-      <Text style={styles.icon}>{icon}</Text>
-      <Text style={styles.label}>{label}:</Text>
-      <Text style={styles.value}>{value}</Text>
-    </View>
-  );
-}
-```
-**Validation:** Resources display with proper formatting
-**Time:** 30 minutes
-
-### WP 2.5: Basic Game Loop Integration
-
-#### Task 2.5.1: Create Game Loop Manager
-Create `src/app/services/gameLoop.ts`:
-```typescript
-import { useEffect, useRef } from 'react';
-import { AppState } from 'react-native';
-import { batch } from '@legendapp/state';
-import { updateDepartmentProduction } from '@features/departments/services';
-import { checkAchievements } from '@features/achievements/services';
-import { saveGame } from '@features/saving/services';
-
-export function useGameLoop() {
-  const lastUpdateRef = useRef(Date.now());
-  const saveTimerRef = useRef(0);
-  
-  useEffect(() => {
-    const gameLoop = setInterval(() => {
-      const now = Date.now();
-      const deltaTime = (now - lastUpdateRef.current) / 1000;
-      lastUpdateRef.current = now;
+  export class AchievementChecker {
+    static checkAchievements() {
+      const resources = gameState$.resources.get();
+      const achievements = achievementState$.achievements.get();
       
-      batch(() => {
-        // Update all department productions
-        updateDepartmentProduction(deltaTime);
+      achievements.forEach((achievement, index) => {
+        if (achievement.unlocked) return;
         
-        // Check achievements
-        checkAchievements();
+        let progress = 0;
+        
+        switch (achievement.id) {
+          case 'first_click':
+            progress = resources.code > 0 ? 1 : 0;
+            break;
+          case 'code_master':
+            progress = resources.code;
+            break;
+        }
+        
+        // Update progress
+        achievementState$.achievements[index].progress.set(progress);
+        
+        // Check if unlocked
+        if (progress >= achievement.target) {
+          achievementState$.achievements[index].unlocked.set(true);
+          this.triggerAchievementNotification(achievement);
+        }
       });
+    }
+    
+    private static triggerAchievementNotification(achievement: any) {
+      // Trigger toast notification
+      console.log(`Achievement unlocked: ${achievement.title}`);
+    }
+  }
+  ```
+
+### 6. Updated Main Game Screen
+
+- [ ] **Enhanced Game Screen**
+  ```typescript
+  // app/game.tsx
+  import React, { useEffect } from 'react';
+  import { View, StyleSheet, SafeAreaView } from 'react-native';
+  import { observer } from '@legendapp/state/react';
+  import ResourceBar from '../src/features/ui/components/ResourceBar';
+  import ClickButton from '../src/features/game-core/components/ClickButton';
+  import { useGameLoop } from '../src/features/game-core/hooks/useGameLoop';
+  import { AchievementChecker } from '../src/features/achievements/services/achievementChecker';
+  
+  const GameScreen = observer(() => {
+    const { resources, performance } = useGameLoop();
+    
+    useEffect(() => {
+      // Check achievements every second
+      const achievementInterval = setInterval(() => {
+        AchievementChecker.checkAchievements();
+      }, 1000);
       
-      // Auto-save every 30 seconds
-      saveTimerRef.current += deltaTime;
-      if (saveTimerRef.current >= 30) {
-        saveGame();
-        saveTimerRef.current = 0;
-      }
-    }, 100);
+      return () => clearInterval(achievementInterval);
+    }, []);
     
-    // Handle app state changes
-    const subscription = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'background') {
-        saveGame();
+    return (
+      <SafeAreaView style={styles.container}>
+        <ResourceBar />
+        
+        <View style={styles.gameArea}>
+          <ClickButton />
+        </View>
+        
+        <View style={styles.debugInfo}>
+          <Text>FPS: {performance.fps}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  });
+  
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#f8f9fa',
+    },
+    gameArea: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    debugInfo: {
+      position: 'absolute',
+      top: 50,
+      right: 10,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      padding: 5,
+      borderRadius: 5,
+    },
+  });
+  
+  export default GameScreen;
+  ```
+
+### 7. Performance Optimization
+
+- [ ] **Implement Batch Updates**
+  ```typescript
+  // src/features/game-core/services/batchUpdater.ts
+  import { batch } from '@legendapp/state';
+  import { gameState$ } from '../state/gameState$';
+  
+  export class BatchUpdater {
+    private static updateQueue: (() => void)[] = [];
+    private static isProcessing = false;
+    
+    static queueUpdate(updateFn: () => void) {
+      this.updateQueue.push(updateFn);
+      
+      if (!this.isProcessing) {
+        this.processQueue();
       }
+    }
+    
+    private static processQueue() {
+      this.isProcessing = true;
+      
+      requestAnimationFrame(() => {
+        if (this.updateQueue.length > 0) {
+          batch(() => {
+            while (this.updateQueue.length > 0) {
+              const update = this.updateQueue.shift();
+              update?.();
+            }
+          });
+        }
+        
+        this.isProcessing = false;
+        
+        if (this.updateQueue.length > 0) {
+          this.processQueue();
+        }
+      });
+    }
+  }
+  ```
+
+### 8. Testing and Validation
+
+- [ ] **Create Test Utilities**
+  ```typescript
+  // src/__tests__/testUtils.ts
+  import { gameState$ } from '../features/game-core/state/gameState$';
+  
+  export const resetGameState = () => {
+    gameState$.resources.set({
+      code: 0,
+      features: 0,
+      money: 0,
+      leads: 0,
     });
-    
-    return () => {
-      clearInterval(gameLoop);
-      subscription.remove();
-    };
-  }, []);
-}
-```
-**Validation:** Game loop updates all systems
-**Time:** 45 minutes
-
-#### Task 2.5.2: Integrate Game Loop in App
-Update `App.tsx`:
-```typescript
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { GameScreen } from '@app/screens/GameScreen';
-import { useGameLoop } from '@app/services/gameLoop';
-import { useAutoProduction } from '@features/codeProduction/hooks';
-import { loadGame } from '@features/saving/services';
-
-const Stack = createNativeStackNavigator();
-
-export default function App() {
-  // Initialize game systems
-  useGameLoop();
-  useAutoProduction();
+  };
   
-  React.useEffect(() => {
-    loadGame();
-  }, []);
-  
-  return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen
-          name="Game"
-          component={GameScreen}
-          options={{ title: 'PetSoft Tycoon' }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
-}
+  export const setTestResources = (resources: Partial<typeof gameState$.resources>) => {
+    Object.entries(resources).forEach(([key, value]) => {
+      gameState$.resources[key as keyof typeof gameState$.resources].set(value);
+    });
+  };
+  ```
+
+## Validation Criteria
+
+### Must Pass ✅
+- [ ] Game loop runs at consistent 10 FPS (logic updates)
+- [ ] Click button responds with <50ms latency
+- [ ] Resource counters animate smoothly on updates
+- [ ] Performance monitor shows stable 60 FPS UI
+- [ ] Achievement system triggers correctly
+
+### Should Pass ⚠️
+- [ ] Batch updates improve performance measurably
+- [ ] Memory usage stays under target limits
+- [ ] No animation stuttering on mid-range devices
+- [ ] State persistence works between app restarts
+
+### Nice to Have 💡
+- [ ] Click animations feel satisfying and premium
+- [ ] Resource growth calculations are mathematically sound
+- [ ] Achievement unlock timing feels rewarding
+- [ ] Debug information helps with development
+
+## Testing Commands
+
+```bash
+# Performance testing
+npm run android # Test on Android device
+npm run ios     # Test on iOS simulator
+
+# Component testing
+npm test
+
+# Memory leak detection
+# Use React DevTools Profiler
 ```
-**Validation:** App integrates all game systems
-**Time:** 30 minutes
 
-## Testing Requirements
+## Troubleshooting
 
-### Unit Tests
-Create tests for each feature:
-- Code production calculations
-- Feature shipping transactions
-- Department unlocking logic
-- Resource formatting
+### Performance Issues
+- **Symptom**: Frame drops below 60 FPS
+- **Solution**: Check batch update implementation
+- **Command**: Monitor with `performance.fps` value
 
-### Integration Tests
-- Game loop updates all systems
-- State persistence works
-- Cross-feature interactions
+### State Update Delays
+- **Symptom**: UI not reflecting state changes
+- **Solution**: Verify observer pattern usage
+- **Command**: Check component is wrapped with `observer()`
 
-## Phase Completion Checklist
+### Animation Stuttering
+- **Symptom**: Reanimated animations skip frames
+- **Solution**: Use worklet functions for heavy calculations
+- **Command**: Add `'worklet'` directive to animation functions
 
-### Core Mechanics
-- [ ] Click to produce code working
-- [ ] Auto-production with workers functional
-- [ ] Feature shipping converts resources
-- [ ] Money generation from features
+## Deliverables
 
-### Department System
-- [ ] Three departments implemented
-- [ ] Unlock system working
-- [ ] Worker hiring functional
-- [ ] Production rates calculate correctly
+### 1. Functional Game Core
+- ✅ Working click mechanics with satisfying feedback
+- ✅ Real-time resource tracking and display
+- ✅ Game loop running efficiently
 
-### Resource Management
-- [ ] All resource types tracked
-- [ ] Number formatting works
-- [ ] Resource display updates reactively
-- [ ] Decimal.js prevents precision issues
+### 2. UI Components
+- ✅ Resource bar with animated counters
+- ✅ Click button with press animations
+- ✅ Progress tracking components
 
-### Game Loop
-- [ ] Main loop runs at 10 FPS
-- [ ] All systems update correctly
-- [ ] Auto-save every 30 seconds
-- [ ] Background save on app state change
+### 3. Achievement System
+- ✅ Basic achievement tracking
+- ✅ Progress calculation and unlocking
+- ✅ Foundation for notifications
 
-### UI Components
-- [ ] Code button with animations
-- [ ] Ship feature button with feedback
-- [ ] Department cards display correctly
-- [ ] Resource display formatted properly
+## Next Phase
+Once core features are working smoothly, proceed to **Phase 3: Department Systems** (`03-integration.md`)
 
-## Success Metrics
-- 60 FPS maintained during gameplay
-- All state updates are reactive
-- No memory leaks after extended play
-- Save/load preserves game state
-
-## Next Phase Dependencies
-Phase 3 can begin with:
-- Department synergies
-- Manager automation
-- Offline progression
-- Achievement system
-- Prestige mechanics
-
-## Time Summary
-**Total Estimated Time:** 7.5 hours
-**Recommended Schedule:** Complete over 2-3 days with testing between major features
+**Estimated Duration**: 3-4 days
+**Core Features Complete**: ✅/❌ (update after validation)

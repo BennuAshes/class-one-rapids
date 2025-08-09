@@ -1,0 +1,61 @@
+{
+  "tools": {
+    "autoApprove": {
+      "Read": true,
+      "Write": true,
+      "Edit": true,
+      "MultiEdit": true,
+      "NotebookEdit": true,
+      "Bash": {
+        "commands": [
+          "ls",
+          "cat",
+          "grep",
+          "find",
+          "pwd",
+          "echo",
+          "mkdir",
+          "cp",
+          "mv",
+          "rm",
+          "touch",
+          "npm install",
+          "npm run",
+          "yarn",
+          "pnpm",
+          "git status",
+          "git diff",
+          "git add",
+          "git commit",
+          "git log",
+          "node",
+          "npx",
+          "expo",
+          "tsc",
+          "jest",
+          "vitest"
+        ]
+      },
+      "Glob": true,
+      "Grep": true,
+      "LS": true,
+      "TodoWrite": true
+    },
+    "requireApproval": {
+      "Bash": {
+        "commands": [
+          "rm -rf",
+          "sudo",
+          "git push",
+          "git reset --hard",
+          "npm publish",
+          "yarn publish"
+        ]
+      }
+    }
+  },
+  "ui": {
+    "verboseToolOutput": false,
+    "showToolCallConfirmation": false
+  }
+}

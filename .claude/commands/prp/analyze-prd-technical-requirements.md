@@ -22,8 +22,8 @@ EXECUTE comprehensive PRD technical requirements analysis with ULTRATHINK proces
   <mission>Analyze PRDs and extract comprehensive technical requirements using deep technical knowledge synthesis and ULTRATHINK processing</mission>
 </context>
 
-**PHASE 1: COMPREHENSIVE KNOWLEDGE SYNTHESIS WITH RESEARCH VALIDATION**
-Build complete technical knowledge base from research files:
+**PHASE 1: OPTIMIZED KNOWLEDGE SYNTHESIS WITH QUICK-REF**
+Build complete technical knowledge base efficiently:
 
 1. **Read and analyze the target PRD** to understand:
    - Business objectives and success metrics
@@ -33,40 +33,22 @@ Build complete technical knowledge base from research files:
    - Timeline and delivery expectations
    - Success criteria and acceptance conditions
 
-2. **AUTOMATIC RESEARCH CROSS-REFERENCE**:
-   - **Extract all technologies mentioned in PRD**
-   - **Search research/tech/*.md for each technology**:
-     ```bash
-     # For each technology in PRD:
-     grep -r "technology_name" research/tech/ --include="*.md"
-     ```
-   - **Build technology validation map**:
-     - Technology → Research file(s) → Specific versions/patterns
-     - Flag any PRD technologies NOT covered by research
-   - **Extract package versions from research**:
-     - Search for: npm install, yarn add, package.json examples
-     - Map: package → version/tag from research
+2. **LOAD ULTRA-CONDENSED RESEARCH** (200 tokens total):
+   - **Read research/quick-ref.md** for ALL package versions and patterns
+   - Contains pre-validated package versions with correct tags (@beta, @next)
+   - Includes architecture rules, patterns, and gotchas
+   - No need to scan multiple files - everything critical is condensed here
+   
+3. **AUTOMATIC VALIDATION**:
+   - Cross-reference PRD technologies with quick-ref.md
+   - All versions and patterns are pre-validated
+   - Flag any PRD technologies NOT in quick-ref as "NEEDS RESEARCH"
 
-3. **Load PRD analysis framework** from research/planning/product-document-requirements.md:
-   - Extract modern PRD best practices and quality frameworks
-   - Understand requirements traceability patterns
-   - Apply stakeholder collaboration insights
-   - Leverage automated quality assurance principles
-
-4. **Synthesize vertical slicing methodology** from research/planning/vertical-slicing.md:
-   - Apply INVEST criteria for feature decomposition
-   - Understand end-to-end value delivery principles
-   - Extract architectural implementation patterns
-   - Apply enterprise scaling considerations
-
-5. **Gather and validate comprehensive technical knowledge** by reading ALL files in research/tech folder:
-   - **Expo SDK**: Extract specific SDK version from research
-   - **React Native**: Extract architecture version (New Architecture, 0.76+)
-   - **Legend State**: Extract @beta tag requirement
-   - **TypeScript**: Extract strict mode configuration
-   - **Testing libraries**: Extract specific package names and versions
-   - **Build comprehensive package requirements list**
-   - **Document all architectural patterns from research**
+4. **Apply methodologies from quick-ref**:
+   - Vertical slicing: features/* structure
+   - INVEST criteria for feature decomposition
+   - Modular observables with $ suffix
+   - Custom hooks over utility functions
 
 **PHASE 2: PRD FEATURE EXTRACTION AND MAPPING**
 Systematically extract and categorize features from the PRD:
