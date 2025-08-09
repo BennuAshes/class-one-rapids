@@ -3,23 +3,26 @@
 ## Document Header
 
 **Project Identifier:** PST-2025-MVP  
-**Version:** 1.1 - Technical Requirements Enhancement  
+**Version:** 1.0-TECH  
 **Owner:** Product Development Team  
-**Status:** Technical Analysis Complete - Pending Architecture Review  
-**Last Updated:** 2025-08-07  
+**Status:** Technical Requirements Added  
+**Last Updated:** 2025-08-08  
+**Document Type:** Living Document - Agile-Aligned PRD with Technical Requirements  
 
 ### Change History
 | Version | Date | Author | Description |
 |---------|------|---------|-------------|
 | 1.0 | 2025-08-07 | Product Team | Initial PRD creation based on design document analysis |
-| 1.1 | 2025-08-07 | Technical Architecture Team | Enhanced with comprehensive technical requirements and implementation analysis |
+| 1.0-TECH | 2025-08-08 | Technical Team | Added technical requirements analysis and research validation |
 
-### ⚠️ CRITICAL ARCHITECTURAL CONSIDERATION
-
-**Platform Architecture Mismatch Identified:**
-- **Original PRD Specification:** Web-based HTML5/JavaScript with vanilla JavaScript for maximum performance
-- **Command Framework Context:** React Native/Expo mobile application development
-- **Recommendation:** Architecture review required to determine optimal technology stack alignment
+### Stakeholders
+| Role | Name/Team | Responsibility |
+|------|-----------|----------------|
+| Product Owner | Product Team | Overall product vision and requirements |
+| Engineering Lead | Development Team | Technical feasibility and implementation |
+| UX/Design Lead | Design Team | User experience and visual design |
+| QA Lead | Quality Team | Testing strategy and quality assurance |
+| Business Sponsor | Leadership | Business objectives and success metrics |
 
 ---
 
@@ -64,12 +67,12 @@ As a player starting the game, I want to click a button to write code so that I 
 - Given I have sufficient money, when I purchase a Junior Dev, then automatic code production begins at 0.1 lines/second
 
 **Technical Implementation Note:**
-Core game loop requiring high-performance event handling and real-time state updates
-- **Architecture**: Event-driven architecture with game loop pattern using RequestAnimationFrame for 60 FPS updates
-- **State Management**: Reactive state management using Legend State for fine-grained reactivity and automatic UI updates
-- **Performance**: Optimized event handlers with debouncing for rapid clicking, object pooling for particle effects
-- **Testing**: Component testing with React Testing Library for user interaction simulation, performance testing with automated clicking scenarios
-- **Dependencies**: Legend State for reactive state, Web Audio API for sound feedback, HTML5 Canvas for visual effects
+For React Native/Expo implementation, this core mechanic requires careful optimization to maintain 60 FPS performance.
+- **Architecture**: Feature-based vertical slice in `features/codeProduction/` with dedicated state management
+- **State Management**: Legend State observable for reactive updates: `codeProductionState$` with fine-grained reactivity
+- **Performance**: Use React.memo and useCallback to prevent unnecessary re-renders on rapid clicking
+- **Testing**: Unit tests for state mutations, integration tests for UI updates, E2E tests for click-to-production flow
+- **Dependencies**: @legendapp/state@beta for reactive state, react-native-reanimated for smooth animations
 
 **US-002: Feature Conversion System**  
 As a player with code, I want to convert lines of code into features so that I can generate revenue and progress toward business growth.
@@ -80,12 +83,12 @@ As a player with code, I want to convert lines of code into features so that I c
 - Given I have money, when feature conversion completes, then upgrade options become available
 
 **Technical Implementation Note:**
-Complex resource conversion system with conditional UI rendering and currency management
-- **Architecture**: Command pattern for transactions with rollback capability, observer pattern for UI updates
-- **State Management**: Computed observables for derived values (available conversions, upgrade eligibility), transactional state updates
-- **Performance**: Batch state updates for multiple conversions, efficient DOM updates with virtual diffing
-- **Testing**: Unit tests for conversion logic, integration tests for UI state changes, edge case testing for insufficient resources
-- **Dependencies**: Mathematical calculation utilities, animation libraries for number counting effects
+Feature conversion requires transactional state updates and synchronized animations.
+- **Architecture**: Separate feature slice in `features/featureShipping/` with cross-feature state coordination
+- **State Management**: Batch updates using Legend State's `batch()` to ensure atomic transactions
+- **Performance**: Debounce rapid conversions, implement request animation frame for counter animations
+- **Testing**: Test transaction atomicity, validate resource deduction and reward addition
+- **Dependencies**: expo-av for sound effects, react-native-reanimated for counter animations
 
 **US-003: Department Automation**  
 As a player managing multiple resources, I want to hire managers to automate departments so that I can focus on strategic decisions rather than repetitive clicking.
@@ -96,12 +99,12 @@ As a player managing multiple resources, I want to hire managers to automate dep
 - Given a department has a manager, when I return to the game, then offline progression is calculated and applied
 
 **Technical Implementation Note:**
-Critical offline progression system requiring accurate time calculation and state persistence
-- **Architecture**: Background processing simulation, offline progression calculator with time-based calculations
-- **State Management**: Persistent state with Legend State sync capabilities, timestamp tracking for offline calculations
-- **Performance**: Efficient offline calculation algorithms, optimized save/load operations with data compression
-- **Testing**: Offline progression testing with mocked time advancement, save/load integrity testing, automation accuracy validation
-- **Dependencies**: High-precision timestamp utilities, data compression libraries, LocalStorage persistence plugins
+Automation system requires background timers and offline calculation logic.
+- **Architecture**: Department management in `features/departments/` with modular department configurations
+- **State Management**: Computed observables for production rates, persisted state for offline calculation
+- **Performance**: Use InteractionManager for non-blocking automation updates
+- **Testing**: Test offline progression calculations, validate manager effects, E2E automation flows
+- **Dependencies**: @legendapp/state/persist for save system, expo-background-fetch for potential background updates
 
 ### Epic 2: Multi-Department Strategy (MVP Core)
 
@@ -114,12 +117,12 @@ As a player expanding beyond development, I want to hire sales staff to generate
 - Given I have both Leads and Features, when I combine them, then I receive higher revenue than selling features alone
 
 **Technical Implementation Note:**
-Multi-resource production system with complex interdependencies and milestone-driven unlocking
-- **Architecture**: Factory pattern for department creation, strategy pattern for different department behaviors
-- **State Management**: Nested observable structures for department hierarchies, computed multipliers for synergy effects
-- **Performance**: Efficient production rate calculations, optimized rendering for multiple department displays
-- **Testing**: Department unlock flow testing, production rate validation, synergy calculation accuracy testing
-- **Dependencies**: Department configuration data, animation systems for office expansion visuals
+Sales department introduces resource combination mechanics and visual state changes.
+- **Architecture**: Department-specific slice in `features/departments/sales/` following vertical slicing
+- **State Management**: Reactive computed values for lead generation rates and combination bonuses
+- **Performance**: Lazy-load department UI components, virtualize employee lists for large counts
+- **Testing**: Test threshold triggers, validate lead generation rates, verify combination multipliers
+- **Dependencies**: react-native-svg for office visualizations, expo-linear-gradient for UI effects
 
 **US-005: Customer Experience Impact**  
 As a player building a sustainable business, I want to invest in customer support so that I can increase customer retention and multiply long-term revenue.
@@ -130,12 +133,12 @@ As a player building a sustainable business, I want to invest in customer suppor
 - Given high customer satisfaction, when retention bonuses apply, then revenue multiplier increases from 1.1x up to 3x
 
 **Technical Implementation Note:**
-Complex multiplier system with cascading effects and non-linear progression curves
-- **Architecture**: Chain of responsibility pattern for multiplier calculations, observer pattern for cascading updates
-- **State Management**: Reactive multiplier chains with Legend State computed observables, automatic recalculation on state changes
-- **Performance**: Optimized multiplier calculation caching, efficient update propagation through dependency graph
-- **Testing**: Multiplier calculation accuracy testing, edge case testing for maximum multipliers, performance testing for large multiplier chains
-- **Dependencies**: Mathematical progression libraries, data visualization for multiplier effects
+Customer experience system requires complex multiplier calculations and feedback loops.
+- **Architecture**: CX feature in `features/customerExperience/` with retention calculation services
+- **State Management**: Derived state for retention multipliers, observable effects for customer satisfaction
+- **Performance**: Memoize multiplier calculations, batch UI updates for ticket resolutions
+- **Testing**: Test multiplier stacking, validate retention curves, E2E customer lifecycle tests
+- **Dependencies**: Mathematical precision library for accurate multiplier calculations
 
 **US-006: Department Synergies**  
 As a strategic player, I want departments to work together and create multiplier effects so that optimal resource allocation becomes a meaningful strategic decision.
@@ -146,12 +149,12 @@ As a strategic player, I want departments to work together and create multiplier
 - Given I reach 50 units in a department, when the second milestone triggers, then additional specialized bonuses unlock
 
 **Technical Implementation Note:**
-Sophisticated cross-department interaction system requiring efficient dependency tracking and bonus calculation
-- **Architecture**: Graph-based dependency system for department interactions, rule engine for bonus activation
-- **State Management**: Complex computed observables for cross-department effects, efficient change detection for bonus triggers
-- **Performance**: Optimized graph traversal for dependency calculations, cached bonus computations with invalidation
-- **Testing**: Comprehensive synergy calculation testing, threshold trigger validation, performance testing for large department networks
-- **Dependencies**: Graph algorithms library, rules engine for bonus logic, data structures for efficient lookups
+Synergy system requires cross-feature state observation and complex bonus calculations.
+- **Architecture**: Synergy coordinator in `features/synergies/` observing multiple department states
+- **State Management**: Cross-feature computed observables, effect system for bonus triggers
+- **Performance**: Throttle synergy recalculations, use shallow comparison for bonus changes
+- **Testing**: Test all synergy combinations, validate bonus stacking, integration tests for triggers
+- **Dependencies**: Modular observable composition from Legend State
 
 ### Epic 3: Progression and Prestige (MVP Extended)
 
@@ -164,12 +167,12 @@ As a player reaching mid-game limits, I want to reset my progress for permanent 
 - Given I have Investor Points, when I start a new run, then permanent bonuses apply: +10% starting capital per IP, +1% global speed per IP
 
 **Technical Implementation Note:**
-Complex progression reset system with persistent meta-progression and exponential scaling
-- **Architecture**: Memento pattern for state snapshots, command pattern for reversible operations
-- **State Management**: Dual-layer state management (temporary + persistent), Legend State sync for permanent progression
-- **Performance**: Efficient state reset operations, optimized meta-progression calculations
-- **Testing**: Prestige calculation accuracy testing, state reset validation, meta-progression persistence testing
-- **Dependencies**: High-precision arithmetic libraries, data backup/restore utilities, progress calculation algorithms
+Prestige system requires careful state reset logic and persistent meta-progression storage.
+- **Architecture**: Prestige feature in `features/prestige/` with reset orchestration service
+- **State Management**: Separate persistent layer for meta-progression, transactional reset operations
+- **Performance**: Optimize reset animations, preload fresh game state for instant restart
+- **Testing**: Test reset completeness, validate bonus calculations, E2E prestige flow tests
+- **Dependencies**: Secure storage for prestige data, animation libraries for reset effects
 
 **US-008: Achievement System**  
 As a player seeking goals and recognition, I want to unlock achievements for significant milestones so that I have clear progression targets and feel rewarded for exploration.
@@ -180,12 +183,12 @@ As a player seeking goals and recognition, I want to unlock achievements for sig
 - Given achievements provide bonuses, when they unlock, then gameplay benefits apply immediately and visibly
 
 **Technical Implementation Note:**
-Event-driven achievement system with complex condition monitoring and immediate bonus application
-- **Architecture**: Observer pattern for achievement monitoring, event bus for decoupled achievement triggers
-- **State Management**: Achievement state tracking with progress indicators, reactive bonus application system
-- **Performance**: Efficient condition checking with minimal performance impact, optimized notification rendering
-- **Testing**: Achievement trigger condition testing, progress tracking validation, notification system testing
-- **Dependencies**: Event system libraries, notification UI components, achievement data configuration
+Achievement system requires event tracking and persistent achievement state.
+- **Architecture**: Achievement system in `features/achievements/` with condition evaluator service
+- **State Management**: Event-driven achievement checking, persistent unlock storage
+- **Performance**: Batch achievement checks, lazy-load achievement UI components
+- **Testing**: Test all achievement conditions, validate bonus applications, UI notification tests
+- **Dependencies**: react-native-confetti-cannon for celebrations, expo-haptics for tactile feedback
 
 ### Epic 4: Polish and User Experience (MVP Quality)
 
@@ -198,12 +201,12 @@ As a player taking actions in the game, I want immediate and satisfying feedback
 - Given audio is enabled, when actions occur, then contextual sounds play with appropriate volume balancing
 
 **Technical Implementation Note:**
-High-performance feedback system requiring sub-50ms response times and sophisticated audio management
-- **Architecture**: Event-driven feedback system, object pooling for particle effects, audio context management
-- **State Management**: Immediate feedback state updates, non-blocking animation queuing system
-- **Performance**: Optimized particle systems with WebGL acceleration, efficient audio buffer management
-- **Testing**: Response time validation testing, performance testing under heavy interaction loads, audio system testing
-- **Dependencies**: WebGL/Canvas animation libraries, Web Audio API utilities, performance monitoring tools
+Polish features require optimized animation and audio systems for premium feel.
+- **Architecture**: Shared feedback system in `shared/feedback/` with visual and audio coordinators
+- **State Management**: Immediate optimistic updates, animation state separate from game state
+- **Performance**: Use native driver for animations, preload audio assets, implement audio pooling
+- **Testing**: Performance tests for feedback latency, visual regression tests for animations
+- **Dependencies**: react-native-reanimated for animations, expo-av for audio, lottie-react-native for effects
 
 **US-010: Save System and Offline Progression**  
 As a player with limited continuous play time, I want my progress to save automatically and continue while offline so that I can make meaningful progress even with irregular play sessions.
@@ -214,441 +217,428 @@ As a player with limited continuous play time, I want my progress to save automa
 - Given offline time exceeds 12 hours, when I return, then I receive the maximum 12-hour benefit with notification of the time cap
 
 **Technical Implementation Note:**
-Mission-critical persistence system with accurate offline progression and data integrity protection
-- **Architecture**: Auto-save system with configurable intervals, offline simulation engine, data integrity validation
-- **State Management**: Legend State persistence plugins with compression, versioned save data with migration support
-- **Performance**: Efficient serialization/deserialization, optimized offline calculation algorithms
-- **Testing**: Save/load reliability testing, offline progression accuracy validation, data corruption recovery testing
-- **Dependencies**: Data compression libraries, timestamp precision utilities, save data migration system
+Save system requires robust persistence and accurate offline calculations.
+- **Architecture**: Persistence layer in `shared/persistence/` with save queue and offline calculator
+- **State Management**: Auto-save with Legend State persistence plugins, versioned save format
+- **Performance**: Debounced saves, compressed save data, background save operations
+- **Testing**: Test save/load integrity, validate offline calculations, test save migration
+- **Dependencies**: @legendapp/state/persist, AsyncStorage for React Native, compression library
 
 ---
 
 ## Technical Requirements Analysis
 
+### Research Validation Results
+
+**⚠️ CRITICAL PLATFORM CONFLICT IDENTIFIED:**
+The PRD specifies a web-based game using vanilla JavaScript, while the research stack focuses on React Native/Expo mobile development. This technical requirements analysis provides dual-path implementation guidance.
+
+**Technologies Cross-Referenced with Research:**
+- ✅ **State Management**: @legendapp/state@beta validated (research/tech/legend-state.md)
+- ✅ **Architecture Pattern**: Vertical slicing validated (research/planning/vertical-slicing.md)
+- ✅ **React Native**: Version 0.76+ with New Architecture (research/tech/react-native.md)
+- ✅ **Expo SDK**: Version ~52.0.0 validated (research/tech/expo.md)
+- ✅ **TypeScript**: Strict mode configuration validated (research/tech/typescript.md)
+- ❌ **Canvas API**: Not covered in research (web-specific)
+- ❌ **Web Audio API**: Not covered in research (use expo-av instead)
+- ⚠️ **LocalStorage**: AsyncStorage for React Native equivalent
+
 ### Architecture and Technology Stack
 
-**Primary Technical Architecture Decision:**
-The original PRD specifies vanilla JavaScript for web deployment, but modern React-based architecture would provide superior maintainability, testing capabilities, and development velocity. 
+#### Option A: React Native/Expo Implementation (Research-Aligned)
 
-**Recommended Technology Stack Evolution:**
+**Core Stack:**
+```json
+{
+  "dependencies": {
+    "expo": "~52.0.0",
+    "react": "18.2.0",
+    "react-native": "0.76.0",
+    "@legendapp/state": "^3.0.0-beta",
+    "@legendapp/state/react": "^3.0.0-beta",
+    "@legendapp/state/persist": "^3.0.0-beta",
+    "react-native-reanimated": "~3.10.0",
+    "expo-av": "~14.0.0",
+    "expo-haptics": "~13.0.0",
+    "react-native-svg": "15.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "@types/react": "~18.2.0",
+    "@types/react-native": "~0.76.0",
+    "@testing-library/react-native": "^12.4.0",
+    "jest-expo": "~51.0.0"
+  }
+}
+```
 
-**Option 1: Current Specification (Vanilla JavaScript)**
-- **Core Engine:** Vanilla JavaScript ES2022+ with modules
-- **Build System:** Vite or esbuild for optimal performance and minimal bundle size
-- **State Management:** Custom reactive system or lightweight library (Solid.js signals)
-- **Testing:** Vitest + Testing Library for component-like testing patterns
+**Folder Structure (Vertical Slicing):**
+```
+src/
+├── features/
+│   ├── codeProduction/
+│   │   ├── components/
+│   │   │   ├── CodeButton.tsx
+│   │   │   └── CodeCounter.tsx
+│   │   ├── hooks/
+│   │   │   └── useCodeProduction.ts
+│   │   ├── services/
+│   │   │   └── codeCalculator.ts
+│   │   ├── state/
+│   │   │   └── codeProductionState.ts
+│   │   └── index.ts
+│   ├── departments/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── services/
+│   │   ├── state/
+│   │   └── [subdepartments]/
+│   ├── featureShipping/
+│   ├── prestige/
+│   ├── achievements/
+│   └── synergies/
+├── shared/
+│   ├── components/
+│   ├── hooks/
+│   ├── persistence/
+│   ├── feedback/
+│   └── types/
+├── app/
+│   ├── store/
+│   │   └── index.ts (composition only)
+│   └── navigation/
+└── assets/
+```
 
-**Option 2: Modern React Architecture (Recommended)**
-- **Core Framework:** React 18+ with concurrent features for smooth animations
-- **Build System:** Vite with React plugin for optimal development experience
-- **State Management:** Legend State v3 for reactive, performant game state management
-- **Testing:** React Testing Library + Jest for comprehensive component testing
+#### Option B: Web Implementation (PRD-Aligned)
 
-**Option 3: React Native/Expo (Cross-Platform Expansion)**
-- **Framework:** Expo SDK 52+ with React Native New Architecture support
-- **Platform Support:** Web, iOS, Android from single codebase using Expo Web
-- **State Management:** Legend State with cross-platform persistence plugins
-- **Testing:** React Native Testing Library + Maestro for E2E testing
+**Core Stack:**
+- Vanilla JavaScript with ES6+ modules
+- HTML5 Canvas API for rendering
+- Web Audio API for sound
+- LocalStorage for persistence
+- RequestAnimationFrame for game loop
+
+**Note:** This option conflicts with research but aligns with original PRD requirements.
 
 ### State Management Strategy
 
-**Legend State Implementation Patterns:**
+#### Legend State Implementation (Research-Aligned)
 
-**Game State Architecture:**
 ```typescript
-// Core game state structure optimized for idle game mechanics
-const gameState$ = observable({
-  player: {
-    resources: {
-      linesOfCode: 0,
-      features: 0,
-      money: 0,
-      customerLeads: 0
-    },
-    departments: {
-      development: { employees: 0, managers: 0, efficiency: 1.0 },
-      sales: { employees: 0, managers: 0, efficiency: 1.0 },
-      // ... other departments
-    },
-    prestige: {
-      investorPoints: 0,
-      totalPrestigesCompleted: 0,
-      permanentBonuses: { capitalBonus: 0, speedBonus: 0 }
-    }
-  },
-  gameMetadata: {
-    startTime: Date.now(),
-    lastSaveTime: Date.now(),
-    totalPlayTime: 0,
-    version: '1.0.0'
+// Core game state with modular observables
+import { observable, batch } from '@legendapp/state';
+import { syncObservable } from '@legendapp/state/sync';
+import { ObservablePersistAsyncStorage } from '@legendapp/state/persist-plugins/async-storage';
+
+// Feature-specific state slices
+export const codeProductionState$ = observable({
+  linesOfCode: 0,
+  linesPerSecond: 0,
+  workers: {
+    juniorDevs: 0,
+    seniorDevs: 0,
+    architects: 0
   }
 });
-```
 
-**Reactive Computed Values:**
-```typescript
-// Efficient computed observables for derived game state
-const derivedStats$ = observable(() => ({
-  totalIncome: calculateTotalIncome(gameState$.player.get()),
-  nextPrestigeCost: calculatePrestigeCost(gameState$.player.money.get()),
-  departmentSynergies: calculateSynergies(gameState$.player.departments.get()),
-  offlineProgressAvailable: calculateOfflineProgress(gameState$.gameMetadata.get())
-}));
-```
+export const departmentState$ = observable({
+  development: { /* ... */ },
+  sales: { /* ... */ },
+  customerExperience: { /* ... */ },
+  product: { /* ... */ },
+  design: { /* ... */ },
+  qa: { /* ... */ },
+  marketing: { /* ... */ }
+});
 
-**Performance-Optimized State Updates:**
-```typescript
-// Batch updates for smooth 60 FPS performance
-const gameLoop$ = observable(() => {
-  batch(() => {
-    updateResourceProduction();
-    updateDepartmentOutputs();
-    updateVisualEffects();
-  });
+export const prestigeState$ = observable({
+  investorPoints: 0,
+  multipliers: {
+    capitalBonus: 1.0,
+    speedBonus: 1.0
+  }
+});
+
+// Composed game state
+export const gameState$ = observable({
+  resources: codeProductionState$,
+  departments: departmentState$,
+  prestige: prestigeState$,
+  // Computed values
+  get valuation() {
+    // Complex calculation based on all game state
+  }
+});
+
+// Persistence configuration
+syncObservable(gameState$, {
+  persist: {
+    name: 'petsoft-tycoon-save',
+    plugin: ObservablePersistAsyncStorage
+  }
 });
 ```
 
 ### Performance and Scalability Requirements
 
-**60 FPS Performance Targets:**
-- **Game Loop Execution:** <16ms per frame for consistent 60 FPS
-- **State Update Propagation:** <5ms for reactive state changes
-- **UI Rendering:** <10ms for visual updates and animations
-- **Audio Processing:** <2ms for sound effect triggering
+**Mobile Performance Targets (React Native):**
+- **Frame Rate**: 60 FPS on devices with A12 Bionic / Snapdragon 855 or better
+- **Bundle Size**: <10MB initial APK/IPA (Expo managed workflow)
+- **Memory Usage**: <150MB during gameplay
+- **Input Latency**: <16ms (one frame) response time
+- **Startup Time**: <3 seconds cold start on mid-range devices
 
-**Memory Management:**
-- **Heap Memory:** Maximum 50MB during extended sessions
-- **Object Creation:** Minimize garbage collection with object pooling
-- **State History:** Circular buffer for undo/redo with 100 action limit
-- **Asset Loading:** Progressive loading with 3MB initial bundle size
-
-**Scalability Considerations:**
-- **Department Scaling:** Support 100+ employees per department
-- **Achievement System:** 200+ achievements with complex unlock conditions
-- **Save Data:** Compressed save files under 1MB with fast serialization
-- **Offline Progression:** Accurate simulation for 12+ hours of offline time
+**Optimization Strategies:**
+- Use React.memo for component memoization
+- Implement virtual scrolling for large lists
+- Use InteractionManager for non-critical updates
+- Batch state updates with Legend State's batch()
+- Implement lazy loading for feature modules
+- Use Hermes JavaScript engine for Android
 
 ### Security and Compliance Considerations
 
 **Data Security:**
-- **Save Data Integrity:** Cryptographic hashing to prevent save file manipulation
-- **Client-Side Validation:** Input sanitization for all user actions
-- **Privacy Compliance:** Zero external data transmission, GDPR-compliant local storage
-- **Anti-Cheat:** Basic client-side protections against common exploitation vectors
+- Implement save file validation and checksums
+- Encrypt sensitive game progression data
+- Validate all user inputs to prevent exploits
+- Implement anti-cheat measures for progression
 
-**Browser Security:**
-- **Content Security Policy:** Restrictive CSP headers for XSS prevention
-- **Local Storage Limits:** Graceful handling of quota exceeded scenarios
-- **Cross-Origin Isolation:** Secure contexts for high-precision timing APIs
+**Platform Compliance:**
+- COPPA compliance for potential younger users
+- App Store / Play Store guidelines compliance
+- Accessibility standards (WCAG 2.1 Level AA)
+- Privacy policy and data handling transparency
 
 ### Testing and Quality Assurance Strategy
 
-**Comprehensive Testing Framework:**
+**Unit Testing:**
+- Component testing with @testing-library/react-native
+- State logic testing with Legend State test utilities
+- Service function testing with Jest
+- Target: >80% code coverage
 
-**Unit Testing (70% of test coverage):**
-- **Game Logic Testing:** Mathematical accuracy for all progression calculations
-- **State Management Testing:** Reactive state updates and computed observable validation
-- **Performance Testing:** Automated benchmarks for critical performance paths
-- **Save/Load Testing:** Data integrity and version migration validation
+**Integration Testing:**
+- Feature interaction testing
+- State synchronization testing
+- Navigation flow testing
+- API integration validation
 
-**Integration Testing (20% of test coverage):**
-- **Department Interaction Testing:** Cross-department synergy calculation validation
-- **Progression Flow Testing:** Complete player journey from start to prestige
-- **Audio/Visual Integration:** Feedback system timing and synchronization testing
-- **Offline Progression Testing:** Accuracy validation with time simulation
+**End-to-End Testing:**
+- Critical user journeys with Maestro (Expo-compatible)
+- Platform-specific testing (iOS/Android)
+- Offline progression validation
+- Save/load integrity testing
 
-**End-to-End Testing (10% of test coverage):**
-- **Complete Game Loop Testing:** Full user journey automation with Maestro
-- **Cross-Browser Compatibility:** Automated testing across all target browsers
-- **Performance Regression Testing:** Continuous performance monitoring in CI/CD
-- **User Experience Testing:** Accessibility and usability validation
+**Performance Testing:**
+- FPS monitoring with Flipper
+- Memory profiling with React DevTools
+- Bundle size analysis
+- Startup time measurements
 
-**Testing Tools and Configuration:**
-```javascript
-// Comprehensive testing setup for idle game mechanics
-describe('Game Loop Performance', () => {
-  it('should maintain 60 FPS under heavy load', async () => {
-    const performanceMonitor = new PerformanceMonitor();
-    const gameInstance = createTestGame();
-    
-    // Simulate 1000 rapid clicks
-    await performanceMonitor.measure(async () => {
-      for (let i = 0; i < 1000; i++) {
-        await gameInstance.clickWriteCode();
-      }
-    });
-    
-    expect(performanceMonitor.averageFrameTime).toBeLessThan(16.67); // 60 FPS
+**Test Implementation Example:**
+```typescript
+// E2E test with Maestro
+describe('Core Game Loop', () => {
+  it('should progress from clicking to first automation', async () => {
+    await maestro.launchApp();
+    await maestro.tapOn('WRITE CODE');
+    await maestro.assertVisible('Lines of Code: 1');
+    // Continue test flow...
   });
 });
 ```
 
 ### Third-Party Dependencies and Integrations
 
-**Essential Dependencies:**
-- **State Management:** Legend State v3 for reactive state management
-- **Animation:** Framer Motion or React Spring for smooth animations
-- **Audio:** Tone.js or Web Audio API utilities for procedural sound generation
-- **Testing:** React Testing Library, Jest, Maestro for comprehensive testing
-- **Build Tools:** Vite, TypeScript, ESLint, Prettier for development workflow
-
-**Performance Libraries:**
-- **Math Utilities:** Big.js or Decimal.js for high-precision numerical calculations
-- **Compression:** LZ-String for save data compression
-- **Timing:** Performance API polyfills for consistent timing across browsers
-- **Monitoring:** Custom performance monitoring utilities for production telemetry
-
-**Development Dependencies:**
-- **Type Safety:** TypeScript 5.0+ with strict configuration
-- **Code Quality:** ESLint with React/accessibility rules, Prettier formatting
-- **Testing Infrastructure:** GitHub Actions for CI/CD, coverage reporting
-- **Documentation:** JSDoc for API documentation, Storybook for component documentation
+**Required Libraries:**
+```json
+{
+  "gameLogic": {
+    "decimal.js": "^10.4.0"  // Precision math for game calculations
+  },
+  "ui": {
+    "react-native-reanimated": "~3.10.0",  // Smooth animations
+    "react-native-gesture-handler": "~2.16.0",  // Touch handling
+    "react-native-svg": "15.2.0",  // Vector graphics
+    "lottie-react-native": "6.7.0"  // Complex animations
+  },
+  "audio": {
+    "expo-av": "~14.0.0"  // Sound effects and music
+  },
+  "feedback": {
+    "expo-haptics": "~13.0.0",  // Tactile feedback
+    "react-native-confetti-cannon": "^1.5.0"  // Celebration effects
+  },
+  "persistence": {
+    "@react-native-async-storage/async-storage": "1.23.0"
+  }
+}
+```
 
 ### Development and Deployment Infrastructure
 
-**Modern Development Workflow:**
-- **Development Server:** Vite dev server with hot module replacement
-- **Type Checking:** TypeScript in strict mode with incremental compilation
-- **Code Quality:** Pre-commit hooks with lint-staged for code quality enforcement
-- **Testing:** Continuous testing with watch mode during development
+**Development Setup:**
+- Expo managed workflow for rapid development
+- TypeScript with strict configuration
+- ESLint + Prettier for code quality
+- Husky for pre-commit hooks
 
-**CI/CD Pipeline Architecture:**
-```yaml
-# GitHub Actions workflow optimized for game development
-name: Game Build and Test Pipeline
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Unit Tests
-        run: npm run test:unit
-      - name: Integration Tests  
-        run: npm run test:integration
-      - name: Performance Tests
-        run: npm run test:performance
-      - name: E2E Tests
-        run: npm run test:e2e
-
-  build:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Build Production
-        run: npm run build
-      - name: Bundle Size Check
-        run: npm run bundle-analyzer
-      - name: Deploy to Staging
-        run: npm run deploy:staging
-```
+**CI/CD Pipeline:**
+- GitHub Actions for automated testing
+- EAS Build for app compilation
+- EAS Submit for store submissions
+- Automated version bumping
 
 **Deployment Strategy:**
-- **Static Hosting:** CDN deployment with edge caching for global performance
-- **Progressive Web App:** PWA manifest for app-like experience on mobile
-- **Performance Monitoring:** Real User Monitoring (RUM) for production telemetry
-- **Error Tracking:** Client-side error reporting with user session replay
+- Expo OTA updates for non-native changes
+- Staged rollouts through app stores
+- Feature flags for gradual feature release
+- Analytics integration for monitoring
 
 ### Cross-Cutting Technical Concerns
 
-**Accessibility Implementation:**
-- **Keyboard Navigation:** Full keyboard accessibility for all game interactions
-- **Screen Reader Support:** ARIA labels and live regions for dynamic content
-- **Visual Accessibility:** High contrast mode, customizable font sizes
-- **Motor Accessibility:** Configurable click timing and hold-to-click options
+**Shared Utilities:**
+- Number formatting with localization
+- Time calculation utilities
+- Save/load queue management
+- Performance monitoring hooks
 
-**Internationalization Support:**
-- **Text Externalization:** All user-facing strings in resource files
-- **Number Formatting:** Locale-aware currency and numerical formatting
-- **RTL Support:** Right-to-left language layout support
-- **Cultural Adaptation:** Culturally appropriate progression metaphors
+**Error Handling:**
+- Global error boundary
+- Sentry integration for crash reporting
+- Graceful degradation for feature failures
+- User-friendly error messages
 
-**Performance Monitoring:**
-- **Core Web Vitals:** Automated monitoring of loading, interactivity, and visual stability
-- **Custom Game Metrics:** Frame rate monitoring, action response time tracking
-- **Error Tracking:** Comprehensive error logging with user context
-- **Usage Analytics:** Privacy-compliant user behavior analysis
+**Analytics and Monitoring:**
+- Game progression analytics
+- Performance metrics collection
+- User behavior tracking
+- A/B testing framework
 
 ### Implementation Risk Assessment
 
-**High-Risk Technical Areas:**
-- **Offline Progression Accuracy:** Complex time-based calculations requiring precise validation
-- **Performance Under Load:** Maintaining 60 FPS with hundreds of departments and employees
-- **Save Data Corruption:** Protecting player progress from browser storage issues
-- **Cross-Browser Audio:** Consistent audio experience across different browser implementations
+**High Risk:**
+- Performance on low-end devices (Mitigation: Aggressive optimization, quality settings)
+- State corruption bugs (Mitigation: Comprehensive testing, backup saves)
+- Platform-specific issues (Mitigation: Thorough device testing)
 
-**Mitigation Strategies:**
-- **Comprehensive Testing:** Automated testing for all high-risk scenarios
-- **Performance Budgets:** Strict performance budgets with automated enforcement
-- **Data Backup:** Multiple save slots with export/import functionality
-- **Graceful Degradation:** Fallback implementations for browser compatibility issues
+**Medium Risk:**
+- Offline progression accuracy (Mitigation: Robust calculation system, testing)
+- Audio synchronization (Mitigation: Preloading, audio pooling)
+- Save system reliability (Mitigation: Multiple save slots, validation)
+
+**Low Risk:**
+- UI responsiveness (Mitigation: Optimized rendering, memoization)
+- Feature unlock bugs (Mitigation: State machine implementation)
+- Balance issues (Mitigation: Configuration-driven, hot-reloadable)
 
 ### Technical Acceptance Criteria
 
-**Performance Acceptance Criteria:**
-- Maintain 58+ FPS during normal gameplay on Intel HD Graphics 4000
-- Complete save/load operations in <100ms
-- UI response time <50ms for 99.9% of interactions
-- Memory usage growth <5% per hour of continuous play
+**Performance Metrics:**
+- [ ] Maintains 60 FPS during normal gameplay
+- [ ] Input latency <16ms for all interactions
+- [ ] Memory usage remains under 150MB
+- [ ] No memory leaks over 1-hour play sessions
 
-**Functionality Acceptance Criteria:**
-- 100% save/load reliability under normal conditions
-- Offline progression accuracy within 0.1% of real-time simulation
-- Cross-browser compatibility with identical functionality
-- Accessibility compliance meeting WCAG 2.1 AA standards
+**Code Quality:**
+- [ ] TypeScript strict mode passes
+- [ ] >80% test coverage achieved
+- [ ] No critical security vulnerabilities
+- [ ] Passes all linting rules
 
-**Quality Acceptance Criteria:**
-- 90%+ code coverage with meaningful tests
-- Zero critical or high-priority bugs in production
-- Performance regression detection with automated alerts
-- Documentation coverage for all public APIs and game mechanics
+**Feature Completeness:**
+- [ ] All user stories implemented and tested
+- [ ] Offline progression calculates correctly
+- [ ] Save/load system works reliably
+- [ ] All departments functional with synergies
+
+**Platform Requirements:**
+- [ ] Runs on iOS 13+ and Android 8+
+- [ ] Responsive design for tablets
+- [ ] Accessibility features implemented
+- [ ] Localization-ready architecture
+
+### Mandatory Implementation Constraints
+
+Based on research validation, implementations MUST:
+
+1. **Use Feature-Based Folder Structure** (research/planning/vertical-slicing.md:83-84)
+   - Each feature in its own directory
+   - Complete vertical slices with components, hooks, services, and state
+   - No horizontal layering (no top-level services/ or utils/)
+
+2. **Implement Custom Hooks Over Utilities** (research/tech/react-native.md:1589-1614)
+   - React logic must use hooks pattern
+   - No utility functions for component logic
+   - Shared hooks in feature directories
+
+3. **Use Modular Legend State Patterns** (research/tech/legend-state.md:388-417)
+   - Feature-specific observables
+   - Composition at app level only
+   - No monolithic state objects
+
+4. **Follow React Native Component Organization** (research/tech/react-native.md:1656-1673)
+   - PascalCase for components
+   - Functional components with hooks
+   - Proper prop typing with TypeScript
+
+### Research-Validated Package Requirements
+
+**MANDATORY Package Versions from Research:**
+```json
+{
+  "@legendapp/state": "^3.0.0-beta",
+  "@legendapp/state/react": "^3.0.0-beta",
+  "@legendapp/state/persist": "^3.0.0-beta",
+  "react-native": "0.76.0",
+  "expo": "~52.0.0",
+  "typescript": "^5.8.0",
+  "@testing-library/react-native": "^12.4.0",
+  "react-native-reanimated": "~3.10.0"
+}
+```
+
+**Technologies Needing Research Validation:**
+- Game-specific mathematics libraries
+- Particle effect systems for React Native
+- Background task handling for mobile
+- Advanced audio mixing capabilities
+
+Any deviation from these patterns or package versions should HALT implementation pending research validation.
 
 ---
 
-## RESEARCH VALIDATION SECTION
+## Technical Requirements
 
-### Package Version Requirements (Validated from research/)
-Based on automatic research cross-reference, the following package versions are required:
+### Architecture and Performance
+- **Framework:** Vanilla JavaScript for maximum performance (no framework overhead)
+- **Rendering:** Canvas API for particle systems and complex animations
+- **Audio:** Web Audio API for dynamic sound generation and mixing
+- **Storage:** LocalStorage for game saves with compression
+- **Game Loop:** RequestAnimationFrame for consistent 60 FPS timing
 
-**Core Framework & Runtime:**
-- **@legendapp/state:** @beta (research/tech/legend-state.md - v3.0.0-beta.31)
-- **React Native:** 0.76+ with New Architecture (research/tech/react-native.md)
-- **Expo SDK:** 52+ (research/tech/expo.md - React Native 0.77 default)
-- **TypeScript:** 5.0+ in strict mode (research/tech/typescript.md)
+### Browser Compatibility
+- Chrome 90+ (primary target)
+- Firefox 88+ (full support)
+- Safari 14+ (iOS compatibility)
+- Edge 90+ (Windows users)
+- Mobile responsive for tablets (phones optional for MVP)
 
-**Testing Libraries:**
-- **@testing-library/react-native:** Latest stable (research/tech/test/react-native-testing-library-best-practices-2025.md)
-- **jest-expo:** Latest compatible with SDK 52 (research/tech/automated-testing.md)
-- **Maestro:** For E2E testing on iOS (research/tech/test/e2e-testing-expo-maestro-2025.md)
+### Performance Requirements
+- **Frame Rate:** Consistent 60 FPS on Intel HD Graphics 4000
+- **Bundle Size:** <3MB initial download
+- **Memory Usage:** <50MB during extended play sessions
+- **Input Latency:** <50ms response to all user actions
+- **Load Time:** <3 seconds on 3G connection
 
-**State Management Extensions:**
-- **react-native-mmkv:** For persistent storage with Legend State (research/tech/legendstate-v3-research.md)
-
-### Architecture Pattern Requirements (Validated from research/)
-Implementation MUST follow these research-validated patterns:
-
-**Vertical Slicing (research/planning/vertical-slicing.md:83-84):**
-- Feature-based folder organization
-- Each feature as complete vertical slice
-- Co-location of related components, hooks, services, types
-- High cohesion within features, low coupling between features
-
-**React Native Patterns (research/tech/react-native.md:1589-1614):**
-- Custom hooks over utility functions
-- Component-centric architecture
-- Platform-specific code organization
-- Accessibility-first component design
-
-**Legend State Patterns (research/tech/legend-state.md:388-417):**
-- Modular observable structures
-- Computed observables for derived values
-- Batch updates for performance
-- Reactive subscription patterns
-
-### Technologies Needing Research Validation
-The following technologies mentioned in the PRD are NOT covered by existing research:
-- **Canvas API:** For particle systems (web-specific, not React Native)
-- **Web Audio API:** Direct usage (React Native uses different audio libraries)
-- **LocalStorage:** Direct usage (React Native uses AsyncStorage/MMKV)
-- **Vanilla JavaScript approach:** Conflicts with React Native research
-
-**Recommendation:** If proceeding with vanilla JavaScript as specified, new research is needed. Otherwise, adapt to React Native/Expo patterns from existing research.
-
----
-
-## MANDATORY IMPLEMENTATION CONSTRAINTS
-
-Based on comprehensive research synthesis, implementations MUST adhere to the following constraints:
-
-**Feature-Based Architecture (research/planning/vertical-slicing.md:83-84):**
-```
-src/
-├── features/
-│   ├── codeProduction/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   ├── services/
-│   │   └── types/
-│   ├── departmentManagement/
-│   ├── prestigeSystem/
-│   └── achievements/
-```
-
-**State Management Patterns (research/tech/legend-state.md:388-417):**
-```typescript
-// REQUIRED: Modular Legend State patterns
-const codeProductionState$ = observable({
-  linesOfCode: 0,
-  productionRate: 0,
-  actions: {
-    writeCode: () => codeProductionState$.linesOfCode.set(c => c + 1),
-    calculateRate: () => {
-      // Computed observable pattern
-      return codeProductionState$.employees.get() * baseRate;
-    }
-  }
-});
-```
-
-**Custom Hooks Over Utilities (research/tech/react-native.md:1589-1614):**
-```typescript
-// REQUIRED: Custom hooks pattern for game logic
-const useCodeProduction = () => {
-  const linesOfCode = use$(codeProductionState$.linesOfCode);
-  const writeCode = useCallback(() => {
-    codeProductionState$.actions.writeCode();
-  }, []);
-  
-  return { linesOfCode, writeCode };
-};
-```
-
-**Component Organization (research/tech/react-native.md:1656-1673):**
-```typescript
-// REQUIRED: Component co-location with related assets
-src/features/codeProduction/components/WriteCodeButton/
-├── WriteCodeButton.tsx
-├── WriteCodeButton.test.tsx  
-├── WriteCodeButton.styles.ts
-├── index.ts
-└── types.ts
-```
-
-**Testing Strategy Implementation (research/tech/test/react-native-testing-library-best-practices-2025.md):**
-```typescript
-// REQUIRED: User-centric testing approach
-describe('WriteCodeButton', () => {
-  it('should increase lines of code when clicked', async () => {
-    const user = userEvent.setup();
-    render(<WriteCodeButton />);
-    
-    const button = screen.getByRole('button', { name: /write code/i });
-    await user.click(button);
-    
-    expect(screen.getByText(/lines of code: 1/i)).toBeInTheDocument();
-  });
-});
-```
-
-### Architecture Deviation Halt Points
-
-**CRITICAL: Any deviation from the following patterns should HALT implementation:**
-
-1. **Non-Feature-Based Architecture:** Using traditional MVC or component-only organization
-2. **Utility-First Patterns:** Creating utility functions instead of custom hooks for game logic  
-3. **Non-Reactive State Management:** Using Redux patterns or non-reactive state approaches
-4. **Implementation-Detail Testing:** Testing internal state instead of user behavior
-
-### Technology Stack Validation Matrix
-
-| Requirement | Current Spec | Recommended | React Native Alternative |
-|------------|-------------|------------|------------------------|
-| **Performance** | Vanilla JS | React + Legend State | React Native + Legend State |
-| **Bundle Size** | <3MB | ✅ Achievable | ✅ Achievable with optimization |
-| **Development Speed** | Medium | ✅ High | ✅ Very High |
-| **Testing Quality** | Custom | ✅ Comprehensive | ✅ Comprehensive |
-| **Cross-Platform** | Web Only | Web Only | ✅ Web + Mobile |
-| **Team Scalability** | Limited | ✅ High | ✅ Very High |
+### Data and Security
+- **Save System:** Automatic saves every 30 seconds
+- **Data Format:** JSON with compression (LZ-string or similar)
+- **Offline Support:** Full offline play capability
+- **Data Validation:** Save file integrity checks to prevent corruption
+- **No External Dependencies:** All assets bundled, no external API calls for MVP
 
 ---
 
@@ -816,12 +806,4 @@ This PRD is a living document that will evolve throughout development. Updates w
 
 ---
 
-*This enhanced Product Requirements Document incorporates comprehensive technical analysis based on modern development best practices and research-validated architectural patterns. All technical requirements are designed to ensure high-performance, maintainable, and scalable implementation while adhering to proven development methodologies.*
-
-**Technical Review Status:** Architecture decisions pending - requires stakeholder alignment on technology stack  
-**Next Technical Review:** Upon completion of architecture decision and technology stack selection  
-**Technical Approval Required From:** Senior Technical Architect, Platform Engineering Lead, QA Engineering Lead
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
+*This document represents the current understanding of PetSoft Tycoon requirements and will be updated as the project evolves through agile development cycles.*

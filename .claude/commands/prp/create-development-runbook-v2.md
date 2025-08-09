@@ -24,7 +24,46 @@ EXECUTE chunked PRD-to-runbook transformation: $ARGUMENTS
 # Parse arguments
 PRD_PATH="${1:-}"
 PHASES=""
-OUTPUT_DIR="./runbook"
+
+# Safety check: Ensure we're in a project directory (has package.json, app.json, or PRD file)
+# Check if we're in projects/ subdirectory or have project files
+IS_PROJECT_DIR=false
+
+# Check for package.json or app.json (existing projects)
+if [ -f "package.json" ] || [ -f "app.json" ] || [ -f "../package.json" ] || [ -f "../app.json" ]; then
+  IS_PROJECT_DIR=true
+fi
+
+# Check if we're in a projects/ subdirectory (new projects with PRD)
+if [[ "$(pwd)" == */projects/* ]]; then
+  IS_PROJECT_DIR=true
+fi
+
+# Check for PRD files (new projects)
+if ls *.md 2>/dev/null | grep -q "prd\|PRD"; then
+  IS_PROJECT_DIR=true
+fi
+
+if [ "$IS_PROJECT_DIR" = false ]; then
+  echo "⚠️ ERROR: Not in a project directory!"
+  echo ""
+  echo "Please navigate to your project directory first:"
+  echo "  cd projects/{project-name}/"
+  echo ""
+  echo "Then run this command again with your PRD path."
+  echo ""
+  echo "Current directory: $(pwd)"
+  echo "Looking for: package.json, app.json, or PRD files in projects/ subdirectory"
+  exit 1
+fi
+
+# Set default output directory relative to PRD location if PRD path provided
+if [ -n "$PRD_PATH" ] && [ -f "$PRD_PATH" ]; then
+  PRD_DIR="$(dirname "$PRD_PATH")"
+  OUTPUT_DIR="${PRD_DIR}/runbook"
+else
+  OUTPUT_DIR="./runbook"
+fi
 
 # Parse optional arguments
 shift
@@ -51,6 +90,7 @@ fi
 
 # Create output directory
 mkdir -p "$OUTPUT_DIR"
+echo "✅ Creating runbook in: $OUTPUT_DIR"
 ```
 
 **PHASE 0: PRD ANALYSIS** (Always runs first)
@@ -100,7 +140,7 @@ mkdir -p "$OUTPUT_DIR"
      - If NOT found in research → Flag as "NEEDS RESEARCH" in runbook
      - Generate validation report in analysis phase
    
-   **Step 3.4: Create Research Requirements Manifest**
+   **Step 3.4: Create Research Requirements Manifest with Architecture Rules**
    - Generate `$OUTPUT_DIR/research-requirements.json`:
      ```json
      {
@@ -113,6 +153,80 @@ mkdir -p "$OUTPUT_DIR"
          "architecture": "vertical-slicing",
          "state": "modular-observables",
          "components": "feature-colocated"
+       },
+       "architectureRules": {
+         "folderStructure": {
+           "pattern": "feature-based-vertical-slicing",
+           "source": "research/planning/vertical-slicing.md:83-84",
+           "rules": [
+             {
+               "type": "folder_structure",
+               "check": "no root-level entities/ or services/ folders",
+               "correction": "move to features/*/entities/ or features/*/services/",
+               "message": "Entities and services must be colocated with features"
+             },
+             {
+               "type": "folder_structure",
+               "check": "features/* folders must not be empty",
+               "correction": "populate with {components/, hooks/, services/, state/}",
+               "message": "Features must contain complete vertical slices"
+             },
+             {
+               "type": "folder_structure",
+               "check": "shared/ folder only contains truly shared code",
+               "correction": "move feature-specific code to features/*/",
+               "message": "Shared folder should only contain cross-cutting concerns"
+             }
+           ]
+         },
+         "stateManagement": {
+           "pattern": "modular-observables",
+           "source": "research/tech/legend-state.md:606-631",
+           "rules": [
+             {
+               "type": "state_pattern",
+               "check": "no single monolithic state observable",
+               "correction": "split into feature-specific observables composed at app level",
+               "example": "gameState$ → {resourceState$, departmentState$, prestigeState$}"
+             },
+             {
+               "type": "state_pattern",
+               "check": "each feature has own state slice in features/*/state/",
+               "correction": "create featureState$ in features/*/state/index.ts",
+               "message": "Features must manage their own state"
+             }
+           ]
+         },
+         "codePatterns": {
+           "pattern": "custom-hooks-over-utils",
+           "source": "research/tech/react-native.md:1589-1614",
+           "rules": [
+             {
+               "type": "logic_pattern",
+               "check": "no utility functions for React-specific logic",
+               "correction": "convert to custom hooks in features/*/hooks/",
+               "message": "React logic should use hooks pattern"
+             },
+             {
+               "type": "logic_pattern",
+               "check": "business logic colocated with features",
+               "correction": "move from shared/utils/ to features/*/services/",
+               "message": "Business logic belongs in feature services"
+             }
+           ]
+         },
+         "componentPatterns": {
+           "pattern": "feature-first-components",
+           "source": "research/planning/vertical-slicing.md:16-19",
+           "rules": [
+             {
+               "type": "component_pattern",
+               "check": "components organized by feature not by type",
+               "correction": "move from components/Button to features/*/components/",
+               "message": "Components should be feature-scoped"
+             }
+           ]
+         }
        },
        "validationStatus": "PASS/FAIL"
      }
