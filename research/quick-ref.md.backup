@@ -1,178 +1,101 @@
-# Research Quick-Reference (Ultimate Edition)
+# Quick-Ref (Optimized for Accuracy)
+*Generated: 2025-08-09*
 
-## L1: CRITICAL (Always Load - 200 tokens)
+## L1: CRITICAL (~167 tokens)
+### Package Versions (MUST USE)
+| Package | Version | Critical |
+|---------|---------|----------|
+| @legendapp/state | @beta | ⚠️ beta |
+| expo | ~53.0.0 | 📌 exact |
+| react-native | 0.79+ | ✅ |
+| typescript | ^5.8.0 | ✅ |
+| expo-router | ~5.0.0 | 📌 exact |
+| react | 18.2.0 | ✅ |
+| vitest | ^1.0.0 | ✅ |
+| @testing-library/react-native | ^12.0.0 | ✅ |
 
-### Package Versions (MANDATORY)
-| Package | Version | Critical Note |
-|---------|---------|---------------|
-| @legendapp/state | @beta | 40% perf, React18 required |
-| expo | ~52.0.0 | SDK52 = RN0.76+ only |
-| react-native | 0.76+ | New Arch mandatory |
-| typescript | ^5.8.0 | strict: true required |
-| expo-router | ~4.0.0 | file-based only |
+### Architecture Rules
+| ✅ MUST | ❌ NEVER |
+|---------|----------|
+| feat/*/comp/ structure | src/components flat structure |
+| gameState$ observables | single monolithic store |
+| useGameLogic() hooks | gameUtils.js utilities |
+| vertical slicing | horizontal layers |
+| INVEST criteria | big bang features |
 
-### Architecture Rules (ENFORCE)
-| ✅ MUST | ❌ NEVER | Auto-Fix |
-|---------|----------|----------|
-| features/*/components/ | src/components/ | mv to features |
-| gameState$ observables | single store | split by feature |
-| useGameLogic() hooks | gameUtils.js | convert to hooks |
-| vertical slicing | horizontal layers | restructure |
-| INVEST criteria | big bang features | decompose |
 
-### Anti-Patterns (BLOCK)
-- ❌ Monolithic state → ✅ Feature observables
-- ❌ Utils for React → ✅ Custom hooks
-- ❌ Any types → ✅ Strict TypeScript
-- ❌ Class components → ✅ Functional only
-- ❌ Manual navigation → ✅ expo-router
-
-## L2: IMPLEMENTATION (Load for Tasks - 400 tokens)
-
-### Package Config Requirements
-```markdown
-# Metro (REQUIRED for @legendapp/state@beta)
+## L2: IMPLEMENTATION (~151 tokens)
+### Critical Configuration
+```javascript
+// Metro (REQUIRED for @legendapp/state@beta)
 resolver.unstable_enablePackageExports: true
-resolver.unstable_conditionNames: ['react-native']
+resolver.unstable_conditionNames: ["react-native"]
 
-# Babel (REQUIRED for reanimated)
-plugins: ['react-native-reanimated/plugin']
+// TypeScript (STRICT MODE)
+strict: true
+noImplicitAny: true
+strictNullChecks: true
 
-# TypeScript (STRICT)
-strict: true, noImplicitAny: true, strictNullChecks: true
-```
-
-### Vertical Slicing Pattern
-```
-features/
-├── auth/
-│   ├── components/   # Feature UI
-│   ├── hooks/        # useAuth()
-│   ├── state/        # authState$
-│   └── services/     # authAPI
-├── game-core/
-│   ├── components/   # GameView
-│   ├── hooks/        # useGameLoop()
-│   ├── state/        # gameState$
-│   └── services/     # gameEngine
-```
-
-### State Management (Legend State)
-```typescript
-// Feature observable pattern
-export const resourceState$ = observable({
-  gold: 0,
-  gems: 0,
-  // Computed values
-  get total() { return this.gold + this.gems }
-})
-
-// Batch updates (40% perf boost)
-batch(() => {
-  resourceState$.gold.set(100)
-  resourceState$.gems.set(50)
-})
+// Babel
+plugins: ["react-native-reanimated/plugin"]
 ```
 
 ### Performance Critical
-| Optimization | Impact | Implementation |
-|-------------|--------|---------------|
-| Hermes Engine | 30% faster | android/app/build.gradle |
-| Bundle splitting | 50% smaller | expo-router lazy() |
-| Image optimization | 60% smaller | expo-image + webp |
-| List virtualization | 90% memory | FlashList not FlatList |
-| Batch state updates | 40% faster | Legend batch() |
+- Hermes Engine: 30% faster
+- Bundle splitting: 50% smaller
+- Image optimization: 60% smaller
+- List virtualization: 90% memory reduction
+- Batch state updates: 40% faster
 
 ### Testing Stack
-| Type | Tool | Config |
-|------|------|--------|
-| Unit | Vitest | workspace:* resolution |
-| Component | Testing Library | @testing-library/react-native |
-| E2E | Maestro | .maestro/flows/ |
-| Visual | Percy | CI integration |
+- Unit: Vitest
+- Component: Testing Library
+- E2E: Maestro
 
-## L3: ADVANCED (Reference - 300 tokens)
 
-### LLM Optimization Patterns
-- **Token Efficiency**: Markdown 15% better than JSON
-- **Context Hierarchy**: L1→L2→L3 progressive loading
-- **XML Structure**: Best for Claude models
-- **Quick-Ref Pattern**: 90% token reduction
+## L3: ADVANCED (~54 tokens)
+### LLM Optimization
+- Markdown 15% more efficient than JSON
+- Hierarchical loading (L1→L2→L3)
+- Accuracy > compression
 
-### Security Requirements
-- **SAST**: semgrep in CI/CD
-- **Dependency scan**: npm audit weekly
-- **Secrets**: NEVER in code, use expo-secure-store
-- **API keys**: Server-side only via proxy
+### Security
+- semgrep in CI/CD
+- expo-secure-store for secrets
+- Server-side API keys only
 
-### Platform Specific
-| Platform | Requirement | Config |
-|----------|------------|--------|
-| iOS | 13.4+ | Info.plist |
-| Android | SDK 23+ (6.0) | build.gradle |
-| Web | Modern browsers | babel targets |
-| Expo Go | SDK 52 only | app.json |
 
-### Breaking Changes Watch
-- RN 0.76: New Architecture default
-- Expo 52: Removes classic updates
-- Metro: Package exports required
-- TypeScript 5.8: Stricter inference
-
-## L4: FRAMEWORK ALTERNATIVES (Deep Dive - 100 tokens)
-
+## L4: ALTERNATIVES (~54 tokens)
 ### When NOT React Native
-| Use Case | Framework | Why |
-|----------|-----------|-----|
+| Use Case | Alternative | Why |
+|----------|-------------|-----|
 | Web-first | SolidJS | 10x smaller |
 | Data-heavy | TanStack Query | Better caching |
-| Desktop | Tauri | Native performance |
-| Simple app | Flutter | Faster development |
+| Desktop | Tauri | Native perf |
 
-### AI Agent Patterns
-- Multi-agent orchestration
-- Memory management tiers
-- Context engineering
-- Prompt optimization
 
-## L5: EMERGENCY FIXES (As Needed)
-
-### Common Build Failures
+## L5: EMERGENCY (~39 tokens)
+### Quick Fixes
 ```bash
 # Metro cache issues
-npx expo start --clear
-
-# Pod install failures
-cd ios && pod deintegrate && pod install
-
-# Android build failures
-cd android && ./gradlew clean
+npx expo start -c
 
 # Type errors
-npx tsc --noEmit --skipLibCheck
+npx tsc --noEmit
+
+# Module not found
+rm -rf node_modules && npm install
 ```
 
-### Recovery Commands
-```bash
-# Full reset
-rm -rf node_modules .expo ios android
-npm install
-npx expo prebuild --clean
-
-# Git recovery
-git stash && git checkout main && git pull
-```
 
 ---
+## Philosophy
+- **Accuracy** over aggressive compression
+- **Known facts** hardcoded for reliability
+- **Essential info** only
+- **Clear structure** for easy scanning
 
-## Research Sources (For Deep Dives)
-- Full tech details: research/tech/*.md
-- Architecture: research/planning/vertical-slicing.md
-- AI patterns: research/agentic/*.md
-- Task decomposition: research/planning/structured-task-decomposition.md
-
-## Usage Strategy
-1. **Always load L1** (200 tokens) - Non-negotiable requirements
-2. **Load L2 for implementation** (400 tokens) - When building
-3. **Reference L3-L5 as needed** - Specific situations only
-4. **Total typical load**: 600 tokens vs 2000+ old approach
+## Sources
+- /research/tech/*.md - Technology specifics
+- /research/planning/*.md - Architecture patterns
+- /research/agentic/*.md - AI/LLM optimization
