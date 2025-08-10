@@ -42,7 +42,10 @@
       "Bash(git commit:*)",
       "Bash(cat:*)",
       "WebFetch(domain:docs.expo.dev)",
-      "WebFetch(domain:expo.dev)"
+      "WebFetch(domain:expo.dev)",
+      "WebFetch(domain:machinations.io)",
+      "WebFetch(domain:games.themindstudios.com)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
