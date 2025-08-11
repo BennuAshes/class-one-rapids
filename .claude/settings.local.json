@@ -45,7 +45,11 @@
       "WebFetch(domain:expo.dev)",
       "WebFetch(domain:machinations.io)",
       "WebFetch(domain:games.themindstudios.com)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(CURRENT_VERSION=7)",
+      "Bash(NEXT_VERSION=8)",
+      "Bash(echo:*)",
+      "Bash(ESLINT_USE_FLAT_CONFIG=false npx eslint . --ext .ts,.tsx)"
     ],
     "deny": []
   }

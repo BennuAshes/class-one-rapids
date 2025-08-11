@@ -400,30 +400,14 @@ src/
 │   ├── Button/
 │   │   ├── Button.tsx
 │   │   ├── Button.types.ts
-│   │   └── index.ts
-│   └── index.ts         # Barrel export
 ├── hooks/               # Custom React hooks
 ├── services/            # API and business logic
 ├── types/               # Global type definitions
 │   ├── api.ts
 │   ├── common.ts
-│   └── index.ts
 ├── utils/               # Utility functions
 ├── constants/           # Application constants
 └── main.ts             # Entry point
-```
-
-### Barrel Exports Pattern
-
-```typescript
-// components/index.ts
-export { Button } from './Button';
-export { Input } from './Input';
-export { Modal } from './Modal';
-
-// types/index.ts
-export type { User, UserRole } from './user';
-export type { ApiResponse, ApiError } from './api';
 ```
 
 ## Decorators and Metadata

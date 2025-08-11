@@ -181,6 +181,288 @@ Generate comprehensive technical requirements based on ULTRATHINK analysis:
    - Reference relevant research insights that influenced decisions
    - Provide implementation priority and dependency information
 
+**PHASE 5: ARCHITECTURE SYNTHESIS GENERATION**
+Create comprehensive architecture synthesis document:
+
+1. **Generate architecture-synthesis.md** with complete architectural decision record:
+
+```markdown
+# Architecture Synthesis
+
+## Executive Summary
+[High-level overview of architectural decisions and trade-offs]
+
+## Pattern Reconciliations
+
+### Framework Structure Conflicts
+#### Expo Router + Vertical Slicing
+**Conflict**: Expo expects `app/` directory for file-based routing, vertical slicing demands `features/` organization
+**Analysis**: 
+- Expo's file-based routing requires specific directory structure
+- Vertical slicing improves feature isolation and team scalability
+- Both patterns have valid architectural benefits
+**Resolution**: Hybrid approach with clear separation of concerns
+- `app/` contains thin routing shells (navigation only)
+- `features/` contains thick domain logic (business logic)
+- Bridge pattern: `app/(tabs)/[screen].tsx` imports from `features/[feature]/screens/`
+- Shared components in `shared/components/` for cross-feature reuse
+**Trade-offs**:
+- Pro: Maintains both Expo conventions and vertical slicing benefits
+- Con: Slightly more complex import paths
+- Mitigation: Path aliases in tsconfig.json
+
+### State Management Architecture
+**Conflict**: Multiple state management patterns available (Legend State, TanStack Query, Context)
+**Analysis**:
+- Legend State offers fine-grained reactivity
+- TanStack Query excels at server state
+- Context API is built-in but less performant
+**Resolution**: Layered state architecture
+- Legend State for client state and game logic
+- TanStack Query for server state and API calls
+- Context only for truly global, rarely-changing values
+**Implementation Pattern**:
+```typescript
+// Client state with Legend State
+const gameState$ = observable({ score: 0, level: 1 });
+
+// Server state with TanStack Query
+const { data: leaderboard } = useQuery(leaderboardOptions);
+
+// Global config with Context (theme, locale)
+const { theme } = useTheme();
+```
+
+## Version Lock Decisions
+
+| Package | Version | Rationale | Risk Assessment |
+|---------|---------|-----------|-----------------|
+| expo | ~53.0.0 | Latest stable, not experimental | Low risk |
+| @legendapp/state | 3.0.0-beta.20 | Beta but production-ready per maintainer | Medium risk - have fallback to v2 |
+| react-native | 0.76.x | New Architecture default | Low risk with Expo |
+| @tanstack/react-query | ^5.0.0 | Stable v5 with improved TypeScript | Low risk |
+| react-native-mmkv | ^3.0.2 | 30x faster than AsyncStorage | Low risk, well-tested |
+
+## Architecture Decision Records (ADRs)
+
+### ADR-001: Hybrid Directory Structure
+**Status**: Accepted
+**Context**: Need to balance Expo conventions with vertical slicing
+**Decision**: Use dual directory structure with clear boundaries
+**Consequences**: 
+- Developers must understand both patterns
+- Documentation critical for onboarding
+- Path aliases required for clean imports
+
+### ADR-002: Fine-Grained Reactivity for Game State
+**Status**: Accepted
+**Context**: Game loops require high-performance state updates
+**Decision**: Legend State v3 for game state management
+**Consequences**:
+- Learning curve for team
+- Less ecosystem support
+- Superior performance for game mechanics
+
+### ADR-003: MMKV for Persistence
+**Status**: Accepted
+**Context**: Need fast, synchronous storage for game saves
+**Decision**: react-native-mmkv over AsyncStorage
+**Consequences**:
+- Additional native dependency
+- Platform-specific setup required
+- 30x performance improvement
+
+## Integration Points and Boundaries
+
+### Feature Module Boundaries
+```
+features/
+├── game/
+│   ├── screens/          # Exported to app/
+│   ├── components/        # Internal only
+│   ├── hooks/            # Internal + exported
+│   ├── state/            # Internal only
+│   └── index.ts          # Public API
+```
+
+### Cross-Feature Communication
+- **Events**: Use EventEmitter for loose coupling
+- **Shared State**: Explicit imports from shared/state
+- **Navigation**: Through app/ routing layer only
+
+## Risk Mitigation Strategies
+
+### High-Risk Patterns
+1. **Beta Dependencies (Legend State v3)**
+   - Mitigation: Abstract behind interface
+   - Fallback: Can downgrade to v2 if critical issues
+   - Monitoring: Track GitHub issues weekly
+
+2. **New Architecture (RN 0.76)**
+   - Mitigation: Expo handles most complexity
+   - Testing: Extensive device testing required
+   - Fallback: Can disable if performance issues
+
+### Medium-Risk Patterns
+1. **Hybrid Directory Structure**
+   - Mitigation: Clear documentation and examples
+   - Testing: Architecture validation scripts
+   - Review: Weekly architecture review meetings
+
+## Unresolved Tensions
+
+### Requires Testing
+1. **Performance on Low-End Devices**
+   - Legend State with large observable trees
+   - MMKV with frequent writes
+   - New Architecture on Android
+
+2. **Bundle Size Impact**
+   - Multiple state management libraries
+   - MMKV native code
+   - Monitoring required post-build
+
+### Requires Research
+1. **Background Task Handling**
+   - Game timers when app backgrounded
+   - State persistence timing
+   - Push notification integration
+
+## Testing Strategy Alignment
+
+### Unit Testing
+- Jest for Legend State observables
+- React Testing Library for components
+- Mock MMKV for persistence tests
+
+### Integration Testing
+- Test feature module boundaries
+- Validate state synchronization
+- API integration with MSW
+
+### E2E Testing
+- Maestro for critical user flows
+- Focus on game progression paths
+- Save/load game scenarios
+
+## Performance Benchmarks
+
+### Target Metrics
+| Metric | Target | Measurement Method |
+|--------|--------|-------------------|
+| Initial Load | < 2s | Performance.now() |
+| Game Loop FPS | 60fps | React DevTools Profiler |
+| State Update | < 16ms | Legend State metrics |
+| Save Game | < 100ms | MMKV write time |
+
+## Migration and Upgrade Paths
+
+### From Current to Target Architecture
+1. **Phase 1**: Setup hybrid directory structure
+2. **Phase 2**: Migrate to Legend State v3
+3. **Phase 3**: Implement MMKV persistence
+4. **Phase 4**: Optimize with New Architecture
+
+### Version Upgrade Strategy
+- Quarterly dependency review
+- Staged rollout for major versions
+- Feature flags for architecture changes
+```
+
+**PHASE 6: DEEP REFLECTION AND VALIDATION**
+Perform comprehensive reflection on architectural decisions:
+
+1. **Pattern Compatibility Analysis**:
+   <deep_reflection>
+   - Validate that chosen patterns work together without conflicts
+   - Check for circular dependencies between features
+   - Ensure state management patterns don't conflict
+   - Verify navigation patterns work with feature isolation
+   - Confirm testing strategies cover all architectural layers
+   </deep_reflection>
+
+2. **Dependency Graph Validation**:
+   - Analyze peer dependency requirements
+   - Check for version conflicts between packages
+   - Validate that beta dependencies have stable APIs
+   - Ensure native dependencies work with Expo managed workflow
+
+3. **Edge Case Identification**:
+   <edge_case_analysis>
+   - What happens during state migrations between app versions?
+   - How do we handle corrupted MMKV storage?
+   - What's the fallback if Legend State has breaking changes?
+   - How do we manage feature flags across the hybrid structure?
+   - What if Expo's routing changes in future versions?
+   </edge_case_analysis>
+
+4. **Integration Risk Assessment**:
+   - Identify integration points with highest failure risk
+   - Document rollback procedures for each high-risk decision
+   - Create monitoring requirements for critical paths
+   - Define success metrics for architecture validation
+
+5. **Performance Impact Analysis**:
+   <performance_reflection>
+   - Calculate cumulative bundle size impact
+   - Estimate memory footprint with all state managers
+   - Project render performance with fine-grained reactivity
+   - Assess startup time with dependency injection
+   </performance_reflection>
+
+6. **Team and Process Implications**:
+   - Document required team training
+   - Identify documentation needs
+   - Plan architecture review cadence
+   - Define code review focus areas
+
+7. **Update Synthesis with Reflection Insights**:
+   - Add discovered edge cases to "Unresolved Tensions"
+   - Update risk assessments based on deeper analysis
+   - Refine mitigation strategies with specific actions
+   - Add monitoring and validation requirements
+
+**PHASE 7: FINAL SYNTHESIS VALIDATION**
+Perform final validation loop:
+
+1. **Cross-Reference with Research**:
+   - Verify all decisions align with research/quick-ref.md
+   - Confirm no contradictions with established patterns
+   - Validate version selections against research
+
+2. **Completeness Check**:
+   - Every PRD feature has architectural support
+   - All conflicts have documented resolutions
+   - Each high-risk decision has a mitigation plan
+   - Testing strategy covers all architectural layers
+
+3. **Generate Validation Report**:
+   Append to architecture-synthesis.md:
+   ```markdown
+   ## Validation Report
+   
+   ### Research Alignment
+   ✅ All patterns validated against research/quick-ref.md
+   ✅ Package versions confirmed from research
+   ⚠️ [Any deviations with justification]
+   
+   ### Completeness Metrics
+   - Features Covered: X/Y (100%)
+   - Conflicts Resolved: X/Y
+   - Risks Mitigated: X/Y
+   - Test Coverage Planned: X%
+   
+   ### Confidence Assessment
+   - Architecture Stability: High/Medium/Low
+   - Implementation Readiness: Score/10
+   - Risk Level: Acceptable/Needs Review
+   
+   ### Next Steps
+   1. [Specific actions required before implementation]
+   2. [Research needed for unresolved items]
+   3. [Team alignment requirements]
+   ```
+
 **QUALITY ASSURANCE VALIDATION:**
 Ensure technical requirements meet the following criteria:
 - **Completeness**: Cover all PRD features with appropriate technical depth
@@ -209,15 +491,29 @@ Based on research synthesis, implementations MUST:
 
 Any deviation from these patterns or package versions should HALT implementation.
 
-**DELIVERABLE**: Enhanced PRD copy with comprehensive technical requirements section that:
-- Creates a new file with `-technical-requirements` suffix, preserving the original PRD unchanged
-- **INCLUDES RESEARCH VALIDATION SECTION** with:
-  - Complete package version requirements from research
-  - Architecture pattern requirements from research
-  - Technologies cross-referenced with research files
-  - List of any technologies needing research validation
-- Adds detailed technical analysis based on ULTRATHINK processing
-- Provides actionable technical guidance for development teams
-- Maintains traceability from business requirements to technical implementation
-- Leverages full spectrum of available technical knowledge and best practices
-- Establishes mandatory implementation constraints that enforce research principles
+**DELIVERABLES**: 
+1. **Enhanced PRD Copy** (`[original-name]-technical-requirements.md`) that:
+   - Creates a new file with `-technical-requirements` suffix, preserving the original PRD unchanged
+   - **INCLUDES RESEARCH VALIDATION SECTION** with:
+     - Complete package version requirements from research
+     - Architecture pattern requirements from research
+     - Technologies cross-referenced with research files
+     - List of any technologies needing research validation
+   - Adds detailed technical analysis based on ULTRATHINK processing
+   - Provides actionable technical guidance for development teams
+   - Maintains traceability from business requirements to technical implementation
+   - Leverages full spectrum of available technical knowledge and best practices
+   - Establishes mandatory implementation constraints that enforce research principles
+
+2. **Architecture Synthesis Document** (`architecture-synthesis.md`) that:
+   - Documents all architectural decisions and trade-offs
+   - Reconciles conflicting patterns (e.g., Expo vs vertical slicing)
+   - Records version lock decisions with detailed rationale
+   - Lists unresolved tensions requiring testing or research
+   - Provides comprehensive risk assessments and mitigation strategies
+   - Includes Architecture Decision Records (ADRs) for key choices
+   - Contains validation report with confidence metrics
+   - Undergoes deep reflection phase for conflict detection
+   - Serves as the authoritative architectural decision record for the project
+
+Both documents work together to provide complete technical clarity: the PRD copy for feature-specific technical details, and the synthesis for overarching architectural decisions and pattern reconciliations.

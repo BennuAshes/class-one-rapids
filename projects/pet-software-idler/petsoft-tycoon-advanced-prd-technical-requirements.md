@@ -1,920 +1,1140 @@
 # PetSoft Tycoon: Technical Requirements Document
-## Version 8.0 | React Native + Legend State Architecture
-
-### Document Overview
-This technical requirements document translates the PetSoft Tycoon PRD into detailed implementation specifications using React Native with Expo and Legend State for optimal performance and cross-platform support.
+## Version 1.0 | Mobile-First Architecture with React Native & Expo
 
 ---
 
-## 1. Architecture Specifications
+## Executive Summary
 
-### 1.1 Core Technology Stack
+This technical requirements document transforms the PetSoft Tycoon web-based PRD into a comprehensive mobile-first implementation using React Native with Expo and Legend State v3. The architecture prioritizes 60 FPS performance, offline-first capabilities, and cross-platform deployment while maintaining the core idle game mechanics.
+
+### Key Architectural Decisions
+- **Platform Migration**: Web-based vanilla JavaScript → React Native with Expo Router
+- **State Management**: Legend State v3 with MMKV persistence
+- **Performance Target**: 60 FPS on mid-tier devices (maintained from PRD)
+- **Bundle Size**: <10MB (adjusted for mobile platform)
+- **Load Time**: <3 seconds initial app launch
+
+---
+
+## Architecture Specifications
+
+### Core Technology Stack
+
+#### Foundation Layer
 | Component | Technology | Version | Justification |
 |-----------|------------|---------|---------------|
-| Framework | React Native | 0.76+ | New Architecture mandatory for performance |
-| Development Platform | Expo | ~52.0.0 | SDK52 provides latest RN features |
-| State Management | Legend State | @beta | 40% performance improvement over Redux |
-| Animation Engine | React Native Reanimated | 3.x | Hardware-accelerated 60 FPS animations |
-| Audio System | Expo AV | Latest | Cross-platform audio with pitch variation |
-| Storage | Expo SecureStore + AsyncStorage | Latest | Secure saves + fast access |
-| Navigation | Expo Router | ~4.0.0 | File-based routing for scalability |
-| TypeScript | ^5.8.0 | Latest | Strict mode for reliability |
+| **Framework** | React Native | 0.79.x | New Architecture support, Hermes engine |
+| **Platform** | Expo | ~53.0.0 | Zero native config, cloud builds, universal deployment |
+| **Routing** | Expo Router | ^4.0.0 | File-based routing, static analysis benefits |
+| **Language** | TypeScript | ^5.8.0 | Type safety, modern module resolution |
+| **State Management** | Legend State v3 | ^3.0.0-beta | Fine-grained reactivity, 4kb bundle size |
+| **Persistence** | MMKV | ^3.0.2 | 30x faster than AsyncStorage |
 
-### 1.2 Architecture Pattern: Vertical Slicing
-```
-src/
-├── features/
-│   ├── game-core/
-│   │   ├── components/         # GameView, ResourceCounter
-│   │   ├── hooks/             # useGameLoop(), useClickHandling()
-│   │   ├── state/             # gameState$, resourceState$
-│   │   └── services/          # gameEngine, saveManager
-│   ├── departments/
-│   │   ├── components/        # DepartmentCard, EmployeeList
-│   │   ├── hooks/             # useDepartment(), useEmployee()
-│   │   ├── state/             # departmentState$
-│   │   └── services/          # departmentLogic
-│   ├── prestige/
-│   │   ├── components/        # PrestigeModal, InvestorPanel
-│   │   ├── hooks/             # usePrestige()
-│   │   ├── state/             # prestigeState$
-│   │   └── services/          # prestigeCalculator
-│   ├── achievements/
-│   │   ├── components/        # AchievementToast
-│   │   ├── hooks/             # useAchievements()
-│   │   ├── state/             # achievementState$
-│   │   └── services/          # achievementChecker
-│   └── ui/
-│       ├── components/        # Button, Modal, Counter
-│       ├── hooks/             # useAnimation(), useSound()
-│       └── theme/             # colors, typography, spacing
-├── app/                       # Expo Router file-based routing
-└── types/                     # Global TypeScript definitions
-```
+#### Development Tools
+| Tool | Purpose | Configuration |
+|------|---------|--------------|
+| **ESLint** | Code quality | Expo preset + strict TypeScript rules |
+| **Jest** | Unit testing | React Native preset with Legend State integration |
+| **Flipper** | Debugging | React Native + Legend State plugins |
+| **EAS Build** | CI/CD | Cloud builds for iOS/Android |
 
-### 1.3 Configuration Requirements
+### Performance Requirements
+
+#### Target Device Specifications
 ```typescript
-// metro.config.js (MANDATORY for Legend State)
-module.exports = {
-  resolver: {
-    unstable_enablePackageExports: true,
-    unstable_conditionNames: ['react-native'],
+// Minimum performance target
+const PERFORMANCE_TARGETS = {
+  device: {
+    cpu: 'Snapdragon 660 / A10 Bionic equivalent',
+    ram: '4GB',
+    storage: '64GB',
+    gpu: 'Adreno 512 / PowerVR equivalent'
   },
-  transformer: {
-    getTransformOptions: async () => ({
-      transform: {
-        experimentalImportSupport: false,
-        inlineRequires: true,
-      },
-    }),
-  },
-};
-
-// babel.config.js (REQUIRED for Reanimated)
-module.exports = {
-  presets: ['babel-preset-expo'],
-  plugins: ['react-native-reanimated/plugin'],
-};
-
-// tsconfig.json (STRICT mode enforced)
-{
-  "compilerOptions": {
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true
-  }
-}
-```
-
----
-
-## 2. Performance Requirements
-
-### 2.1 Benchmarks and Targets
-| Metric | Target | Measurement Method | Fallback Strategy |
-|--------|--------|-------------------|-------------------|
-| Initial Load Time | <3 seconds | Time to first interaction | Progressive loading |
-| Frame Rate | 60 FPS minimum | React DevTools Profiler | Auto-quality adjustment |
-| Memory Usage | <50MB active | Flipper Memory Inspector | Garbage collection optimization |
-| Battery Usage | <5% per hour | Device battery stats | Reduce animation frequency |
-| Bundle Size | <3MB initial | Expo bundle analyzer | Code splitting by feature |
-
-### 2.2 Performance Implementation Strategy
-```typescript
-// Hermes Engine (30% performance boost)
-// android/app/build.gradle
-project.ext.react = [
-    enableHermes: true
-]
-
-// Bundle Splitting with Expo Router
-// app/_layout.tsx
-import { lazy } from 'react';
-const GameScreen = lazy(() => import('../features/game-core/components/GameView'));
-
-// Legend State Batch Updates (40% performance improvement)
-import { batch } from '@legendapp/state';
-
-const updateResources = (gold: number, code: number) => {
-  batch(() => {
-    gameState$.resources.gold.set(prev => prev + gold);
-    gameState$.resources.code.set(prev => prev + code);
-    gameState$.statistics.totalEarned.set(prev => prev + gold);
-  });
-};
-
-// List Virtualization for Large Datasets
-import { FlashList } from '@shopify/flash-list';
-// Use FlashList instead of FlatList for 90% memory reduction
-```
-
-### 2.3 Device Compatibility Matrix
-| Device Category | Min Specs | Expected Performance | Fallback Options |
-|-----------------|-----------|---------------------|------------------|
-| High-end (2020+) | 4GB RAM, A13/SD855 | 60 FPS, all effects | Full quality |
-| Mid-range (2018+) | 3GB RAM, A11/SD660 | 60 FPS, reduced particles | Medium quality |
-| Low-end (2016+) | 2GB RAM, A9/SD625 | 30 FPS, minimal effects | Low quality |
-
----
-
-## 3. Data Models and State Management
-
-### 3.1 Core State Architecture with Legend State
-```typescript
-// gameState$.ts - Central game observable
-import { observable } from '@legendapp/state';
-
-export const gameState$ = observable({
-  // Core Resources
-  resources: {
-    code: 0,
-    features: 0,
-    money: 0,
-    leads: 0,
-    // Computed total value
-    get totalValue() {
-      return this.money + (this.features * 15) + (this.leads * 5);
-    }
-  },
-  
-  // Game Meta
-  meta: {
-    startTime: Date.now(),
-    lastSave: Date.now(),
-    prestigeCount: 0,
-    investorPoints: 0,
-    version: '8.0.0'
-  },
-  
-  // Performance tracking
-  performance: {
+  metrics: {
     fps: 60,
-    frameDrops: 0,
-    memoryUsage: 0
-  },
-  
-  // Settings
-  settings: {
-    soundEnabled: true,
-    musicEnabled: true,
-    particlesEnabled: true,
-    autoSaveInterval: 30000,
-    qualityLevel: 'auto' as 'low' | 'medium' | 'high' | 'auto'
+    loadTime: 3000, // milliseconds
+    memoryUsage: 75, // MB maximum
+    bundleSize: 10 * 1024 * 1024, // 10MB
+    responseTime: 50 // milliseconds for interactions
   }
-});
-
-// departmentState$.ts - Department management
-export const departmentState$ = observable({
-  development: {
-    unlocked: true,
-    employees: {
-      junior: { count: 0, cost: 10, production: 0.1 },
-      mid: { count: 0, cost: 100, production: 1 },
-      senior: { count: 0, cost: 1000, production: 10 },
-      lead: { count: 0, cost: 10000, production: 100 }
-    },
-    manager: { unlocked: false, hired: false, cost: 50000 },
-    // Dynamic cost calculation
-    get juniorCost() {
-      return Math.floor(10 * Math.pow(1.15, this.employees.junior.count));
-    }
-  },
-  
-  sales: {
-    unlocked: false,
-    unlockThreshold: 500,
-    employees: {
-      rep: { count: 0, cost: 25, production: 0.2 },
-      manager: { count: 0, cost: 500, production: 2 },
-      director: { count: 0, cost: 5000, production: 20 }
-    }
-  },
-  // ... other departments
-});
-
-// prestigeState$.ts - Prestige system
-export const prestigeState$ = observable({
-  currentRun: {
-    valuation: 0,
-    startTime: Date.now(),
-    achievementsUnlocked: []
-  },
-  lifetime: {
-    totalInvestorPoints: 0,
-    totalRuns: 0,
-    fastestIPO: Infinity,
-    // Permanent bonuses
-    get startingCapitalBonus() {
-      return this.totalInvestorPoints * 0.1; // +10% per IP
-    },
-    get globalSpeedBonus() {
-      return this.totalInvestorPoints * 0.01; // +1% per IP
-    }
-  }
-});
+} as const;
 ```
 
-### 3.2 Data Persistence Strategy
-```typescript
-// saveManager.ts
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
-
-export class SaveManager {
-  private static SAVE_KEY = 'petsoft_tycoon_save';
-  private static BACKUP_KEY = 'petsoft_tycoon_backup';
-  
-  static async autoSave() {
-    try {
-      const gameData = {
-        version: '8.0.0',
-        timestamp: Date.now(),
-        gameState: gameState$.peek(),
-        departmentState: departmentState$.peek(),
-        prestigeState: prestigeState$.peek()
-      };
-      
-      // Compress and encrypt save data
-      const compressed = await this.compressSave(gameData);
-      const encrypted = await this.encryptSave(compressed);
-      
-      // Dual save strategy
-      await AsyncStorage.setItem(this.SAVE_KEY, encrypted);
-      await SecureStore.setItemAsync(this.BACKUP_KEY, encrypted);
-      
-      gameState$.meta.lastSave.set(Date.now());
-    } catch (error) {
-      console.error('Save failed:', error);
-      // Fallback to uncompressed save
-      await this.fallbackSave();
-    }
-  }
-  
-  static async loadGame(): Promise<boolean> {
-    try {
-      let saveData = await AsyncStorage.getItem(this.SAVE_KEY);
-      
-      // Try backup if main save fails
-      if (!saveData) {
-        saveData = await SecureStore.getItemAsync(this.BACKUP_KEY);
-      }
-      
-      if (saveData) {
-        const decrypted = await this.decryptSave(saveData);
-        const decompressed = await this.decompressSave(decrypted);
-        
-        // Validate save integrity
-        if (this.validateSave(decompressed)) {
-          this.applySaveData(decompressed);
-          return true;
-        }
-      }
-    } catch (error) {
-      console.error('Load failed:', error);
-    }
-    return false;
-  }
-}
-```
+#### Performance Optimization Strategy
+1. **Legend State Fine-Grained Reactivity**: Only re-render components with changed observables
+2. **MMKV Synchronous Persistence**: Eliminate async storage bottlenecks
+3. **Expo Router Code Splitting**: Dynamic import for non-essential features
+4. **React Native New Architecture**: Fabric renderer + TurboModules
+5. **Hermes Engine**: Pre-compilation and memory optimization
 
 ---
 
-## 4. Component Hierarchy and Organization
+## Data Models & State Management
 
-### 4.1 Component Architecture
+### Legend State v3 Observable Architecture
+
+#### Core Game State Structure
 ```typescript
-// Main App Structure
-App
-├── GameScreen                 # Primary game interface
-│   ├── ResourceBar           # Top resources display
-│   │   ├── ResourceCounter   # Individual resource
-│   │   └── PrestigeButton    # Quick prestige access
-│   ├── MainGameArea          # Central interaction zone
-│   │   ├── ClickButton       # Primary click interaction
-│   │   ├── ProgressBars      # Feature/automation progress
-│   │   └── OfficeView        # Visual office representation
-│   ├── DepartmentTabs        # Department navigation
-│   │   └── DepartmentPanel   # Individual department
-│   │       ├── EmployeeList  # Hireable employees
-│   │       ├── ManagerCard   # Department automation
-│   │       └── StatsDisplay  # Department statistics
-│   └── BottomNavigation      # Achievement, stats, settings
-├── PrestigeModal            # Investor round interface
-├── AchievementToast         # Achievement notifications
-├── SettingsModal           # Game configuration
-└── StatisticsModal         # Detailed game statistics
-
-// Component Props Interface Design
-interface GameScreenProps {
-  initializing: boolean;
-  offlineEarnings?: number;
+interface GameState {
+  player: PlayerState;
+  departments: DepartmentStore;
+  progression: ProgressionState;
+  ui: UIState;
+  persistence: PersistenceState;
+  
+  // Computed properties
+  totalValuation: () => number;
+  currentRevenue: () => number;
+  nextPrestigeAvailable: () => boolean;
+  
+  // Actions
+  actions: GameActions;
 }
 
-interface DepartmentPanelProps {
-  department: 'development' | 'sales' | 'cx' | 'product' | 'design' | 'qa' | 'marketing';
-  unlocked: boolean;
-  onEmployeeHire: (type: string, quantity: number) => void;
-  onManagerHire: () => void;
-}
-
-interface ResourceCounterProps {
-  type: 'code' | 'features' | 'money' | 'leads';
-  value: number;
-  growth: number;
-  formatter: (value: number) => string;
-}
-```
-
-### 4.2 Component Performance Optimization
-```typescript
-// Memoization Strategy
-import { memo, useMemo } from 'react';
-import { observer } from '@legendapp/state/react';
-
-// Observer pattern for Legend State reactivity
-export const ResourceCounter = observer(memo(({ type }: { type: ResourceType }) => {
-  const value = gameState$.resources[type].get();
-  const formattedValue = useMemo(() => formatNumber(value), [value]);
-  
-  return (
-    <Animated.View style={counterStyles}>
-      <Text>{formattedValue}</Text>
-    </Animated.View>
-  );
-}));
-
-// Heavy computation memoization
-export const DepartmentEfficiency = observer(() => {
-  const efficiency = useMemo(() => {
-    return calculateDepartmentSynergy(
-      departmentState$.development.employees.get(),
-      departmentState$.sales.employees.get()
-    );
-  }, [
-    departmentState$.development.employees.get(),
-    departmentState$.sales.employees.get()
-  ]);
-  
-  return <EfficiencyDisplay value={efficiency} />;
-});
-```
-
----
-
-## 5. Animation and Audio System Requirements
-
-### 5.1 Animation Architecture
-```typescript
-// animationConfig.ts - Performance-optimized animations
-import { Easing } from 'react-native-reanimated';
-
-export const AnimationConfig = {
-  // Button interactions - <50ms response
-  buttonPress: {
-    duration: 100,
-    easing: Easing.out(Easing.quad),
-  },
-  
-  // Resource counters - smooth increments
-  counterUpdate: {
-    duration: 300,
-    easing: Easing.out(Easing.cubic),
-  },
-  
-  // Panel transitions - premium feel
-  panelSlide: {
-    duration: 400,
-    easing: Easing.out(Easing.back(1.1)),
-  },
-  
-  // Particle effects - scale with performance
-  particles: {
-    duration: 800,
-    count: gameState$.settings.qualityLevel.get() === 'high' ? 20 : 5,
-  },
-  
-  // Screen shake for milestones
-  screenShake: {
-    intensity: 2,
-    duration: 200,
-    frequency: 10,
-  }
-};
-
-// useAnimation.ts - Performance-aware animation hook
-export const useAnimation = () => {
-  const qualityLevel = useSelector(gameState$.settings.qualityLevel);
-  
-  const createClickAnimation = useCallback(() => {
-    'worklet';
-    return {
-      scale: withSequence(
-        withTiming(1.1, { duration: 50 }),
-        withTiming(1.0, { duration: 100 })
-      ),
-      opacity: withSequence(
-        withTiming(0.8, { duration: 50 }),
-        withTiming(1.0, { duration: 100 })
-      )
-    };
-  }, []);
-  
-  const createParticleAnimation = useCallback((value: number) => {
-    'worklet';
-    const count = qualityLevel === 'low' ? 1 : Math.min(value / 100, 10);
-    return Array.from({ length: count }, (_, i) => ({
-      translateY: withTiming(-50, { duration: 800 }),
-      opacity: withTiming(0, { duration: 800 }),
-      rotation: withTiming(Math.random() * 360, { duration: 800 })
-    }));
-  }, [qualityLevel]);
-  
-  return { createClickAnimation, createParticleAnimation };
-};
-```
-
-### 5.2 Audio System Implementation
-```typescript
-// audioManager.ts - Sophisticated audio management
-import { Audio } from 'expo-av';
-
-export class AudioManager {
-  private static sounds: Map<string, Audio.Sound> = new Map();
-  private static musicInstance: Audio.Sound | null = null;
-  private static lastPlayTime: Map<string, number> = new Map();
-  
-  // Preload all sounds for instant playback
-  static async initialize() {
-    const soundsToLoad = [
-      { key: 'click', file: require('../assets/audio/click.wav') },
-      { key: 'buy', file: require('../assets/audio/purchase.wav') },
-      { key: 'milestone', file: require('../assets/audio/achievement.wav') },
-      { key: 'prestige', file: require('../assets/audio/prestige.wav') },
-    ];
-    
-    for (const { key, file } of soundsToLoad) {
-      const { sound } = await Audio.Sound.createAsync(file);
-      this.sounds.set(key, sound);
-    }
-  }
-  
-  // Intelligent sound playing with anti-spam protection
-  static async playSound(key: string, options?: { 
-    pitch?: number; 
-    volume?: number; 
-    cooldown?: number 
-  }) {
-    if (!gameState$.settings.soundEnabled.get()) return;
-    
-    const now = Date.now();
-    const lastPlay = this.lastPlayTime.get(key) || 0;
-    const cooldown = options?.cooldown || 50;
-    
-    if (now - lastPlay < cooldown) return;
-    
-    const sound = this.sounds.get(key);
-    if (sound) {
-      await sound.setPositionAsync(0);
-      
-      if (options?.pitch) {
-        await sound.setPitchCorrectionQualityAsync(Audio.PitchCorrectionQuality.High);
-        await sound.setRateAsync(options.pitch, true);
-      }
-      
-      if (options?.volume) {
-        await sound.setVolumeAsync(options.volume);
-      }
-      
-      await sound.playAsync();
-      this.lastPlayTime.set(key, now);
-    }
-  }
-  
-  // Dynamic pitch variation to prevent repetition
-  static getClickPitch(clickCount: number): number {
-    const basePitch = 1.0;
-    const variation = 0.2;
-    const frequency = clickCount % 8;
-    return basePitch + (Math.sin(frequency * Math.PI / 4) * variation);
-  }
-  
-  // Adaptive music based on game pace
-  static async updateMusicTempo(gameSpeed: number) {
-    if (this.musicInstance && gameState$.settings.musicEnabled.get()) {
-      const tempo = Math.min(1.5, Math.max(0.8, gameSpeed));
-      await this.musicInstance.setRateAsync(tempo, true);
-    }
-  }
-}
-```
-
----
-
-## 6. Save/Load System Implementation
-
-### 6.1 Robust Save System Architecture
-```typescript
-// saveSystem.ts - Industrial-grade save management
-export interface SaveData {
-  version: string;
-  timestamp: number;
-  checksum: string;
-  gameState: any;
-  departmentState: any;
-  prestigeState: any;
-  achievementState: any;
-}
-
-export class SaveSystem {
-  private static readonly CURRENT_VERSION = '8.0.0';
-  private static readonly AUTO_SAVE_INTERVAL = 30000; // 30 seconds
-  private static autoSaveTimer: NodeJS.Timeout | null = null;
-  
-  // Migration system for version compatibility
-  private static migrations: Record<string, (data: any) => any> = {
-    '7.0.0': (data) => {
-      // Migrate from v7 to v8
-      return {
-        ...data,
-        version: '8.0.0',
-        gameState: {
-          ...data.gameState,
-          performance: { fps: 60, frameDrops: 0, memoryUsage: 0 }
-        }
-      };
-    }
+interface PlayerState {
+  currency: number;
+  linesOfCode: number;
+  features: {
+    basic: number;
+    advanced: number;
+    premium: number;
   };
-  
-  // Comprehensive save validation
-  private static validateSave(data: any): data is SaveData {
-    if (!data || typeof data !== 'object') return false;
-    if (!data.version || !data.timestamp || !data.checksum) return false;
-    if (!data.gameState || !data.departmentState || !data.prestigeState) return false;
-    
-    // Checksum validation
-    const calculatedChecksum = this.calculateChecksum(data);
-    if (data.checksum !== calculatedChecksum) {
-      console.warn('Save file checksum mismatch');
-      return false;
-    }
-    
-    return true;
-  }
-  
-  // Incremental save system - only save changed data
-  private static lastSaveHash: string = '';
-  
-  static async performAutoSave(): Promise<boolean> {
-    try {
-      const currentData = this.gatherSaveData();
-      const currentHash = this.calculateHash(currentData);
-      
-      // Skip save if nothing changed
-      if (currentHash === this.lastSaveHash) {
-        return true;
-      }
-      
-      const saveData: SaveData = {
-        version: this.CURRENT_VERSION,
-        timestamp: Date.now(),
-        checksum: this.calculateChecksum(currentData),
-        ...currentData
-      };
-      
-      // Triple-save strategy: main, backup, cloud-ready
-      const promises = [
-        AsyncStorage.setItem('main_save', JSON.stringify(saveData)),
-        AsyncStorage.setItem('backup_save', JSON.stringify(saveData)),
-        this.prepareCloudSave(saveData) // Ready for cloud sync
-      ];
-      
-      await Promise.all(promises);
-      
-      this.lastSaveHash = currentHash;
-      gameState$.meta.lastSave.set(Date.now());
-      
-      return true;
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-      return false;
-    }
-  }
-  
-  // Offline progression calculation
-  static calculateOfflineProgress(timeAway: number): OfflineEarnings {
-    const maxOfflineTime = 12 * 60 * 60 * 1000; // 12 hours
-    const effectiveTime = Math.min(timeAway, maxOfflineTime);
-    const offlineEfficiency = 0.7; // 70% efficiency offline
-    
-    const currentProduction = this.calculateCurrentProduction();
-    const offlineEarnings = {
-      code: currentProduction.code * (effectiveTime / 1000) * offlineEfficiency,
-      money: currentProduction.money * (effectiveTime / 1000) * offlineEfficiency,
-      features: Math.floor(currentProduction.features * (effectiveTime / 1000) * offlineEfficiency),
-      timeAway: effectiveTime
-    };
-    
-    return offlineEarnings;
-  }
-  
-  // Export/Import for cross-device play
-  static async exportSave(): Promise<string> {
-    const saveData = this.gatherSaveData();
-    const compressed = await this.compressSave(saveData);
-    return btoa(compressed); // Base64 encode for sharing
-  }
-  
-  static async importSave(saveCode: string): Promise<boolean> {
-    try {
-      const compressed = atob(saveCode);
-      const saveData = await this.decompressSave(compressed);
-      
-      if (this.validateSave(saveData)) {
-        await this.applySaveData(saveData);
-        return true;
-      }
-    } catch (error) {
-      console.error('Import failed:', error);
-    }
-    return false;
-  }
+  startTime: number;
+  lastActiveTime: number;
+}
+
+interface DepartmentStore {
+  development: DevelopmentDepartment;
+  sales: SalesDepartment;
+  marketing: MarketingDepartment;
+  hr: HRDepartment;
+  finance: FinanceDepartment;
+  operations: OperationsDepartment;
+  executive: ExecutiveDepartment;
+}
+
+interface DevelopmentDepartment {
+  employees: {
+    junior: number;
+    mid: number;
+    senior: number;
+    techLead: number;
+  };
+  upgrades: {
+    betterIde: number; // 0-3 levels
+    pairProgramming: boolean;
+    codeReviews: boolean;
+  };
+  production: {
+    linesPerSecond: number;
+    efficiency: number;
+  };
 }
 ```
 
-### 6.2 Cloud Save Preparation
+#### Observable Implementation
 ```typescript
-// cloudSaveInterface.ts - Ready for future cloud integration
-export interface CloudSaveProvider {
-  upload(saveData: SaveData): Promise<boolean>;
-  download(): Promise<SaveData | null>;
-  sync(): Promise<SyncResult>;
-}
+import { observable, computed, batch } from '@legendapp/state';
+import { syncObservable } from '@legendapp/state/sync';
+import { ObservablePersistMMKV } from '@legendapp/state/persist-plugins/mmkv';
 
-export class GooglePlaySaveProvider implements CloudSaveProvider {
-  async upload(saveData: SaveData): Promise<boolean> {
-    // Implementation ready for Google Play Games integration
-    return true;
-  }
+// Main game observable
+export const gameState$ = observable<GameState>({
+  player: {
+    currency: 0,
+    linesOfCode: 0,
+    features: { basic: 0, advanced: 0, premium: 0 },
+    startTime: Date.now(),
+    lastActiveTime: Date.now()
+  },
   
-  async download(): Promise<SaveData | null> {
-    // Implementation ready for cloud download
-    return null;
-  }
+  departments: {
+    development: {
+      employees: { junior: 0, mid: 0, senior: 0, techLead: 0 },
+      upgrades: { betterIde: 0, pairProgramming: false, codeReviews: false },
+      production: { linesPerSecond: 0, efficiency: 1 }
+    },
+    // ... other departments
+  },
   
-  async sync(): Promise<SyncResult> {
-    // Conflict resolution logic
-    return { success: true, conflicts: [] };
+  // Computed total company valuation
+  totalValuation: computed(() => {
+    const player = gameState$.player.get();
+    const deps = gameState$.departments.get();
+    
+    return Math.floor(
+      player.currency * 0.1 +
+      Object.values(deps).reduce((sum, dept) => 
+        sum + calculateDepartmentValue(dept), 0
+      )
+    );
+  }),
+  
+  // Game actions
+  actions: {
+    writeCode: () => {
+      batch(() => {
+        gameState$.player.linesOfCode.set(prev => prev + 1);
+        gameState$.player.lastActiveTime.set(Date.now());
+      });
+    },
+    
+    hireDeveloper: (type: keyof DevelopmentDepartment['employees']) => {
+      const cost = getDeveloperCost(type, gameState$.departments.development.employees[type].peek());
+      
+      if (gameState$.player.currency.peek() >= cost) {
+        batch(() => {
+          gameState$.player.currency.set(prev => prev - cost);
+          gameState$.departments.development.employees[type].set(prev => prev + 1);
+          updateProductionRates();
+        });
+      }
+    }
   }
-}
+});
+
+// Persistence configuration
+syncObservable(gameState$, {
+  persist: {
+    name: 'petsoft-tycoon-save',
+    plugin: ObservablePersistMMKV,
+    transform: {
+      // Custom serialization for performance
+      save: (value) => JSON.stringify(value),
+      load: (value) => JSON.parse(value)
+    }
+  }
+});
 ```
 
----
+### Save/Load System Implementation
 
-## 7. Cross-Platform Considerations
-
-### 7.1 Platform-Specific Optimizations
+#### Auto-Save Strategy
 ```typescript
-// platformConfig.ts - Handle platform differences
-import { Platform, Dimensions } from 'react-native';
+import { when, observe } from '@legendapp/state';
 
-export const PlatformConfig = {
-  // Performance settings per platform
-  ios: {
-    enableHermes: false, // iOS uses JSC
-    enableFlipper: __DEV__,
-    particleLimit: Platform.isPad ? 50 : 30,
-    audioFormat: 'aac',
-    saveLocation: 'keychain'
-  },
+class SaveSystem {
+  private saveInterval: NodeJS.Timeout | null = null;
+  private pendingSave = false;
   
-  android: {
-    enableHermes: true, // 30% performance boost
-    enableFlipper: __DEV__,
-    particleLimit: 40,
-    audioFormat: 'mp3',
-    saveLocation: 'encrypted_shared_preferences'
-  },
-  
-  web: {
-    enableHermes: false,
-    enableFlipper: false,
-    particleLimit: 20, // Lower for web compatibility
-    audioFormat: 'mp3',
-    saveLocation: 'local_storage'
-  },
-  
-  // Screen size adaptations
-  getLayoutConfig: () => {
-    const { width, height } = Dimensions.get('window');
-    const isTablet = Math.min(width, height) > 600;
-    const isPhone = Math.min(width, height) <= 600;
+  initialize() {
+    // Auto-save every 30 seconds
+    this.saveInterval = setInterval(() => {
+      this.performSave();
+    }, 30000);
     
-    return {
-      isTablet,
-      isPhone,
-      columns: isTablet ? 3 : 2,
-      departmentPanelHeight: isTablet ? 400 : 300,
-      fontSize: {
-        small: isTablet ? 14 : 12,
-        medium: isTablet ? 18 : 16,
-        large: isTablet ? 24 : 20
+    // Save on significant events
+    observe(gameState$.player.currency, (currency) => {
+      if (currency.get() % 1000 === 0) {
+        this.performSave();
       }
-    };
-  }
-};
-
-// responsiveUtils.ts - Responsive design utilities
-export const useResponsive = () => {
-  const [dimensions, setDimensions] = useState(Dimensions.get('window'));
-  
-  useEffect(() => {
-    const subscription = Dimensions.addEventListener('change', ({ window }) => {
-      setDimensions(window);
     });
     
-    return () => subscription?.remove();
-  }, []);
-  
-  const layout = useMemo(() => PlatformConfig.getLayoutConfig(), [dimensions]);
-  
-  return layout;
-};
-```
-
-### 7.2 Device Performance Adaptation
-```typescript
-// performanceAdapter.ts - Dynamic quality adjustment
-export class PerformanceAdapter {
-  private static frameDropCounter = 0;
-  private static lastFrameTime = 0;
-  
-  // Monitor performance and adapt quality
-  static initialize() {
-    const monitor = setInterval(() => {
-      const currentTime = performance.now();
-      const deltaTime = currentTime - this.lastFrameTime;
-      
-      if (deltaTime > 20) { // Frame drop detected (>50ms = <20fps)
-        this.frameDropCounter++;
-        
-        if (this.frameDropCounter > 10) {
-          this.degradeQuality();
-          this.frameDropCounter = 0;
-        }
-      } else if (deltaTime < 16 && this.frameDropCounter === 0) {
-        // Good performance, potentially upgrade quality
-        this.considerQualityUpgrade();
-      }
-      
-      this.lastFrameTime = currentTime;
-      gameState$.performance.fps.set(Math.round(1000 / deltaTime));
-    }, 1000);
-    
-    return monitor;
+    // Save on app state changes
+    observe(gameState$.departments, () => {
+      this.scheduleSave();
+    });
   }
   
-  private static degradeQuality() {
-    const current = gameState$.settings.qualityLevel.get();
-    
-    switch (current) {
-      case 'high':
-        gameState$.settings.qualityLevel.set('medium');
-        break;
-      case 'medium':
-        gameState$.settings.qualityLevel.set('low');
-        break;
-      case 'auto':
-        gameState$.settings.qualityLevel.set('low');
-        break;
-    }
-    
-    console.log(`Quality degraded to: ${gameState$.settings.qualityLevel.get()}`);
-  }
-  
-  private static considerQualityUpgrade() {
-    const current = gameState$.settings.qualityLevel.get();
-    
-    if (current === 'auto') {
-      // Auto mode gradually increases quality
+  private scheduleSave() {
+    if (!this.pendingSave) {
+      this.pendingSave = true;
+      // Debounce saves to avoid excessive writes
       setTimeout(() => {
-        if (gameState$.performance.fps.get() > 55) {
-          gameState$.settings.qualityLevel.set('high');
-        }
+        this.performSave();
+        this.pendingSave = false;
       }, 5000);
     }
   }
-}
-```
-
-### 7.3 Cross-Platform Testing Matrix
-| Feature | iOS | Android | Web | Test Method |
-|---------|-----|---------|-----|-------------|
-| Save/Load | ✅ | ✅ | ✅ | Automated unit tests |
-| Audio System | ✅ | ✅ | ⚠️ Web Audio API | Device testing |
-| Animations | ✅ | ✅ | ⚠️ CSS fallback | Performance profiling |
-| Touch/Click | ✅ | ✅ | ✅ | E2E automation |
-| Offline Mode | ✅ | ✅ | ✅ | Network simulation |
-| Memory Usage | ✅ | ✅ | ⚠️ Browser limits | Memory profiler |
-
----
-
-## 8. Implementation Checklist
-
-### 8.1 Phase 1: Foundation (Week 1)
-- [ ] Project setup with Expo SDK 52
-- [ ] TypeScript configuration with strict mode
-- [ ] Legend State integration and testing
-- [ ] Basic game loop implementation
-- [ ] Core state management (resources, departments)
-- [ ] Save/Load system foundation
-- [ ] Performance monitoring setup
-
-### 8.2 Phase 2: Core Features (Week 2)
-- [ ] All seven department implementations
-- [ ] Employee hiring and cost scaling
-- [ ] Manager automation system
-- [ ] Prestige system with investor points
-- [ ] Achievement system framework
-- [ ] Basic UI components with animations
-
-### 8.3 Phase 3: Polish & Performance (Week 3)
-- [ ] Audio system implementation
-- [ ] Particle effects and screen shake
-- [ ] Office evolution visuals
-- [ ] Performance optimization and quality settings
-- [ ] Cross-platform testing
-- [ ] Memory leak detection and fixes
-
-### 8.4 Phase 4: Launch Preparation (Week 4)
-- [ ] Comprehensive testing on target devices
-- [ ] Save corruption prevention and recovery
-- [ ] Analytics integration (privacy-compliant)
-- [ ] App store optimization
-- [ ] Documentation and deployment
-
----
-
-## 9. Risk Mitigation Strategies
-
-### 9.1 Technical Risks
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|---------|------------|
-| Legend State Beta Issues | Medium | High | Thorough testing + Redux fallback |
-| Performance on Low-End Devices | High | High | Quality settings + progressive enhancement |
-| Save Corruption | Low | Critical | Triple-save strategy + validation |
-| Cross-Platform Compatibility | Medium | Medium | Comprehensive testing matrix |
-
-### 9.2 Performance Monitoring
-```typescript
-// performanceMonitor.ts - Production monitoring
-export class PerformanceMonitor {
-  static startMonitoring() {
-    // Track critical metrics
-    const metrics = {
-      fps: new MovingAverage(60),
-      memoryUsage: new MovingAverage(30),
-      saveTime: new MovingAverage(10),
-      loadTime: new MovingAverage(5)
-    };
-    
-    // Report to analytics (privacy-compliant)
-    setInterval(() => {
-      const report = {
-        avgFPS: metrics.fps.getAverage(),
-        memoryUsage: metrics.memoryUsage.getAverage(),
-        deviceInfo: this.getAnonymizedDeviceInfo()
+  
+  private async performSave() {
+    try {
+      const saveData = {
+        ...gameState$.peek(),
+        metadata: {
+          version: '1.0',
+          saveTime: Date.now(),
+          platform: Platform.OS
+        }
       };
       
-      // Only if user opted in
-      if (gameState$.settings.analyticsEnabled.get()) {
-        Analytics.track('performance_report', report);
-      }
-    }, 60000); // Every minute
+      // MMKV handles the actual persistence automatically
+      // via Legend State sync configuration
+      
+      __DEV__ && console.log('Game saved successfully');
+    } catch (error) {
+      console.error('Save failed:', error);
+      // Implement retry logic here
+    }
+  }
+  
+  async loadSave(): Promise<boolean> {
+    try {
+      // Wait for Legend State to load persisted data
+      await when(syncState$.isLoaded);
+      
+      // Perform offline progress calculation
+      this.calculateOfflineProgress();
+      
+      return true;
+    } catch (error) {
+      console.error('Load failed:', error);
+      return false;
+    }
+  }
+  
+  private calculateOfflineProgress() {
+    const now = Date.now();
+    const lastActive = gameState$.player.lastActiveTime.peek();
+    const offlineTime = Math.min(now - lastActive, 12 * 60 * 60 * 1000); // 12h cap
+    
+    if (offlineTime > 60000) { // More than 1 minute
+      const offlineGains = this.calculateIdleProduction(offlineTime);
+      
+      batch(() => {
+        gameState$.player.currency.set(prev => prev + offlineGains.currency);
+        gameState$.player.linesOfCode.set(prev => prev + offlineGains.linesOfCode);
+        gameState$.player.lastActiveTime.set(now);
+      });
+      
+      // Show offline progress modal
+      this.showOfflineProgress(offlineGains, offlineTime);
+    }
   }
 }
 ```
 
 ---
 
-This technical requirements document provides a comprehensive blueprint for implementing PetSoft Tycoon with React Native, Expo, and Legend State, ensuring 60 FPS performance, robust cross-platform support, and exceptional game feel through detailed architecture specifications, performance optimization strategies, and risk mitigation approaches.
+## Component Hierarchy & Organization
+
+### Vertical Slicing Architecture
+
+Following the research best practices, the app structure uses vertical slicing with feature co-location:
+
+```
+src/
+├── core/
+│   ├── state/
+│   │   ├── gameStore.ts         # Main Legend State observable
+│   │   ├── saveSystem.ts        # Save/load logic
+│   │   └── gameLoop.ts          # Main game loop
+│   ├── game-loop/
+│   │   ├── GameLoop.tsx         # Game loop component
+│   │   ├── PerformanceMonitor.ts # FPS monitoring
+│   │   └── index.ts
+│   └── utils/
+│       ├── calculations.ts      # Game math utilities
+│       ├── formatting.ts        # Number formatting
+│       └── BigNumber.ts         # Large number handling
+│
+├── features/
+│   ├── departments/
+│   │   ├── DepartmentScreen.tsx
+│   │   ├── DepartmentCard.tsx
+│   │   ├── EmployeeList.tsx
+│   │   ├── useDepartment.ts
+│   │   ├── department.types.ts
+│   │   └── index.ts
+│   │
+│   ├── progression/
+│   │   ├── ProgressionScreen.tsx
+│   │   ├── PrestigeModal.tsx
+│   │   ├── AchievementList.tsx
+│   │   ├── useProgression.ts
+│   │   └── index.ts
+│   │
+│   └── dashboard/
+│       ├── DashboardScreen.tsx
+│       ├── StatsSummary.tsx
+│       ├── QuickActions.tsx
+│       └── index.ts
+│
+├── shared/
+│   ├── components/
+│   │   ├── ui/
+│   │   │   ├── Button.tsx
+│   │   │   ├── Card.tsx
+│   │   │   ├── Modal.tsx
+│   │   │   └── Animated/
+│   │   │       ├── CounterAnimation.tsx
+│   │   │       ├── ProgressBar.tsx
+│   │   │       └── ParticleSystem.tsx
+│   │   └── game/
+│   │       ├── CurrencyDisplay.tsx
+│   │       ├── ProductionRate.tsx
+│   │       └── ActionButton.tsx
+│   │
+│   ├── hooks/
+│   │   ├── useGameLoop.ts
+│   │   ├── usePerformanceMonitor.ts
+│   │   └── useAudioManager.ts
+│   │
+│   └── utils/
+│       ├── constants.ts
+│       ├── validation.ts
+│       └── performance.ts
+│
+└── app/
+    ├── (tabs)/
+    │   ├── _layout.tsx          # Tab navigator
+    │   ├── index.tsx            # Dashboard
+    │   ├── departments.tsx      # Departments screen
+    │   ├── progression.tsx      # Progression screen
+    │   └── settings.tsx         # Settings screen
+    │
+    ├── modal/
+    │   ├── prestige.tsx         # Prestige modal
+    │   ├── achievements.tsx     # Achievements modal
+    │   └── offline-progress.tsx # Offline progress modal
+    │
+    ├── _layout.tsx              # Root layout
+    └── +not-found.tsx           # 404 handler
+```
+
+### Component Implementation Patterns
+
+#### Fine-Grained Reactive Components
+```typescript
+import { observer, Memo, Show, For } from '@legendapp/state/react';
+import { $Text, $View, $Pressable } from '@legendapp/state/react-native';
+
+// Department employee list with optimized rendering
+function EmployeeList({ department$ }: { department$: Observable<DevelopmentDepartment> }) {
+  return (
+    <$View style={styles.employeeContainer}>
+      <For each={Object.entries(department$.employees.peek())}>
+        {([type, count$], index) => (
+          <Memo key={type}>
+            {() => (
+              <$View style={styles.employeeRow}>
+                <$Text style={styles.employeeType}>
+                  {formatEmployeeType(type)}
+                </$Text>
+                <$Text style={styles.employeeCount}>
+                  {count$.get()}
+                </$Text>
+                <$Pressable
+                  onPress={() => gameState$.actions.hireDeveloper(type)}
+                  style={styles.hireButton}
+                >
+                  <$Text>Hire (+{getHireCost(type, count$.get())})</$Text>
+                </$Pressable>
+              </$View>
+            )}
+          </Memo>
+        )}
+      </For>
+    </$View>
+  );
+}
+
+// Conditional rendering for upgrades
+function DepartmentUpgrades({ department$ }: { department$: Observable<DevelopmentDepartment> }) {
+  return (
+    <$View style={styles.upgradesContainer}>
+      <Show if={() => department$.employees.junior.get() >= 10}>
+        <UpgradeButton
+          title="Better IDE (Level 1)"
+          cost={5000}
+          purchased={department$.upgrades.betterIde.get() >= 1}
+          onPurchase={() => purchaseUpgrade('betterIde', 1)}
+        />
+      </Show>
+      
+      <Show if={() => department$.employees.junior.get() >= 25}>
+        <UpgradeButton
+          title="Pair Programming"
+          cost={25000}
+          purchased={department$.upgrades.pairProgramming.get()}
+          onPurchase={() => purchaseUpgrade('pairProgramming')}
+        />
+      </Show>
+    </$View>
+  );
+}
+```
+
+---
+
+## Animation & Audio System Requirements
+
+### Animation Framework
+Built on React Native Reanimated 3 with Legend State integration:
+
+```typescript
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  runOnJS
+} from 'react-native-reanimated';
+
+// Currency animation system
+class CurrencyAnimationSystem {
+  private animationQueue: Array<{
+    amount: number;
+    type: 'gain' | 'loss';
+    source: string;
+  }> = [];
+  
+  animateValueChange(
+    currentValue: SharedValue<number>,
+    newValue: number,
+    duration = 500
+  ) {
+    currentValue.value = withTiming(newValue, {
+      duration,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1)
+    });
+  }
+  
+  createCounterAnimation() {
+    const displayValue = useSharedValue(0);
+    
+    const animatedStyle = useAnimatedStyle(() => ({
+      opacity: withSpring(displayValue.value > 0 ? 1 : 0.7),
+      transform: [
+        {
+          scale: withSpring(displayValue.value > 0 ? 1.1 : 1, {
+            damping: 15,
+            stiffness: 200
+          })
+        }
+      ]
+    }));
+    
+    return { displayValue, animatedStyle };
+  }
+}
+
+// Particle system for visual feedback
+class ParticleEffectSystem {
+  createFloatingText(
+    x: number,
+    y: number,
+    text: string,
+    color: string = '#00ff00'
+  ) {
+    const translateY = useSharedValue(0);
+    const opacity = useSharedValue(1);
+    
+    const animatedStyle = useAnimatedStyle(() => ({
+      position: 'absolute',
+      left: x,
+      top: y + translateY.value,
+      opacity: opacity.value,
+      zIndex: 1000
+    }));
+    
+    // Animate upward and fade out
+    translateY.value = withTiming(-50, { duration: 1500 });
+    opacity.value = withTiming(0, { duration: 1500 });
+    
+    return animatedStyle;
+  }
+  
+  createButtonPressEffect() {
+    const scale = useSharedValue(1);
+    
+    const animatedStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: scale.value }]
+    }));
+    
+    const triggerEffect = () => {
+      scale.value = withSpring(0.95, { duration: 100 }, () => {
+        scale.value = withSpring(1, { duration: 200 });
+      });
+    };
+    
+    return { animatedStyle, triggerEffect };
+  }
+}
+```
+
+### Audio System Architecture
+```typescript
+import { Audio } from 'expo-av';
+
+interface AudioAssets {
+  background: string;
+  buttonClick: string;
+  moneyGain: string;
+  levelUp: string;
+  achievement: string;
+  error: string;
+}
+
+class AudioManager {
+  private sounds: Map<string, Audio.Sound> = new Map();
+  private backgroundMusic: Audio.Sound | null = null;
+  private isEnabled = true;
+  private volume = 0.7;
+  
+  async initialize() {
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      staysActiveInBackground: false,
+      playsInSilentModeIOS: true,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false
+    });
+    
+    // Preload all sound effects
+    const soundAssets: AudioAssets = {
+      background: require('../assets/audio/background.mp3'),
+      buttonClick: require('../assets/audio/click.wav'),
+      moneyGain: require('../assets/audio/money.wav'),
+      levelUp: require('../assets/audio/levelup.wav'),
+      achievement: require('../assets/audio/achievement.wav'),
+      error: require('../assets/audio/error.wav')
+    };
+    
+    for (const [key, asset] of Object.entries(soundAssets)) {
+      const { sound } = await Audio.Sound.createAsync(asset, {
+        shouldPlay: false,
+        volume: key === 'background' ? 0.3 : this.volume
+      });
+      this.sounds.set(key, sound);
+    }
+    
+    this.backgroundMusic = this.sounds.get('background');
+    if (this.backgroundMusic) {
+      await this.backgroundMusic.setIsLoopingAsync(true);
+    }
+  }
+  
+  async playSound(soundKey: string, options?: { volume?: number; interrupt?: boolean }) {
+    if (!this.isEnabled) return;
+    
+    const sound = this.sounds.get(soundKey);
+    if (sound) {
+      try {
+        await sound.setPositionAsync(0);
+        if (options?.volume) {
+          await sound.setVolumeAsync(options.volume);
+        }
+        await sound.playAsync();
+      } catch (error) {
+        console.warn('Audio play failed:', error);
+      }
+    }
+  }
+  
+  async playBackgroundMusic() {
+    if (this.backgroundMusic && this.isEnabled) {
+      await this.backgroundMusic.playAsync();
+    }
+  }
+  
+  async pauseBackgroundMusic() {
+    if (this.backgroundMusic) {
+      await this.backgroundMusic.pauseAsync();
+    }
+  }
+}
+```
+
+---
+
+## Cross-Platform Considerations
+
+### Platform-Specific Adaptations
+
+#### iOS Considerations
+```typescript
+import { Platform } from 'react-native';
+
+const iosSpecificConfig = {
+  // Safe Area handling
+  useSafeAreaInsets: true,
+  
+  // Haptic feedback
+  hapticFeedback: {
+    enabled: true,
+    types: {
+      light: 'impactLight',
+      medium: 'impactMedium',
+      heavy: 'impactHeavy'
+    }
+  },
+  
+  // Performance optimizations
+  performance: {
+    removeClippedSubviews: Platform.OS === 'ios',
+    maxToRenderPerBatch: Platform.OS === 'ios' ? 10 : 5,
+    windowSize: Platform.OS === 'ios' ? 21 : 10
+  }
+};
+```
+
+#### Android Considerations
+```typescript
+const androidSpecificConfig = {
+  // Hardware back button handling
+  backHandler: {
+    enabled: true,
+    preventDefault: ['PrestigeModal', 'SettingsScreen']
+  },
+  
+  // Status bar configuration
+  statusBar: {
+    backgroundColor: '#1a1a1a',
+    barStyle: 'light-content',
+    translucent: true
+  },
+  
+  // Performance optimizations for lower-end devices
+  performance: {
+    renderAheadOfTime: false,
+    removeClippedSubviews: true,
+    collapsable: false
+  }
+};
+```
+
+#### Web Considerations (Expo Web)
+```typescript
+const webSpecificConfig = {
+  // Responsive design breakpoints
+  breakpoints: {
+    mobile: 768,
+    tablet: 1024,
+    desktop: 1200
+  },
+  
+  // Keyboard shortcuts
+  shortcuts: {
+    'Space': 'writeCode',
+    'Enter': 'shipFeature',
+    'P': 'prestige',
+    'S': 'save'
+  },
+  
+  // PWA configuration
+  pwa: {
+    enabled: true,
+    offline: true,
+    installPrompt: true
+  }
+};
+```
+
+### Universal Styling System
+```typescript
+import { StyleSheet } from 'react-native';
+
+const createStyles = () => StyleSheet.create({
+  // Base styles that work across platforms
+  container: {
+    flex: 1,
+    backgroundColor: '#0a0a0a',
+    paddingHorizontal: Platform.select({
+      ios: 16,
+      android: 16,
+      web: 24
+    })
+  },
+  
+  button: {
+    paddingVertical: Platform.select({
+      ios: 12,
+      android: 16,
+      web: 14
+    }),
+    paddingHorizontal: 24,
+    borderRadius: Platform.select({
+      ios: 8,
+      android: 4,
+      web: 6
+    }),
+    backgroundColor: '#007AFF',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
+        cursor: 'pointer'
+      }
+    })
+  }
+});
+```
+
+---
+
+## Pattern Reconciliation: Expo Router vs Vertical Slicing
+
+### Challenge Analysis
+The integration of Expo Router (file-based routing) with Vertical Slicing (feature-based organization) creates potential architectural conflicts:
+
+1. **Expo Router**: Expects routes in `/app` directory with specific naming conventions
+2. **Vertical Slicing**: Organizes code by features, potentially scattering routes
+3. **Navigation Logic**: Route definitions vs. feature-specific navigation needs
+
+### Reconciliation Strategy
+
+#### Hybrid Architecture Approach
+```
+app/                          # Expo Router requirements
+├── (tabs)/                   # Tab-based navigation
+│   ├── _layout.tsx          # Tab configuration
+│   ├── index.tsx            # Dashboard route (imports from features)
+│   ├── departments.tsx      # Department route (imports from features)
+│   └── progression.tsx      # Progression route (imports from features)
+│
+├── modal/                   # Modal routes
+│   ├── prestige.tsx         # Prestige modal route
+│   └── achievements.tsx     # Achievements modal route
+│
+└── _layout.tsx              # Root layout
+
+features/                     # Vertical slicing
+├── dashboard/
+│   ├── DashboardScreen.tsx   # Actual screen component
+│   ├── components/          # Feature-specific components
+│   ├── hooks/              # Feature-specific hooks
+│   └── index.ts            # Barrel export
+│
+├── departments/
+│   ├── DepartmentsScreen.tsx
+│   ├── components/
+│   ├── hooks/
+│   └── index.ts
+│
+└── progression/
+    ├── ProgressionScreen.tsx
+    ├── components/
+    ├── hooks/
+    └── index.ts
+```
+
+#### Implementation Pattern
+```typescript
+// app/(tabs)/departments.tsx - Route file (minimal)
+import { DepartmentsScreen } from '../../features/departments';
+export default DepartmentsScreen;
+
+// features/departments/DepartmentsScreen.tsx - Actual implementation
+export function DepartmentsScreen() {
+  const departments = use$(gameState$.departments);
+  
+  return (
+    <ScrollView style={styles.container}>
+      <For each={Object.entries(departments)}>
+        {([key, department$]) => (
+          <DepartmentCard
+            key={key}
+            department$={department$}
+            type={key}
+          />
+        )}
+      </For>
+    </ScrollView>
+  );
+}
+
+// features/departments/index.ts - Barrel export
+export { DepartmentsScreen } from './DepartmentsScreen';
+export { DepartmentCard } from './components/DepartmentCard';
+export { useDepartment } from './hooks/useDepartment';
+export type { DepartmentType } from './types';
+```
+
+This pattern maintains Expo Router's file-based routing while preserving the benefits of vertical slicing for feature organization.
+
+---
+
+## Deep Reflection: Edge Cases & Potential Issues
+
+### Performance Edge Cases
+
+#### Memory Pressure Scenarios
+```typescript
+// Scenario: Long-running game sessions with memory accumulation
+const MemoryOptimization = {
+  // Issue: Legend State observable growth
+  prevention: {
+    // Limit observable history
+    observableConfig: { history: 10 },
+    
+    // Periodic cleanup of unused computed values
+    cleanup: () => {
+      // Remove stale computeds every 5 minutes
+      setInterval(() => {
+        Object.keys(gameState$).forEach(key => {
+          if (key.startsWith('_computed_') && isStale(key)) {
+            delete gameState$[key];
+          }
+        });
+      }, 300000);
+    }
+  },
+  
+  // Issue: Animation memory leaks
+  animationCleanup: {
+    componentUnmount: () => {
+      // Cancel all running animations
+      animationRefs.current.forEach(ref => {
+        ref.cancel?.();
+      });
+    }
+  }
+};
+
+// Scenario: Rapid state changes overwhelming render cycle
+const RenderOptimization = {
+  // Batch rapid updates
+  batchUpdates: (updates: Array<() => void>) => {
+    batch(() => {
+      updates.forEach(update => update());
+    });
+  },
+  
+  // Debounce expensive computations
+  debouncedComputed: (fn: () => any, delay = 100) => {
+    let timeoutId: NodeJS.Timeout;
+    return () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(fn, delay);
+    };
+  }
+};
+```
+
+#### Large Number Handling
+```typescript
+// Issue: JavaScript number precision limits (idle games reach large values)
+import { BigNumber } from 'bignumber.js';
+
+class GameMath {
+  static currency(value: string | number | BigNumber): BigNumber {
+    return new BigNumber(value);
+  }
+  
+  static formatCurrency(value: BigNumber): string {
+    if (value.lt(1000)) return value.toFixed(0);
+    if (value.lt(1000000)) return `${value.div(1000).toFixed(1)}K`;
+    if (value.lt(1000000000)) return `${value.div(1000000).toFixed(2)}M`;
+    if (value.lt(1000000000000)) return `${value.div(1000000000).toFixed(2)}B`;
+    return `${value.div(1000000000000).toFixed(2)}T`;
+  }
+  
+  // Prevent overflow in calculations
+  static safeMultiply(a: BigNumber, b: BigNumber): BigNumber {
+    const result = a.multipliedBy(b);
+    if (result.isNaN() || !result.isFinite()) {
+      throw new Error('Calculation overflow detected');
+    }
+    return result;
+  }
+}
+```
+
+### Data Consistency Issues
+
+#### Save Data Corruption
+```typescript
+class SaveValidation {
+  static validateSaveData(data: any): boolean {
+    const schema = {
+      player: {
+        currency: 'number',
+        linesOfCode: 'number',
+        startTime: 'number'
+      },
+      departments: 'object',
+      version: 'string'
+    };
+    
+    return this.deepValidate(data, schema);
+  }
+  
+  static createBackupSave(data: GameState): void {
+    const backup = {
+      ...data,
+      backup: true,
+      timestamp: Date.now()
+    };
+    
+    // Store multiple backup versions
+    for (let i = 2; i >= 0; i--) {
+      const current = storage.getString(`save_backup_${i}`);
+      if (current) {
+        storage.set(`save_backup_${i + 1}`, current);
+      }
+    }
+    
+    storage.set('save_backup_0', JSON.stringify(backup));
+  }
+  
+  static recoverFromBackup(): GameState | null {
+    for (let i = 0; i < 3; i++) {
+      const backup = storage.getString(`save_backup_${i}`);
+      if (backup) {
+        try {
+          const data = JSON.parse(backup);
+          if (this.validateSaveData(data)) {
+            return data;
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+    }
+    return null;
+  }
+}
+```
+
+#### Synchronization Race Conditions
+```typescript
+class StateSync {
+  private syncQueue: Array<() => Promise<void>> = [];
+  private isSyncing = false;
+  
+  async queueSync(operation: () => Promise<void>) {
+    this.syncQueue.push(operation);
+    
+    if (!this.isSyncing) {
+      this.processSyncQueue();
+    }
+  }
+  
+  private async processSyncQueue() {
+    this.isSyncing = true;
+    
+    while (this.syncQueue.length > 0) {
+      const operation = this.syncQueue.shift()!;
+      try {
+        await operation();
+      } catch (error) {
+        console.error('Sync operation failed:', error);
+        // Implement retry logic
+      }
+    }
+    
+    this.isSyncing = false;
+  }
+}
+```
+
+### Platform-Specific Edge Cases
+
+#### iOS Background App Refresh
+```typescript
+import { AppState } from 'react-native';
+
+class BackgroundHandler {
+  private backgroundTime: number = 0;
+  
+  initialize() {
+    AppState.addEventListener('change', this.handleAppStateChange);
+  }
+  
+  private handleAppStateChange = (nextAppState: string) => {
+    if (nextAppState === 'background') {
+      this.backgroundTime = Date.now();
+      // Save immediately before going to background
+      gameState$.actions.forceSave();
+    } else if (nextAppState === 'active') {
+      if (this.backgroundTime > 0) {
+        const backgroundDuration = Date.now() - this.backgroundTime;
+        // Handle potential offline progress
+        this.processBackgroundTime(backgroundDuration);
+      }
+    }
+  };
+}
+```
+
+#### Android Memory Pressure
+```typescript
+import { DeviceEventEmitter } from 'react-native';
+
+class AndroidMemoryHandler {
+  initialize() {
+    DeviceEventEmitter.addListener('memoryWarning', this.handleMemoryWarning);
+  }
+  
+  private handleMemoryWarning = () => {
+    // Aggressive cleanup on memory pressure
+    this.clearCaches();
+    this.pauseNonEssentialAnimations();
+    this.forceSave();
+  };
+  
+  private clearCaches() {
+    // Clear animation caches
+    // Dispose of unused observables
+    // Reduce particle effects
+  }
+}
+```
+
+### Business Logic Edge Cases
+
+#### Prestige Calculation Overflow
+```typescript
+class PrestigeSystem {
+  calculateInvestorPoints(valuation: BigNumber): BigNumber {
+    // Prevent calculation errors at extreme values
+    if (valuation.lt(10000000)) {
+      return new BigNumber(0);
+    }
+    
+    const baseIP = valuation.div(1000000).floor();
+    
+    // Cap IP to prevent game-breaking values
+    const maxIP = new BigNumber(1000000);
+    return BigNumber.min(baseIP, maxIP);
+  }
+  
+  validatePrestigeEligibility(state: GameState): {
+    eligible: boolean;
+    reason?: string;
+  } {
+    const valuation = this.calculateValuation(state);
+    
+    if (valuation.lt(10000000)) {
+      return { 
+        eligible: false, 
+        reason: 'Minimum valuation not reached ($10M required)' 
+      };
+    }
+    
+    if (state.progression.lastPrestigeTime && 
+        Date.now() - state.progression.lastPrestigeTime < 300000) {
+      return { 
+        eligible: false, 
+        reason: 'Must wait 5 minutes between prestiges' 
+      };
+    }
+    
+    return { eligible: true };
+  }
+}
+```
+
+---
+
+## Conclusion
+
+This technical requirements document provides a comprehensive foundation for implementing PetSoft Tycoon as a mobile-first application using modern React Native architecture. The combination of Expo Router, Legend State v3, and MMKV persistence creates a powerful, performant foundation that can achieve the specified 60 FPS performance targets while maintaining offline-first capabilities.
+
+Key architectural decisions prioritize:
+1. **Performance**: Fine-grained reactivity with Legend State v3
+2. **Developer Experience**: Expo Router with vertical slicing reconciliation
+3. **Cross-platform Support**: Universal styling and platform-specific optimizations
+4. **Data Integrity**: Robust save/load system with corruption recovery
+5. **Scalability**: Proper handling of large numbers and memory optimization
+
+The deep reflection phase identifies critical edge cases that must be addressed during implementation to ensure a stable, high-quality user experience across all target platforms.

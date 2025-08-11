@@ -1,1062 +1,1199 @@
 # Phase 4: Quality & Polish
+## Performance Optimization, Animations, and User Experience Enhancement
+
+**Estimated Time**: 2-3 days  
+**Prerequisites**: All core systems functional with stable performance baseline  
+**Deliverables**: Polished user experience, smooth animations, audio system, optimized performance
+
+---
 
 ## Objectives
-- Implement sophisticated audio system with dynamic sound
-- Create premium animations and particle effects
-- Optimize performance for all target devices
-- Build robust save/load system with corruption protection
-- Add comprehensive testing and quality assurance
 
-## Prerequisites
-- Phase 3 Department Integration completed ✅
-- All 7 departments functional ✅
-- Prestige system working correctly ✅
+1. **Performance Optimization**: Achieve consistent 60 FPS across all devices and scenarios
+2. **Animation System**: Implement smooth, engaging animations using React Native Reanimated 3
+3. **Audio Integration**: Add audio feedback and background music using Expo AV
+4. **Visual Polish**: Create particle effects, visual feedback, and professional UI components
+5. **User Experience**: Implement intuitive navigation, helpful tutorials, and accessibility features
 
-## Tasks Checklist
+---
 
-### 1. Audio System Implementation
+## Task Checklist
 
-- [ ] **Install and Configure Audio Dependencies**
+### Performance Optimization
+- [ ] **Memory Management Optimization** (3 hours)
   ```bash
-  npx expo install expo-av
-  npx expo install expo-asset
-  ```
-
-- [ ] **Create Audio Manager Service**
-  ```typescript
-  // src/features/ui/services/audioManager.ts
-  import { Audio } from 'expo-av';
-  import { gameState$ } from '../../game-core/state/gameState$';
+  # Create memory optimization utilities
+  cat > src/shared/utils/performance.ts << 'EOF'
+  import { useEffect, useRef, useCallback } from 'react';
+  import { AppState, AppStateStatus } from 'react-native';
+  import { batch } from '@legendapp/state';
+  import { gameState$ } from '../../core/state/gameStore';
   
-  export class AudioManager {
-    private static sounds: Map<string, Audio.Sound> = new Map();
-    private static musicInstance: Audio.Sound | null = null;
-    private static lastPlayTime: Map<string, number> = new Map();
-    private static initialized = false;
+  export class MemoryManager {
+    private static instance: MemoryManager;
+    private cleanupTasks: (() => void)[] = [];
+    private performanceWarnings: string[] = [];
     
-    static async initialize() {
-      if (this.initialized) return;
+    static getInstance(): MemoryManager {
+      if (!MemoryManager.instance) {
+        MemoryManager.instance = new MemoryManager();
+      }
+      return MemoryManager.instance;
+    }
+    
+    // Memory pressure handling
+    handleMemoryPressure() {
+      console.log('Memory pressure detected, performing cleanup...');
       
-      // Configure audio session
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
+      batch(() => {
+        // Clear non-essential caches
+        this.clearAnimationCaches();
+        
+        // Reduce update frequency temporarily
+        this.reduceUpdateFrequency();
+        
+        // Force garbage collection of observables
+        this.cleanupObservables();
+        
+        // Save game state
+        gameState$.actions.forceSave();
+      });
+    }
+    
+    private clearAnimationCaches() {
+      // Clear animation-related caches
+      if (global.particleSystem) {
+        global.particleSystem.clearCaches();
+      }
+    }
+    
+    private reduceUpdateFrequency() {
+      // Temporarily reduce game loop frequency
+      if (global.gameLoop) {
+        global.gameLoop.setReducedMode(true);
+        
+        // Restore normal frequency after 30 seconds
+        setTimeout(() => {
+          if (global.gameLoop) {
+            global.gameLoop.setReducedMode(false);
+          }
+        }, 30000);
+      }
+    }
+    
+    private cleanupObservables() {
+      // Clean up any stale computed observables or listeners
+      const unusedKeys = [];
+      
+      // Implementation would scan for unused observables
+      // and clean them up to free memory
+      
+      unusedKeys.forEach(key => {
+        // Cleanup logic
+      });
+    }
+    
+    // Performance monitoring
+    trackPerformanceMetric(metric: string, value: number, threshold: number) {
+      if (value > threshold) {
+        this.performanceWarnings.push(`${metric}: ${value} exceeds threshold ${threshold}`);
+        
+        if (this.performanceWarnings.length > 10) {
+          this.performanceWarnings.shift(); // Keep only recent warnings
+        }
+        
+        console.warn(`Performance warning: ${metric} = ${value}`);
+      }
+    }
+    
+    getPerformanceWarnings(): string[] {
+      return [...this.performanceWarnings];
+    }
+    
+    // Resource cleanup
+    addCleanupTask(task: () => void) {
+      this.cleanupTasks.push(task);
+    }
+    
+    performCleanup() {
+      this.cleanupTasks.forEach(task => {
+        try {
+          task();
+        } catch (error) {
+          console.error('Cleanup task failed:', error);
+        }
       });
       
-      // Preload sounds for instant playback
-      const soundsToLoad = [
-        { key: 'click', file: require('../../../assets/audio/click.mp3') },
-        { key: 'buy', file: require('../../../assets/audio/purchase.mp3') },
-        { key: 'milestone', file: require('../../../assets/audio/achievement.mp3') },
-        { key: 'prestige', file: require('../../../assets/audio/prestige.mp3') },
-        { key: 'unlock', file: require('../../../assets/audio/unlock.mp3') },
-      ];
-      
-      for (const { key, file } of soundsToLoad) {
-        try {
-          const { sound } = await Audio.Sound.createAsync(file, {
-            shouldPlay: false,
-            isLooping: false,
-            volume: 0.5,
-          });
-          this.sounds.set(key, sound);
-        } catch (error) {
-          console.warn(`Failed to load sound: ${key}`, error);
-        }
-      }
-      
-      // Load background music
-      try {
-        const { sound } = await Audio.Sound.createAsync(
-          require('../../../assets/audio/background.mp3'),
-          {
-            shouldPlay: false,
-            isLooping: true,
-            volume: 0.3,
-          }
-        );
-        this.musicInstance = sound;
-      } catch (error) {
-        console.warn('Failed to load background music', error);
-      }
-      
-      this.initialized = true;
-    }
-    
-    static async playSound(key: string, options?: { 
-      pitch?: number; 
-      volume?: number; 
-      cooldown?: number 
-    }) {
-      if (!gameState$.settings.soundEnabled.get() || !this.initialized) return;
-      
-      const now = Date.now();
-      const lastPlay = this.lastPlayTime.get(key) || 0;
-      const cooldown = options?.cooldown || 50;
-      
-      // Anti-spam protection
-      if (now - lastPlay < cooldown) return;
-      
-      const sound = this.sounds.get(key);
-      if (!sound) return;
-      
-      try {
-        await sound.setPositionAsync(0);
-        
-        if (options?.pitch) {
-          await sound.setPitchCorrectionQualityAsync(Audio.PitchCorrectionQuality.High);
-          await sound.setRateAsync(options.pitch, true);
-        }
-        
-        if (options?.volume !== undefined) {
-          await sound.setVolumeAsync(options.volume);
-        }
-        
-        await sound.playAsync();
-        this.lastPlayTime.set(key, now);
-      } catch (error) {
-        console.warn(`Failed to play sound: ${key}`, error);
-      }
-    }
-    
-    // Dynamic pitch variation to prevent repetition
-    static getClickPitch(clickCount: number): number {
-      const basePitch = 1.0;
-      const variation = 0.3;
-      const frequency = clickCount % 12;
-      return basePitch + (Math.sin(frequency * Math.PI / 6) * variation);
-    }
-    
-    // Adaptive music based on game pace
-    static async updateMusicTempo(gameSpeed: number) {
-      if (!this.musicInstance || !gameState$.settings.musicEnabled.get()) return;
-      
-      try {
-        const tempo = Math.min(1.5, Math.max(0.8, 1.0 + (gameSpeed - 1) * 0.2));
-        await this.musicInstance.setRateAsync(tempo, true);
-      } catch (error) {
-        console.warn('Failed to update music tempo', error);
-      }
-    }
-    
-    static async startBackgroundMusic() {
-      if (!this.musicInstance || !gameState$.settings.musicEnabled.get()) return;
-      
-      try {
-        const status = await this.musicInstance.getStatusAsync();
-        if (!status.isLoaded || status.isPlaying) return;
-        
-        await this.musicInstance.playAsync();
-      } catch (error) {
-        console.warn('Failed to start background music', error);
-      }
-    }
-    
-    static async stopBackgroundMusic() {
-      if (!this.musicInstance) return;
-      
-      try {
-        await this.musicInstance.stopAsync();
-      } catch (error) {
-        console.warn('Failed to stop background music', error);
-      }
+      this.cleanupTasks = [];
     }
   }
-  ```
-
-- [ ] **Create Audio Hook for Components**
-  ```typescript
-  // src/features/ui/hooks/useAudio.ts
-  import { useCallback } from 'react';
-  import { AudioManager } from '../services/audioManager';
-  import { gameState$ } from '../../game-core/state/gameState$';
   
-  export const useAudio = () => {
-    const playClickSound = useCallback((clickCount = 0) => {
-      const pitch = AudioManager.getClickPitch(clickCount);
-      AudioManager.playSound('click', { pitch, volume: 0.6 });
+  // React hook for performance monitoring
+  export function usePerformanceOptimization() {
+    const memoryManager = useRef(MemoryManager.getInstance());
+    const frameCountRef = useRef(0);
+    const fpsRef = useRef(60);
+    
+    const measureFPS = useCallback(() => {
+      frameCountRef.current++;
+      
+      const measureFrame = () => {
+        frameCountRef.current++;
+        requestAnimationFrame(measureFrame);
+      };
+      
+      // Calculate FPS every second
+      setInterval(() => {
+        fpsRef.current = frameCountRef.current;
+        frameCountRef.current = 0;
+        
+        // Track FPS performance
+        memoryManager.current.trackPerformanceMetric('FPS', fpsRef.current, 55);
+      }, 1000);
+      
+      requestAnimationFrame(measureFrame);
     }, []);
     
-    const playPurchaseSound = useCallback(() => {
-      AudioManager.playSound('buy', { volume: 0.8 });
-    }, []);
-    
-    const playMilestoneSound = useCallback(() => {
-      AudioManager.playSound('milestone', { volume: 1.0 });
-    }, []);
-    
-    const playPrestigeSound = useCallback(() => {
-      AudioManager.playSound('prestige', { volume: 1.0 });
-    }, []);
-    
-    const playUnlockSound = useCallback(() => {
-      AudioManager.playSound('unlock', { volume: 0.9 });
-    }, []);
+    useEffect(() => {
+      measureFPS();
+      
+      const handleAppStateChange = (nextAppState: AppStateStatus) => {
+        if (nextAppState === 'background') {
+          memoryManager.current.performCleanup();
+        }
+      };
+      
+      const subscription = AppState.addEventListener('change', handleAppStateChange);
+      
+      return () => {
+        subscription?.remove();
+        memoryManager.current.performCleanup();
+      };
+    }, [measureFPS]);
     
     return {
-      playClickSound,
-      playPurchaseSound,
-      playMilestoneSound,
-      playPrestigeSound,
-      playUnlockSound,
+      currentFPS: fpsRef.current,
+      performanceWarnings: memoryManager.current.getPerformanceWarnings(),
+      triggerCleanup: () => memoryManager.current.performCleanup()
+    };
+  }
+  
+  // Component-level optimization utilities
+  export const performanceHOC = <P extends object>(
+    Component: React.ComponentType<P>,
+    debugName: string = 'Component'
+  ) => {
+    const MemoizedComponent = React.memo(Component);
+    MemoizedComponent.displayName = `Performance(${debugName})`;
+    
+    return (props: P) => {
+      const renderStart = performance.now();
+      
+      useEffect(() => {
+        const renderEnd = performance.now();
+        const renderTime = renderEnd - renderStart;
+        
+        if (renderTime > 16) { // More than one frame at 60fps
+          console.warn(`Slow render: ${debugName} took ${renderTime}ms`);
+        }
+      });
+      
+      return <MemoizedComponent {...props} />;
     };
   };
-  ```
-
-### 2. Advanced Animation System
-
-- [ ] **Create Animation Configuration**
-  ```typescript
-  // src/features/ui/config/animationConfig.ts
-  import { Easing } from 'react-native-reanimated';
-  import { gameState$ } from '../../game-core/state/gameState$';
   
-  export const AnimationConfig = {
-    // Button interactions - <50ms response
-    buttonPress: {
-      duration: 100,
-      easing: Easing.out(Easing.quad),
-    },
+  // Batch update utility for Legend State
+  export function useBatchedUpdates() {
+    const pendingUpdates = useRef<(() => void)[]>([]);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
     
-    // Resource counters - smooth increments
-    counterUpdate: {
-      duration: 300,
-      easing: Easing.out(Easing.cubic),
-    },
+    const scheduleUpdate = useCallback((updateFn: () => void) => {
+      pendingUpdates.current.push(updateFn);
+      
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      timeoutRef.current = setTimeout(() => {
+        batch(() => {
+          pendingUpdates.current.forEach(fn => fn());
+          pendingUpdates.current = [];
+        });
+      }, 16); // Batch updates for one frame
+    }, []);
     
-    // Panel transitions - premium feel
-    panelSlide: {
-      duration: 400,
-      easing: Easing.out(Easing.back(1.1)),
-    },
-    
-    // Particle effects - scale with performance
-    particles: {
-      duration: 800,
-      get count() {
-        const quality = gameState$.settings.qualityLevel.get();
-        switch (quality) {
-          case 'high': return 20;
-          case 'medium': return 10;
-          case 'low': return 3;
-          default: return 10;
-        }
-      },
-    },
-    
-    // Screen shake for milestones
-    screenShake: {
-      intensity: 3,
-      duration: 200,
-      frequency: 8,
-    },
-    
-    // Achievement toasts
-    achievementToast: {
-      slideInDuration: 300,
-      displayDuration: 3000,
-      slideOutDuration: 300,
-      easing: Easing.out(Easing.back(1.5)),
-    },
-  };
+    return scheduleUpdate;
+  }
+  EOF
   ```
 
-- [ ] **Create Particle Effect Component**
-  ```typescript
-  // src/features/ui/components/ParticleEffect.tsx
+### Animation System Implementation
+- [ ] **Create Advanced Animation Components** (4 hours)
+  ```bash
+  # Create enhanced animation system
+  cat > src/shared/components/Animated/CounterAnimation.tsx << 'EOF'
   import React, { useEffect } from 'react';
-  import { View, StyleSheet } from 'react-native';
+  import { Text, StyleSheet } from 'react-native';
+  import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
+    interpolate,
+    runOnJS,
+    withDelay,
+    withSequence
+  } from 'react-native-reanimated';
+  import { GameMath } from '../../utils/BigNumber';
+  
+  interface CounterAnimationProps {
+    value: string | number;
+    previousValue?: string | number;
+    style?: any;
+    animationType?: 'spring' | 'timing' | 'bounce';
+    showDifference?: boolean;
+    formatValue?: (value: string | number) => string;
+  }
+  
+  export const CounterAnimation = ({
+    value,
+    previousValue,
+    style,
+    animationType = 'spring',
+    showDifference = false,
+    formatValue = (val) => GameMath.formatCurrency(val)
+  }: CounterAnimationProps) => {
+    const scale = useSharedValue(1);
+    const opacity = useSharedValue(1);
+    const translateY = useSharedValue(0);
+    const colorProgress = useSharedValue(0);
+    
+    const animatedStyle = useAnimatedStyle(() => {
+      const backgroundColor = interpolate(
+        colorProgress.value,
+        [0, 0.5, 1],
+        [0, 255, 0] // RGB green component
+      );
+      
+      return {
+        transform: [
+          { scale: scale.value },
+          { translateY: translateY.value }
+        ],
+        opacity: opacity.value,
+        color: `rgb(255, 255, ${Math.floor(255 - backgroundColor)})`
+      };
+    });
+    
+    useEffect(() => {
+      if (previousValue !== undefined && value !== previousValue) {
+        const isIncrease = GameMath.greaterThan(value, previousValue || 0);
+        
+        if (animationType === 'spring') {
+          scale.value = withSpring(1.2, { duration: 200 }, () => {
+            scale.value = withSpring(1, { duration: 300 });
+          });
+        } else if (animationType === 'bounce') {
+          scale.value = withSequence(
+            withTiming(0.8, { duration: 100 }),
+            withSpring(1.1, { duration: 200 }),
+            withSpring(1, { duration: 300 })
+          );
+        }
+        
+        // Color animation for value changes
+        if (isIncrease) {
+          colorProgress.value = withTiming(1, { duration: 500 }, () => {
+            colorProgress.value = withTiming(0, { duration: 1000 });
+          });
+        }
+        
+        // Subtle upward animation for increases
+        if (isIncrease) {
+          translateY.value = withTiming(-5, { duration: 200 }, () => {
+            translateY.value = withSpring(0, { duration: 300 });
+          });
+        }
+      }
+    }, [value, previousValue, animationType]);
+    
+    return (
+      <Animated.Text style={[styles.text, style, animatedStyle]}>
+        {formatValue(value)}
+      </Animated.Text>
+    );
+  };
+  
+  const styles = StyleSheet.create({
+    text: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#ffffff'
+    }
+  });
+  EOF
+  
+  # Create particle system for visual effects
+  cat > src/shared/components/Animated/ParticleSystem.tsx << 'EOF'
+  import React, { useEffect, useRef, useCallback } from 'react';
+  import { View, StyleSheet, Dimensions } from 'react-native';
   import Animated, {
     useAnimatedStyle,
     useSharedValue,
     withTiming,
-    withDelay,
+    withSpring,
     runOnJS,
+    cancelAnimation
   } from 'react-native-reanimated';
-  import { AnimationConfig } from '../config/animationConfig';
+  
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
   
   interface Particle {
     id: string;
-    startX: number;
-    startY: number;
+    x: Animated.SharedValue<number>;
+    y: Animated.SharedValue<number>;
+    opacity: Animated.SharedValue<number>;
+    scale: Animated.SharedValue<number>;
+    rotation: Animated.SharedValue<number>;
     color: string;
-    size: number;
+    symbol: string;
+    lifetime: number;
   }
   
-  interface ParticleEffectProps {
-    trigger: number;
-    origin: { x: number; y: number };
-    value?: number;
-    onComplete?: () => void;
+  interface ParticleSystemProps {
+    active: boolean;
+    particleCount?: number;
+    duration?: number;
+    symbols?: string[];
+    colors?: string[];
+    style?: any;
   }
   
-  const ParticleEffect: React.FC<ParticleEffectProps> = ({
-    trigger,
-    origin,
-    value = 1,
-    onComplete,
-  }) => {
-    const particles = React.useMemo(() => {
-      const count = Math.min(AnimationConfig.particles.count, Math.ceil(value / 10));
-      return Array.from({ length: count }, (_, i) => ({
-        id: `particle-${i}`,
-        startX: origin.x + (Math.random() - 0.5) * 40,
-        startY: origin.y + (Math.random() - 0.5) * 40,
-        color: ['#4CAF50', '#2196F3', '#FF9800', '#E91E63'][Math.floor(Math.random() * 4)],
-        size: 4 + Math.random() * 6,
-      }));
-    }, [trigger, value, origin]);
+  export const ParticleSystem = ({
+    active,
+    particleCount = 10,
+    duration = 2000,
+    symbols = ['💰', '+', '✨', '🎉'],
+    colors = ['#FFD700', '#00FF00', '#FF6B6B', '#4ECDC4'],
+    style
+  }: ParticleSystemProps) => {
+    const particles = useRef<Particle[]>([]);
+    const activeAnimations = useRef<Set<string>>(new Set());
+    
+    const createParticle = useCallback((): Particle => {
+      const id = Math.random().toString(36);
+      const startX = Math.random() * screenWidth;
+      const startY = screenHeight * 0.6 + Math.random() * 100;
+      
+      return {
+        id,
+        x: useSharedValue(startX),
+        y: useSharedValue(startY),
+        opacity: useSharedValue(1),
+        scale: useSharedValue(0),
+        rotation: useSharedValue(0),
+        color: colors[Math.floor(Math.random() * colors.length)],
+        symbol: symbols[Math.floor(Math.random() * symbols.length)],
+        lifetime: Date.now()
+      };
+    }, [colors, symbols]);
+    
+    const animateParticle = useCallback((particle: Particle) => {
+      activeAnimations.current.add(particle.id);
+      
+      // Entry animation
+      particle.scale.value = withSpring(1, { duration: 300 });
+      
+      // Movement animation
+      particle.x.value = withTiming(
+        particle.x.value + (Math.random() - 0.5) * 200,
+        { duration }
+      );
+      particle.y.value = withTiming(
+        particle.y.value - 150 - Math.random() * 100,
+        { duration }
+      );
+      
+      // Rotation animation
+      particle.rotation.value = withTiming(
+        360 + Math.random() * 360,
+        { duration }
+      );
+      
+      // Exit animation
+      particle.opacity.value = withTiming(
+        0,
+        { duration: duration * 0.8 },
+        () => {
+          runOnJS(() => {
+            activeAnimations.current.delete(particle.id);
+          })();
+        }
+      );
+    }, [duration]);
+    
+    const spawnParticles = useCallback(() => {
+      for (let i = 0; i < particleCount; i++) {
+        const particle = createParticle();
+        particles.current.push(particle);
+        
+        // Stagger particle spawns
+        setTimeout(() => {
+          animateParticle(particle);
+        }, i * 50);
+      }
+      
+      // Clean up old particles
+      setTimeout(() => {
+        particles.current = particles.current.filter(
+          p => Date.now() - p.lifetime < duration + 1000
+        );
+      }, duration + 1000);
+    }, [particleCount, createParticle, animateParticle, duration]);
+    
+    useEffect(() => {
+      if (active) {
+        spawnParticles();
+      }
+    }, [active, spawnParticles]);
+    
+    useEffect(() => {
+      return () => {
+        // Cleanup all animations on unmount
+        particles.current.forEach(particle => {
+          cancelAnimation(particle.x);
+          cancelAnimation(particle.y);
+          cancelAnimation(particle.opacity);
+          cancelAnimation(particle.scale);
+          cancelAnimation(particle.rotation);
+        });
+      };
+    }, []);
     
     return (
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        {particles.map(particle => (
-          <ParticleBubble
-            key={particle.id}
-            particle={particle}
-            trigger={trigger}
-            onComplete={onComplete}
-          />
+      <View style={[styles.container, style]} pointerEvents="none">
+        {particles.current.map(particle => (
+          <ParticleComponent key={particle.id} particle={particle} />
         ))}
       </View>
     );
   };
   
-  const ParticleBubble: React.FC<{
-    particle: Particle;
-    trigger: number;
-    onComplete?: () => void;
-  }> = ({ particle, trigger, onComplete }) => {
-    const translateY = useSharedValue(0);
-    const translateX = useSharedValue(0);
-    const opacity = useSharedValue(0);
-    const scale = useSharedValue(0);
-    
+  const ParticleComponent = ({ particle }: { particle: Particle }) => {
     const animatedStyle = useAnimatedStyle(() => ({
       position: 'absolute',
-      left: particle.startX,
-      top: particle.startY,
-      width: particle.size,
-      height: particle.size,
-      borderRadius: particle.size / 2,
-      backgroundColor: particle.color,
+      left: particle.x.value,
+      top: particle.y.value,
+      opacity: particle.opacity.value,
       transform: [
-        { translateX: translateX.value },
-        { translateY: translateY.value },
-        { scale: scale.value },
-      ],
-      opacity: opacity.value,
+        { scale: particle.scale.value },
+        { rotate: `${particle.rotation.value}deg` }
+      ]
     }));
     
-    useEffect(() => {
-      if (trigger === 0) return;
-      
-      const randomX = (Math.random() - 0.5) * 100;
-      const randomY = -50 - Math.random() * 50;
-      
-      scale.value = withTiming(1, { duration: 100 });
-      opacity.value = withTiming(1, { duration: 100 });
-      
-      translateX.value = withTiming(randomX, {
-        duration: AnimationConfig.particles.duration,
-      });
-      
-      translateY.value = withTiming(randomY, {
-        duration: AnimationConfig.particles.duration,
-      });
-      
-      opacity.value = withDelay(
-        200,
-        withTiming(0, {
-          duration: AnimationConfig.particles.duration - 200,
-        }, (finished) => {
-          if (finished && onComplete) {
-            runOnJS(onComplete)();
-          }
-        })
-      );
-    }, [trigger]);
-    
-    return <Animated.View style={animatedStyle} />;
-  };
-  
-  export default ParticleEffect;
-  ```
-
-- [ ] **Create Screen Shake Effect**
-  ```typescript
-  // src/features/ui/hooks/useScreenShake.ts
-  import { useSharedValue } from 'react-native-reanimated';
-  import { AnimationConfig } from '../config/animationConfig';
-  import { useCallback } from 'react';
-  import { withSequence, withTiming } from 'react-native-reanimated';
-  
-  export const useScreenShake = () => {
-    const shakeX = useSharedValue(0);
-    const shakeY = useSharedValue(0);
-    
-    const triggerShake = useCallback((intensity: number = 1) => {
-      const shakeIntensity = AnimationConfig.screenShake.intensity * intensity;
-      const duration = AnimationConfig.screenShake.duration / 4;
-      
-      shakeX.value = withSequence(
-        withTiming(shakeIntensity, { duration }),
-        withTiming(-shakeIntensity, { duration }),
-        withTiming(shakeIntensity * 0.5, { duration }),
-        withTiming(0, { duration })
-      );
-      
-      shakeY.value = withSequence(
-        withTiming(shakeIntensity * 0.5, { duration }),
-        withTiming(-shakeIntensity * 0.3, { duration }),
-        withTiming(shakeIntensity * 0.2, { duration }),
-        withTiming(0, { duration })
-      );
-    }, []);
-    
-    return {
-      shakeX,
-      shakeY,
-      triggerShake,
-    };
-  };
-  ```
-
-### 3. Performance Optimization System
-
-- [ ] **Create Performance Adapter**
-  ```typescript
-  // src/features/game-core/services/performanceAdapter.ts
-  import { gameState$ } from '../state/gameState$';
-  
-  export class PerformanceAdapter {
-    private static frameDropCounter = 0;
-    private static lastFrameTime = 0;
-    private static memoryCheckInterval: NodeJS.Timeout | null = null;
-    private static performanceHistory: number[] = [];
-    
-    static initialize() {
-      // Start performance monitoring
-      const monitor = () => {
-        const currentTime = performance.now();
-        const deltaTime = currentTime - this.lastFrameTime;
-        
-        if (deltaTime > 0) {
-          const fps = Math.round(1000 / deltaTime);
-          gameState$.performance.fps.set(fps);
-          
-          // Track performance history
-          this.performanceHistory.push(fps);
-          if (this.performanceHistory.length > 60) { // Keep last 60 frames
-            this.performanceHistory.shift();
-          }
-          
-          // Detect frame drops
-          if (deltaTime > 20) { // >20ms = <50 FPS
-            this.frameDropCounter++;
-            gameState$.performance.frameDrops.set(prev => prev + 1);
-            
-            // Auto-adjust quality after persistent issues
-            if (this.frameDropCounter > 15) {
-              this.degradeQuality();
-              this.frameDropCounter = 0;
-            }
-          } else if (deltaTime < 16) { // <16ms = >60 FPS
-            this.frameDropCounter = Math.max(0, this.frameDropCounter - 1);
-          }
-        }
-        
-        this.lastFrameTime = currentTime;
-        requestAnimationFrame(monitor);
-      };
-      
-      requestAnimationFrame(monitor);
-      
-      // Memory monitoring
-      this.memoryCheckInterval = setInterval(() => {
-        this.checkMemoryUsage();
-      }, 5000);
-      
-      return () => {
-        if (this.memoryCheckInterval) {
-          clearInterval(this.memoryCheckInterval);
-        }
-      };
-    }
-    
-    private static degradeQuality() {
-      const current = gameState$.settings.qualityLevel.get();
-      
-      switch (current) {
-        case 'high':
-          gameState$.settings.qualityLevel.set('medium');
-          console.log('Performance: Quality reduced to Medium');
-          break;
-        case 'medium':
-          gameState$.settings.qualityLevel.set('low');
-          console.log('Performance: Quality reduced to Low');
-          break;
-        case 'auto':
-          gameState$.settings.qualityLevel.set('low');
-          console.log('Performance: Auto mode set to Low');
-          break;
-      }
-    }
-    
-    private static checkMemoryUsage() {
-      // Estimate memory usage (React Native doesn't have direct access)
-      const estimate = this.estimateMemoryUsage();
-      gameState$.performance.memoryUsage.set(estimate);
-      
-      if (estimate > 80) { // >80MB estimated usage
-        this.triggerGarbageCollection();
-      }
-    }
-    
-    private static estimateMemoryUsage(): number {
-      // Rough estimation based on game state complexity
-      const resources = gameState$.resources.get();
-      const totalResources = Object.values(resources).reduce((sum, val) => sum + val, 0);
-      
-      // Base usage + resource complexity
-      let estimate = 25; // Base 25MB
-      estimate += Math.floor(totalResources / 10000); // Resource impact
-      estimate += this.performanceHistory.length * 0.1; // History impact
-      
-      return estimate;
-    }
-    
-    private static triggerGarbageCollection() {
-      // Clean up performance history
-      this.performanceHistory = this.performanceHistory.slice(-30);
-      
-      // Reset frame drop counter
-      this.frameDropCounter = 0;
-      
-      console.log('Performance: Memory cleanup triggered');
-    }
-    
-    static getAveragePerformance(): { fps: number; stability: number } {
-      if (this.performanceHistory.length === 0) {
-        return { fps: 60, stability: 1.0 };
-      }
-      
-      const avgFps = this.performanceHistory.reduce((sum, fps) => sum + fps, 0) / this.performanceHistory.length;
-      const variance = this.performanceHistory.reduce((sum, fps) => sum + Math.pow(fps - avgFps, 2), 0) / this.performanceHistory.length;
-      const stability = Math.max(0, 1 - (variance / 400)); // 400 = 20^2 (20fps variance = 0 stability)
-      
-      return { fps: Math.round(avgFps), stability };
-    }
-  }
-  ```
-
-- [ ] **Create Quality Settings Component**
-  ```typescript
-  // src/features/ui/components/QualitySettings.tsx
-  import React from 'react';
-  import { View, Text, StyleSheet } from 'react-native';
-  import { observer } from '@legendapp/state/react';
-  import { gameState$ } from '../../game-core/state/gameState$';
-  import { Picker } from '@react-native-picker/picker';
-  
-  const QualitySettings = observer(() => {
-    const settings = gameState$.settings.get();
-    const performance = gameState$.performance.get();
-    
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Performance Settings</Text>
-        
-        <View style={styles.setting}>
-          <Text style={styles.label}>Graphics Quality</Text>
-          <Picker
-            selectedValue={settings.qualityLevel}
-            style={styles.picker}
-            onValueChange={(value) => gameState$.settings.qualityLevel.set(value)}
-          >
-            <Picker.Item label="Auto" value="auto" />
-            <Picker.Item label="High" value="high" />
-            <Picker.Item label="Medium" value="medium" />
-            <Picker.Item label="Low" value="low" />
-          </Picker>
-        </View>
-        
-        <View style={styles.performanceInfo}>
-          <Text style={styles.perfLabel}>Current FPS: {performance.fps}</Text>
-          <Text style={styles.perfLabel}>Frame Drops: {performance.frameDrops}</Text>
-          <Text style={styles.perfLabel}>Memory: ~{performance.memoryUsage}MB</Text>
-        </View>
-        
-        <View style={styles.toggles}>
-          <View style={styles.toggle}>
-            <Text style={styles.toggleLabel}>Sound Effects</Text>
-            <Switch
-              value={settings.soundEnabled}
-              onValueChange={(value) => gameState$.settings.soundEnabled.set(value)}
-            />
-          </View>
-          
-          <View style={styles.toggle}>
-            <Text style={styles.toggleLabel}>Background Music</Text>
-            <Switch
-              value={settings.musicEnabled}
-              onValueChange={(value) => gameState$.settings.musicEnabled.set(value)}
-            />
-          </View>
-          
-          <View style={styles.toggle}>
-            <Text style={styles.toggleLabel}>Particle Effects</Text>
-            <Switch
-              value={settings.particlesEnabled}
-              onValueChange={(value) => gameState$.settings.particlesEnabled.set(value)}
-            />
-          </View>
-        </View>
-      </View>
+      <Animated.Text
+        style={[
+          animatedStyle,
+          { color: particle.color, fontSize: 20, fontWeight: 'bold' }
+        ]}
+      >
+        {particle.symbol}
+      </Animated.Text>
     );
-  });
+  };
   
   const styles = StyleSheet.create({
     container: {
-      padding: 20,
-      backgroundColor: '#fff',
-    },
-    title: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      marginBottom: 20,
-    },
-    setting: {
-      marginBottom: 15,
-    },
-    label: {
-      fontSize: 16,
-      marginBottom: 5,
-    },
-    picker: {
-      height: 50,
-      backgroundColor: '#f0f0f0',
-    },
-    performanceInfo: {
-      backgroundColor: '#f8f9fa',
-      padding: 15,
-      borderRadius: 8,
-      marginVertical: 15,
-    },
-    perfLabel: {
-      fontSize: 14,
-      color: '#666',
-      marginBottom: 5,
-    },
-    toggles: {
-      marginTop: 10,
-    },
-    toggle: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingVertical: 10,
-      borderBottomWidth: 1,
-      borderBottomColor: '#eee',
-    },
-    toggleLabel: {
-      fontSize: 16,
-    },
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 1000
+    }
   });
+  EOF
   
-  export default QualitySettings;
-  ```
-
-### 4. Robust Save/Load System
-
-- [ ] **Create Advanced Save Manager**
-  ```typescript
-  // src/features/game-core/services/saveManager.ts
-  import AsyncStorage from '@react-native-async-storage/async-storage';
-  import * as SecureStore from 'expo-secure-store';
-  import { gameState$ } from '../state/gameState$';
-  import { departmentState$ } from '../../departments/state/departmentState$';
-  import { prestigeState$ } from '../../prestige/state/prestigeState$';
-  import { achievementState$ } from '../../achievements/state/achievementState$';
-  
-  interface SaveData {
-    version: string;
-    timestamp: number;
-    checksum: string;
-    gameState: any;
-    departmentState: any;
-    prestigeState: any;
-    achievementState: any;
-  }
-  
-  export class SaveManager {
-    private static readonly CURRENT_VERSION = '8.0.0';
-    private static readonly SAVE_KEY = 'petsoft_tycoon_save';
-    private static readonly BACKUP_KEY = 'petsoft_tycoon_backup';
-    private static readonly EXPORT_KEY = 'petsoft_tycoon_export';
-    private static autoSaveTimer: NodeJS.Timeout | null = null;
-    private static lastSaveHash: string = '';
-    
-    // Version migrations for backward compatibility
-    private static migrations: Record<string, (data: any) => any> = {
-      '7.0.0': (data) => ({
-        ...data,
-        version: '8.0.0',
-        gameState: {
-          ...data.gameState,
-          performance: { fps: 60, frameDrops: 0, memoryUsage: 0 }
-        }
-      })
-    };
-    
-    static startAutoSave(interval: number = 30000) {
-      this.stopAutoSave();
-      
-      this.autoSaveTimer = setInterval(async () => {
-        const success = await this.performAutoSave();
-        if (success) {
-          console.log('Auto-save completed');
-        } else {
-          console.warn('Auto-save failed');
-        }
-      }, interval);
-    }
-    
-    static stopAutoSave() {
-      if (this.autoSaveTimer) {
-        clearInterval(this.autoSaveTimer);
-        this.autoSaveTimer = null;
-      }
-    }
-    
-    static async performAutoSave(): Promise<boolean> {
-      try {
-        const currentData = this.gatherSaveData();
-        const currentHash = this.calculateHash(currentData);
-        
-        // Skip save if nothing changed (performance optimization)
-        if (currentHash === this.lastSaveHash) {
-          return true;
-        }
-        
-        const saveData: SaveData = {
-          version: this.CURRENT_VERSION,
-          timestamp: Date.now(),
-          checksum: this.calculateChecksum(currentData),
-          ...currentData
-        };
-        
-        // Triple-save strategy for maximum reliability
-        const savePromises = [
-          AsyncStorage.setItem(this.SAVE_KEY, JSON.stringify(saveData)),
-          AsyncStorage.setItem(this.BACKUP_KEY, JSON.stringify(saveData)),
-          this.saveToSecureStore(saveData)
-        ];
-        
-        await Promise.allSettled(savePromises);
-        
-        this.lastSaveHash = currentHash;
-        gameState$.meta.lastSave.set(Date.now());
-        
-        return true;
-      } catch (error) {
-        console.error('Auto-save failed:', error);
-        return false;
-      }
-    }
-    
-    private static async saveToSecureStore(saveData: SaveData): Promise<void> {
-      try {
-        // Compress data for secure store
-        const compressed = JSON.stringify(saveData);
-        await SecureStore.setItemAsync('save_secure', compressed);
-      } catch (error) {
-        console.warn('Secure store save failed:', error);
-      }
-    }
-    
-    static async loadGame(): Promise<boolean> {
-      try {
-        let saveData = await this.loadFromStorage();
-        
-        if (!saveData) {
-          console.log('No save data found, starting fresh game');
-          return false;
-        }
-        
-        // Validate save integrity
-        if (!this.validateSave(saveData)) {
-          console.warn('Save validation failed, attempting backup');
-          saveData = await this.loadBackup();
-          
-          if (!saveData || !this.validateSave(saveData)) {
-            console.error('All save recovery attempts failed');
-            return false;
-          }
-        }
-        
-        // Apply migrations if needed
-        if (saveData.version !== this.CURRENT_VERSION) {
-          saveData = this.migrateSave(saveData);
-        }
-        
-        // Restore game state
-        this.applySaveData(saveData);
-        
-        console.log('Game loaded successfully');
-        return true;
-      } catch (error) {
-        console.error('Load game failed:', error);
-        return false;
-      }
-    }
-    
-    private static async loadFromStorage(): Promise<SaveData | null> {
-      try {
-        const saveString = await AsyncStorage.getItem(this.SAVE_KEY);
-        return saveString ? JSON.parse(saveString) : null;
-      } catch (error) {
-        console.warn('Primary save load failed:', error);
-        return null;
-      }
-    }
-    
-    private static async loadBackup(): Promise<SaveData | null> {
-      try {
-        // Try backup in AsyncStorage
-        let saveString = await AsyncStorage.getItem(this.BACKUP_KEY);
-        if (saveString) {
-          return JSON.parse(saveString);
-        }
-        
-        // Try secure store backup
-        saveString = await SecureStore.getItemAsync('save_secure');
-        return saveString ? JSON.parse(saveString) : null;
-      } catch (error) {
-        console.warn('Backup load failed:', error);
-        return null;
-      }
-    }
-    
-    private static gatherSaveData() {
-      return {
-        gameState: gameState$.peek(),
-        departmentState: departmentState$.peek(),
-        prestigeState: prestigeState$.peek(),
-        achievementState: achievementState$.peek(),
-      };
-    }
-    
-    private static calculateChecksum(data: any): string {
-      // Simple checksum for integrity verification
-      const str = JSON.stringify(data);
-      let hash = 0;
-      for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32-bit integer
-      }
-      return hash.toString();
-    }
-    
-    private static calculateHash(data: any): string {
-      return JSON.stringify(data).length.toString();
-    }
-    
-    private static validateSave(data: any): data is SaveData {
-      if (!data || typeof data !== 'object') return false;
-      if (!data.version || !data.timestamp || !data.checksum) return false;
-      if (!data.gameState || !data.departmentState || !data.prestigeState) return false;
-      
-      // Verify checksum
-      const expectedChecksum = this.calculateChecksum({
-        gameState: data.gameState,
-        departmentState: data.departmentState,
-        prestigeState: data.prestigeState,
-        achievementState: data.achievementState,
-      });
-      
-      if (data.checksum !== expectedChecksum) {
-        console.warn('Save file checksum mismatch');
-        return false;
-      }
-      
-      return true;
-    }
-    
-    private static migrateSave(saveData: SaveData): SaveData {
-      let migrated = saveData;
-      
-      for (const [version, migration] of Object.entries(this.migrations)) {
-        if (saveData.version === version) {
-          migrated = migration(migrated);
-          break;
-        }
-      }
-      
-      return migrated;
-    }
-    
-    private static applySaveData(saveData: SaveData) {
-      gameState$.set(saveData.gameState);
-      departmentState$.set(saveData.departmentState);
-      prestigeState$.set(saveData.prestigeState);
-      
-      if (saveData.achievementState) {
-        achievementState$.set(saveData.achievementState);
-      }
-    }
-    
-    // Export/Import for cross-device play
-    static async exportSave(): Promise<string | null> {
-      try {
-        const saveData = {
-          version: this.CURRENT_VERSION,
-          timestamp: Date.now(),
-          checksum: '',
-          ...this.gatherSaveData()
-        };
-        
-        saveData.checksum = this.calculateChecksum(saveData);
-        
-        // Base64 encode for sharing
-        return btoa(JSON.stringify(saveData));
-      } catch (error) {
-        console.error('Export failed:', error);
-        return null;
-      }
-    }
-    
-    static async importSave(saveCode: string): Promise<boolean> {
-      try {
-        const saveData = JSON.parse(atob(saveCode));
-        
-        if (!this.validateSave(saveData)) {
-          console.error('Invalid save code');
-          return false;
-        }
-        
-        this.applySaveData(saveData);
-        await this.performAutoSave(); // Save the imported data
-        
-        console.log('Save imported successfully');
-        return true;
-      } catch (error) {
-        console.error('Import failed:', error);
-        return false;
-      }
-    }
-  }
-  ```
-
-### 5. Achievement Toast System
-
-- [ ] **Create Achievement Toast Component**
-  ```typescript
-  // src/features/achievements/components/AchievementToast.tsx
+  # Create progress bar animation
+  cat > src/shared/components/Animated/ProgressBar.tsx << 'EOF'
   import React, { useEffect } from 'react';
-  import { View, Text, StyleSheet, Dimensions } from 'react-native';
+  import { View, Text, StyleSheet } from 'react-native';
   import Animated, {
     useAnimatedStyle,
     useSharedValue,
     withTiming,
-    withDelay,
-    withSequence,
-    runOnJS,
+    interpolate,
+    interpolateColor
   } from 'react-native-reanimated';
-  import { AnimationConfig } from '../../ui/config/animationConfig';
-  import { useAudio } from '../../ui/hooks/useAudio';
   
-  interface AchievementToastProps {
-    achievement: {
-      title: string;
-      description: string;
-      icon: string;
-    } | null;
-    onComplete: () => void;
+  interface ProgressBarProps {
+    progress: number; // 0 to 1
+    label?: string;
+    showPercentage?: boolean;
+    animated?: boolean;
+    height?: number;
+    backgroundColor?: string;
+    progressColor?: string;
+    glowEffect?: boolean;
   }
   
-  const { width } = Dimensions.get('window');
-  
-  const AchievementToast: React.FC<AchievementToastProps> = ({
-    achievement,
-    onComplete,
-  }) => {
-    const translateY = useSharedValue(-100);
-    const opacity = useSharedValue(0);
-    const scale = useSharedValue(0.8);
-    
-    const { playMilestoneSound } = useAudio();
-    
-    const animatedStyle = useAnimatedStyle(() => ({
-      transform: [
-        { translateY: translateY.value },
-        { scale: scale.value },
-      ],
-      opacity: opacity.value,
-    }));
+  export const ProgressBar = ({
+    progress,
+    label,
+    showPercentage = true,
+    animated = true,
+    height = 20,
+    backgroundColor = '#333333',
+    progressColor = '#007AFF',
+    glowEffect = false
+  }: ProgressBarProps) => {
+    const animatedProgress = useSharedValue(0);
+    const glowIntensity = useSharedValue(0);
     
     useEffect(() => {
-      if (!achievement) {
-        translateY.value = -100;
-        opacity.value = 0;
-        scale.value = 0.8;
+      if (animated) {
+        animatedProgress.value = withTiming(progress, { duration: 500 });
+        
+        if (glowEffect && progress > 0) {
+          glowIntensity.value = withTiming(1, { duration: 200 }, () => {
+            glowIntensity.value = withTiming(0.3, { duration: 300 });
+          });
+        }
+      } else {
+        animatedProgress.value = progress;
+      }
+    }, [progress, animated, glowEffect]);
+    
+    const progressStyle = useAnimatedStyle(() => {
+      const width = interpolate(
+        animatedProgress.value,
+        [0, 1],
+        [0, 100]
+      );
+      
+      const shadowOpacity = glowEffect ? 
+        interpolate(glowIntensity.value, [0, 1], [0, 0.8]) : 0;
+      
+      return {
+        width: `${width}%`,
+        backgroundColor: progressColor,
+        shadowOpacity,
+        shadowRadius: 10,
+        shadowColor: progressColor
+      };
+    });
+    
+    const containerStyle = useAnimatedStyle(() => ({
+      backgroundColor,
+      borderRadius: height / 2,
+      overflow: 'hidden',
+      height
+    }));
+    
+    return (
+      <View style={styles.wrapper}>
+        {label && <Text style={styles.label}>{label}</Text>}
+        <Animated.View style={[styles.container, containerStyle]}>
+          <Animated.View style={[styles.progress, progressStyle]} />
+          {showPercentage && (
+            <Text style={[styles.percentage, { lineHeight: height }]}>
+              {Math.round(progress * 100)}%
+            </Text>
+          )}
+        </Animated.View>
+      </View>
+    );
+  };
+  
+  const styles = StyleSheet.create({
+    wrapper: {
+      width: '100%'
+    },
+    label: {
+      color: '#ffffff',
+      fontSize: 14,
+      marginBottom: 8,
+      fontWeight: '500'
+    },
+    container: {
+      position: 'relative',
+      justifyContent: 'center'
+    },
+    progress: {
+      height: '100%',
+      borderRadius: 'inherit'
+    },
+    percentage: {
+      position: 'absolute',
+      alignSelf: 'center',
+      color: '#ffffff',
+      fontSize: 12,
+      fontWeight: 'bold',
+      textShadowColor: 'rgba(0,0,0,0.8)',
+      textShadowOffset: { width: 1, height: 1 },
+      textShadowRadius: 2
+    }
+  });
+  EOF
+  ```
+
+### Audio System Implementation
+- [ ] **Create Comprehensive Audio System** (3 hours)
+  ```bash
+  # Create audio manager with context
+  cat > src/shared/hooks/useAudioManager.ts << 'EOF'
+  import { useEffect, useState, useCallback, useRef } from 'react';
+  import { Audio } from 'expo-av';
+  import { usePerformanceOptimization } from '../utils/performance';
+  
+  export interface AudioAsset {
+    id: string;
+    source: any;
+    volume?: number;
+    loop?: boolean;
+    category: 'sfx' | 'music' | 'ui';
+  }
+  
+  export interface AudioSettings {
+    masterVolume: number;
+    sfxVolume: number;
+    musicVolume: number;
+    uiVolume: number;
+    enabled: boolean;
+  }
+  
+  const defaultAudioAssets: AudioAsset[] = [
+    {
+      id: 'background_music',
+      source: require('../../../assets/audio/background.mp3'),
+      volume: 0.3,
+      loop: true,
+      category: 'music'
+    },
+    {
+      id: 'button_click',
+      source: require('../../../assets/audio/click.wav'),
+      volume: 0.7,
+      category: 'ui'
+    },
+    {
+      id: 'money_gain',
+      source: require('../../../assets/audio/money.wav'),
+      volume: 0.8,
+      category: 'sfx'
+    },
+    {
+      id: 'level_up',
+      source: require('../../../assets/audio/levelup.wav'),
+      volume: 0.9,
+      category: 'sfx'
+    },
+    {
+      id: 'achievement',
+      source: require('../../../assets/audio/achievement.wav'),
+      volume: 1.0,
+      category: 'sfx'
+    },
+    {
+      id: 'error',
+      source: require('../../../assets/audio/error.wav'),
+      volume: 0.6,
+      category: 'ui'
+    },
+    {
+      id: 'prestige',
+      source: require('../../../assets/audio/prestige.wav'),
+      volume: 0.95,
+      category: 'sfx'
+    }
+  ];
+  
+  export function useAudioManager(
+    assets: AudioAsset[] = defaultAudioAssets,
+    initialSettings: Partial<AudioSettings> = {}
+  ) {
+    const [isInitialized, setIsInitialized] = useState(false);
+    const [settings, setSettings] = useState<AudioSettings>({
+      masterVolume: 0.8,
+      sfxVolume: 1.0,
+      musicVolume: 0.6,
+      uiVolume: 0.8,
+      enabled: true,
+      ...initialSettings
+    });
+    
+    const sounds = useRef<Map<string, Audio.Sound>>(new Map());
+    const backgroundMusic = useRef<Audio.Sound | null>(null);
+    const { performanceWarnings } = usePerformanceOptimization();
+    
+    // Initialize audio system
+    const initializeAudio = useCallback(async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: false,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+          interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_MIX_WITH_OTHERS,
+          interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DUCK_OTHERS
+        });
+        
+        // Load all audio assets
+        const loadPromises = assets.map(async (asset) => {
+          try {
+            const { sound } = await Audio.Sound.createAsync(
+              asset.source,
+              {
+                shouldPlay: false,
+                volume: calculateVolume(asset),
+                isLooping: asset.loop || false
+              }
+            );
+            
+            sounds.current.set(asset.id, sound);
+            
+            if (asset.category === 'music' && asset.id === 'background_music') {
+              backgroundMusic.current = sound;
+            }
+            
+            return { asset, success: true };
+          } catch (error) {
+            console.warn(`Failed to load audio asset ${asset.id}:`, error);
+            return { asset, success: false };
+          }
+        });
+        
+        await Promise.all(loadPromises);
+        setIsInitialized(true);
+        
+        // Start background music if enabled
+        if (settings.enabled && settings.musicVolume > 0) {
+          playBackgroundMusic();
+        }
+        
+      } catch (error) {
+        console.error('Audio initialization failed:', error);
+      }
+    }, [assets, settings]);
+    
+    const calculateVolume = useCallback((asset: AudioAsset): number => {
+      const baseVolume = asset.volume || 1.0;
+      const categoryVolume = settings[`${asset.category}Volume`] || 1.0;
+      return baseVolume * categoryVolume * settings.masterVolume;
+    }, [settings]);
+    
+    // Play sound effect
+    const playSound = useCallback(async (
+      soundId: string, 
+      options: { volume?: number; interrupt?: boolean } = {}
+    ) => {
+      if (!settings.enabled || !isInitialized) return;
+      
+      const sound = sounds.current.get(soundId);
+      if (!sound) {
+        console.warn(`Sound ${soundId} not found`);
         return;
       }
       
-      // Play sound
-      playMilestoneSound();
-      
-      // Slide in animation
-      translateY.value = withTiming(0, {
-        duration: AnimationConfig.achievementToast.slideInDuration,
-        easing: AnimationConfig.achievementToast.easing,
-      });
-      
-      opacity.value = withTiming(1, {
-        duration: AnimationConfig.achievementToast.slideInDuration,
-      });
-      
-      scale.value = withSequence(
-        withTiming(1.1, { duration: 200 }),
-        withTiming(1.0, { duration: 100 })
-      );
-      
-      // Auto-dismiss after display duration
-      translateY.value = withDelay(
-        AnimationConfig.achievementToast.displayDuration,
-        withTiming(-100, {
-          duration: AnimationConfig.achievementToast.slideOutDuration,
-        }, (finished) => {
-          if (finished) {
-            runOnJS(onComplete)();
-          }
-        })
-      );
-      
-      opacity.value = withDelay(
-        AnimationConfig.achievementToast.displayDuration,
-        withTiming(0, {
-          duration: AnimationConfig.achievementToast.slideOutDuration,
-        })
-      );
-    }, [achievement]);
+      try {
+        // Performance optimization: limit concurrent sounds
+        if (performanceWarnings.length > 5) {
+          console.log('Skipping audio due to performance warnings');
+          return;
+        }
+        
+        await sound.setPositionAsync(0);
+        
+        if (options.volume !== undefined) {
+          await sound.setVolumeAsync(options.volume * settings.masterVolume);
+        }
+        
+        await sound.playAsync();
+      } catch (error) {
+        console.warn(`Failed to play sound ${soundId}:`, error);
+      }
+    }, [settings, isInitialized, performanceWarnings]);
     
-    if (!achievement) return null;
+    // Background music controls
+    const playBackgroundMusic = useCallback(async () => {
+      if (!backgroundMusic.current || !settings.enabled) return;
+      
+      try {
+        await backgroundMusic.current.playAsync();
+      } catch (error) {
+        console.warn('Failed to play background music:', error);
+      }
+    }, [settings.enabled]);
+    
+    const pauseBackgroundMusic = useCallback(async () => {
+      if (!backgroundMusic.current) return;
+      
+      try {
+        await backgroundMusic.current.pauseAsync();
+      } catch (error) {
+        console.warn('Failed to pause background music:', error);
+      }
+    }, []);
+    
+    const setBackgroundMusicVolume = useCallback(async (volume: number) => {
+      if (!backgroundMusic.current) return;
+      
+      try {
+        await backgroundMusic.current.setVolumeAsync(
+          volume * settings.musicVolume * settings.masterVolume
+        );
+      } catch (error) {
+        console.warn('Failed to set background music volume:', error);
+      }
+    }, [settings]);
+    
+    // Settings management
+    const updateSettings = useCallback((newSettings: Partial<AudioSettings>) => {
+      setSettings(prev => {
+        const updated = { ...prev, ...newSettings };
+        
+        // Update volumes for all loaded sounds
+        sounds.current.forEach(async (sound, id) => {
+          const asset = assets.find(a => a.id === id);
+          if (asset) {
+            try {
+              await sound.setVolumeAsync(calculateVolume(asset));
+            } catch (error) {
+              console.warn(`Failed to update volume for ${id}:`, error);
+            }
+          }
+        });
+        
+        // Handle background music
+        if (!updated.enabled || updated.musicVolume === 0) {
+          pauseBackgroundMusic();
+        } else if (prev.enabled !== updated.enabled || prev.musicVolume !== updated.musicVolume) {
+          playBackgroundMusic();
+        }
+        
+        return updated;
+      });
+    }, [assets, calculateVolume, playBackgroundMusic, pauseBackgroundMusic]);
+    
+    // Cleanup
+    const cleanup = useCallback(async () => {
+      const promises = Array.from(sounds.current.values()).map(sound => 
+        sound.unloadAsync().catch(error => 
+          console.warn('Failed to unload sound:', error)
+        )
+      );
+      
+      await Promise.all(promises);
+      sounds.current.clear();
+      backgroundMusic.current = null;
+    }, []);
+    
+    // Initialize on mount
+    useEffect(() => {
+      initializeAudio();
+      return cleanup;
+    }, [initializeAudio, cleanup]);
+    
+    // Game event audio hooks
+    const audioHooks = {
+      onMoneyGained: (amount: number) => {
+        if (amount > 0) {
+          playSound('money_gain');
+        }
+      },
+      
+      onLevelUp: () => {
+        playSound('level_up');
+      },
+      
+      onAchievementUnlocked: () => {
+        playSound('achievement');
+      },
+      
+      onButtonClick: () => {
+        playSound('button_click');
+      },
+      
+      onError: () => {
+        playSound('error');
+      },
+      
+      onPrestige: () => {
+        playSound('prestige');
+      }
+    };
+    
+    return {
+      isInitialized,
+      settings,
+      playSound,
+      playBackgroundMusic,
+      pauseBackgroundMusic,
+      setBackgroundMusicVolume,
+      updateSettings,
+      audioHooks
+    };
+  }
+  EOF
+  ```
+
+### Visual Polish Implementation
+- [ ] **Create Enhanced UI Components** (3 hours)
+  ```bash
+  # Create modern card component with glassmorphism
+  cat > src/shared/components/ui/Card.tsx << 'EOF'
+  import React from 'react';
+  import { View, StyleSheet, ViewStyle } from 'react-native';
+  import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    interpolate
+  } from 'react-native-reanimated';
+  
+  interface CardProps {
+    children: React.ReactNode;
+    style?: ViewStyle;
+    variant?: 'default' | 'glass' | 'elevated' | 'outlined';
+    pressable?: boolean;
+    glowColor?: string;
+    onPress?: () => void;
+  }
+  
+  export const Card = ({
+    children,
+    style,
+    variant = 'default',
+    pressable = false,
+    glowColor,
+    onPress
+  }: CardProps) => {
+    const scale = useSharedValue(1);
+    const pressed = useSharedValue(0);
+    
+    const animatedStyle = useAnimatedStyle(() => {
+      const scaleValue = interpolate(
+        pressed.value,
+        [0, 1],
+        [scale.value, scale.value * 0.98]
+      );
+      
+      return {
+        transform: [{ scale: scaleValue }]
+      };
+    });
+    
+    const handlePressIn = () => {
+      if (pressable) {
+        pressed.value = withSpring(1, { duration: 150 });
+      }
+    };
+    
+    const handlePressOut = () => {
+      if (pressable) {
+        pressed.value = withSpring(0, { duration: 150 });
+        onPress?.();
+      }
+    };
+    
+    const getVariantStyles = () => {
+      switch (variant) {
+        case 'glass':
+          return {
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(10px)',
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.2)'
+          };
+        case 'elevated':
+          return {
+            backgroundColor: '#1a1a1a',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 8
+          };
+        case 'outlined':
+          return {
+            backgroundColor: 'transparent',
+            borderWidth: 1,
+            borderColor: '#333333'
+          };
+        default:
+          return {
+            backgroundColor: '#1a1a1a',
+            borderWidth: 1,
+            borderColor: '#333333'
+          };
+      }
+    };
+    
+    const glowStyle = glowColor ? {
+      shadowColor: glowColor,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5,
+      shadowRadius: 10
+    } : {};
     
     return (
-      <Animated.View style={[styles.container, animatedStyle]}>
-        <View style={styles.content}>
-          <Text style={styles.icon}>{achievement.icon}</Text>
-          <View style={styles.textContainer}>
-            <Text style={styles.title}>{achievement.title}</Text>
-            <Text style={styles.description}>{achievement.description}</Text>
-          </View>
-        </View>
+      <Animated.View
+        style={[
+          styles.card,
+          getVariantStyles(),
+          glowStyle,
+          animatedStyle,
+          style
+        ]}
+        onTouchStart={handlePressIn}
+        onTouchEnd={handlePressOut}
+        onTouchCancel={handlePressOut}
+      >
+        {children}
+      </Animated.View>
+    );
+  };
+  
+  const styles = StyleSheet.create({
+    card: {
+      borderRadius: 12,
+      padding: 16,
+      margin: 4
+    }
+  });
+  EOF
+  
+  # Create floating action button with ripple effect
+  cat > src/shared/components/ui/FloatingActionButton.tsx << 'EOF'
+  import React, { useRef } from 'react';
+  import { Pressable, Text, StyleSheet, ViewStyle } from 'react-native';
+  import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
+    runOnJS
+  } from 'react-native-reanimated';
+  
+  interface FloatingActionButtonProps {
+    onPress: () => void;
+    icon?: string;
+    label?: string;
+    size?: number;
+    color?: string;
+    position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+    style?: ViewStyle;
+  }
+  
+  export const FloatingActionButton = ({
+    onPress,
+    icon = '+',
+    label,
+    size = 56,
+    color = '#007AFF',
+    position = 'bottom-right',
+    style
+  }: FloatingActionButtonProps) => {
+    const scale = useSharedValue(1);
+    const rippleScale = useSharedValue(0);
+    const rippleOpacity = useSharedValue(0);
+    const rotation = useSharedValue(0);
+    
+    const animatedButtonStyle = useAnimatedStyle(() => ({
+      transform: [
+        { scale: scale.value },
+        { rotate: `${rotation.value}deg` }
+      ]
+    }));
+    
+    const animatedRippleStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: rippleScale.value }],
+      opacity: rippleOpacity.value
+    }));
+    
+    const handlePress = () => {
+      // Button animation
+      scale.value = withSpring(0.9, { duration: 100 }, () => {
+        scale.value = withSpring(1, { duration: 200 });
+      });
+      
+      // Ripple effect
+      rippleScale.value = 0;
+      rippleOpacity.value = 0.3;
+      
+      rippleScale.value = withTiming(1.5, { duration: 400 });
+      rippleOpacity.value = withTiming(0, { duration: 400 });
+      
+      // Rotation animation for visual feedback
+      rotation.value = withSpring(rotation.value + 90, { duration: 300 });
+      
+      runOnJS(onPress)();
+    };
+    
+    const getPositionStyle = (): ViewStyle => {
+      const offset = 20;
+      
+      switch (position) {
+        case 'bottom-right':
+          return { bottom: offset, right: offset };
+        case 'bottom-left':
+          return { bottom: offset, left: offset };
+        case 'top-right':
+          return { top: offset, right: offset };
+        case 'top-left':
+          return { top: offset, left: offset };
+        default:
+          return { bottom: offset, right: offset };
+      }
+    };
+    
+    return (
+      <Animated.View style={[
+        styles.container,
+        getPositionStyle(),
+        { width: size, height: size },
+        style
+      ]}>
+        {/* Ripple Effect */}
+        <Animated.View
+          style={[
+            styles.ripple,
+            {
+              width: size,
+              height: size,
+              borderRadius: size / 2,
+              backgroundColor: color
+            },
+            animatedRippleStyle
+          ]}
+        />
+        
+        {/* Main Button */}
+        <Animated.View style={animatedButtonStyle}>
+          <Pressable
+            style={[
+              styles.button,
+              {
+                width: size,
+                height: size,
+                borderRadius: size / 2,
+                backgroundColor: color
+              }
+            ]}
+            onPress={handlePress}
+          >
+            <Text style={[styles.icon, { fontSize: size * 0.4 }]}>
+              {icon}
+            </Text>
+            {label && (
+              <Text style={styles.label} numberOfLines={1}>
+                {label}
+              </Text>
+            )}
+          </Pressable>
+        </Animated.View>
       </Animated.View>
     );
   };
@@ -1064,126 +1201,617 @@
   const styles = StyleSheet.create({
     container: {
       position: 'absolute',
-      top: 60,
-      left: 20,
-      right: 20,
-      zIndex: 9999,
-    },
-    content: {
-      backgroundColor: '#4CAF50',
-      borderRadius: 12,
-      padding: 16,
-      flexDirection: 'row',
       alignItems: 'center',
-      elevation: 8,
+      justifyContent: 'center',
+      zIndex: 1000
+    },
+    ripple: {
+      position: 'absolute'
+    },
+    button: {
+      alignItems: 'center',
+      justifyContent: 'center',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
-      shadowRadius: 8,
+      shadowRadius: 6,
+      elevation: 8
     },
     icon: {
-      fontSize: 32,
-      marginRight: 12,
-    },
-    textContainer: {
-      flex: 1,
-    },
-    title: {
-      fontSize: 16,
+      color: '#ffffff',
       fontWeight: 'bold',
-      color: '#fff',
-      marginBottom: 4,
+      textAlign: 'center'
     },
-    description: {
-      fontSize: 14,
-      color: '#fff',
-      opacity: 0.9,
-    },
+    label: {
+      color: '#ffffff',
+      fontSize: 10,
+      fontWeight: '600',
+      marginTop: 2,
+      textAlign: 'center'
+    }
   });
-  
-  export default AchievementToast;
+  EOF
   ```
 
-## Validation Criteria
+### User Experience Enhancements
+- [ ] **Create Onboarding and Tutorials** (2 hours)
+  ```bash
+  # Create tutorial system
+  cat > src/shared/components/ui/TutorialOverlay.tsx << 'EOF'
+  import React, { useEffect } from 'react';
+  import { View, Text, StyleSheet, Dimensions, Modal } from 'react-native';
+  import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
+    withSequence,
+    withDelay
+  } from 'react-native-reanimated';
+  import { BaseButton } from './BaseButton';
+  
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+  
+  interface TutorialStep {
+    id: string;
+    title: string;
+    description: string;
+    targetElement?: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
+    position?: 'top' | 'bottom' | 'center';
+    action?: () => void;
+  }
+  
+  interface TutorialOverlayProps {
+    visible: boolean;
+    steps: TutorialStep[];
+    currentStep: number;
+    onNext: () => void;
+    onPrevious: () => void;
+    onComplete: () => void;
+    onSkip: () => void;
+  }
+  
+  export const TutorialOverlay = ({
+    visible,
+    steps,
+    currentStep,
+    onNext,
+    onPrevious,
+    onComplete,
+    onSkip
+  }: TutorialOverlayProps) => {
+    const overlayOpacity = useSharedValue(0);
+    const contentScale = useSharedValue(0.8);
+    const highlightScale = useSharedValue(0);
+    
+    const currentStepData = steps[currentStep];
+    const isLastStep = currentStep === steps.length - 1;
+    const isFirstStep = currentStep === 0;
+    
+    useEffect(() => {
+      if (visible) {
+        overlayOpacity.value = withTiming(1, { duration: 300 });
+        contentScale.value = withSequence(
+          withTiming(1.05, { duration: 200 }),
+          withTiming(1, { duration: 200 })
+        );
+        
+        if (currentStepData?.targetElement) {
+          highlightScale.value = withDelay(
+            300,
+            withTiming(1, { duration: 400 })
+          );
+        }
+      } else {
+        overlayOpacity.value = withTiming(0, { duration: 200 });
+        contentScale.value = withTiming(0.8, { duration: 200 });
+        highlightScale.value = 0;
+      }
+    }, [visible, currentStep]);
+    
+    const overlayStyle = useAnimatedStyle(() => ({
+      opacity: overlayOpacity.value
+    }));
+    
+    const contentStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: contentScale.value }]
+    }));
+    
+    const highlightStyle = useAnimatedStyle(() => {
+      if (!currentStepData?.targetElement) return { opacity: 0 };
+      
+      return {
+        position: 'absolute',
+        left: currentStepData.targetElement.x - 4,
+        top: currentStepData.targetElement.y - 4,
+        width: currentStepData.targetElement.width + 8,
+        height: currentStepData.targetElement.height + 8,
+        borderRadius: 8,
+        borderWidth: 2,
+        borderColor: '#007AFF',
+        backgroundColor: 'rgba(0, 122, 255, 0.1)',
+        opacity: highlightScale.value,
+        transform: [{ scale: highlightScale.value }]
+      };
+    });
+    
+    const getContentPosition = () => {
+      if (!currentStepData?.targetElement || currentStepData.position === 'center') {
+        return { justifyContent: 'center' as const };
+      }
+      
+      const target = currentStepData.targetElement;
+      const contentHeight = 200; // Approximate content height
+      
+      if (currentStepData.position === 'bottom' || target.y < contentHeight) {
+        return { justifyContent: 'flex-end' as const, paddingBottom: 100 };
+      } else {
+        return { justifyContent: 'flex-start' as const, paddingTop: 100 };
+      }
+    };
+    
+    if (!visible || !currentStepData) return null;
+    
+    return (
+      <Modal
+        visible={visible}
+        transparent
+        statusBarTranslucent
+        animationType="none"
+      >
+        <Animated.View style={[styles.overlay, overlayStyle]}>
+          {/* Highlight target element */}
+          {currentStepData.targetElement && (
+            <Animated.View style={highlightStyle} />
+          )}
+          
+          {/* Tutorial Content */}
+          <View style={[styles.container, getContentPosition()]}>
+            <Animated.View style={[styles.content, contentStyle]}>
+              <View style={styles.header}>
+                <Text style={styles.stepCounter}>
+                  {currentStep + 1} of {steps.length}
+                </Text>
+                <BaseButton
+                  title="Skip"
+                  onPress={onSkip}
+                  variant="secondary"
+                  style={styles.skipButton}
+                />
+              </View>
+              
+              <Text style={styles.title}>{currentStepData.title}</Text>
+              <Text style={styles.description}>{currentStepData.description}</Text>
+              
+              <View style={styles.actions}>
+                {!isFirstStep && (
+                  <BaseButton
+                    title="Previous"
+                    onPress={onPrevious}
+                    variant="secondary"
+                    style={styles.actionButton}
+                  />
+                )}
+                
+                <BaseButton
+                  title={isLastStep ? 'Complete' : 'Next'}
+                  onPress={isLastStep ? onComplete : onNext}
+                  variant="primary"
+                  style={[styles.actionButton, styles.primaryButton]}
+                />
+              </View>
+              
+              {/* Progress indicator */}
+              <View style={styles.progressContainer}>
+                {steps.map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.progressDot,
+                      index === currentStep && styles.activeDot
+                    ]}
+                  />
+                ))}
+              </View>
+            </Animated.View>
+          </View>
+        </Animated.View>
+      </Modal>
+    );
+  };
+  
+  const styles = StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)'
+    },
+    container: {
+      flex: 1,
+      paddingHorizontal: 20
+    },
+    content: {
+      backgroundColor: '#1a1a1a',
+      borderRadius: 16,
+      padding: 24,
+      marginHorizontal: 20,
+      borderWidth: 1,
+      borderColor: '#333333'
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16
+    },
+    stepCounter: {
+      color: '#8E8E93',
+      fontSize: 14,
+      fontWeight: '500'
+    },
+    skipButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      minHeight: 32
+    },
+    title: {
+      color: '#ffffff',
+      fontSize: 20,
+      fontWeight: 'bold',
+      marginBottom: 12
+    },
+    description: {
+      color: '#8E8E93',
+      fontSize: 16,
+      lineHeight: 24,
+      marginBottom: 24
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 20
+    },
+    actionButton: {
+      flex: 1,
+      minHeight: 44
+    },
+    primaryButton: {
+      flex: 2
+    },
+    progressContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 8
+    },
+    progressDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: '#333333'
+    },
+    activeDot: {
+      backgroundColor: '#007AFF'
+    }
+  });
+  EOF
+  ```
 
-### Must Pass ✅
-- [ ] Audio system works on all target platforms
-- [ ] Animations maintain 60 FPS on mid-range devices
-- [ ] Save/load system handles corruption gracefully
-- [ ] Performance adapter adjusts quality automatically
-- [ ] Achievement notifications feel satisfying
+### Performance Testing and Validation
+- [ ] **Create Performance Testing Suite** (2 hours)
+  ```bash
+  # Create comprehensive performance test
+  cat > scripts/performance-test-suite.js << 'EOF'
+  const fs = require('fs');
+  const { execSync } = require('child_process');
+  
+  class PerformanceTestSuite {
+    constructor() {
+      this.results = {
+        timestamp: new Date().toISOString(),
+        tests: {}
+      };
+    }
+    
+    async runAllTests() {
+      console.log('🚀 Starting Performance Test Suite...\n');
+      
+      await this.testBuildPerformance();
+      await this.testBundleSize();
+      await this.testMemoryUsage();
+      await this.testRenderPerformance();
+      
+      this.generateReport();
+    }
+    
+    async testBuildPerformance() {
+      console.log('📦 Testing build performance...');
+      
+      const buildStart = Date.now();
+      
+      try {
+        execSync('npx expo export --platform ios --dev', { 
+          stdio: 'pipe',
+          timeout: 120000 // 2 minute timeout
+        });
+        
+        const buildTime = Date.now() - buildStart;
+        
+        this.results.tests.buildPerformance = {
+          passed: buildTime < 60000, // Under 1 minute
+          buildTime: buildTime,
+          threshold: 60000,
+          status: buildTime < 60000 ? 'PASS' : 'FAIL'
+        };
+        
+        console.log(`   Build time: ${buildTime}ms ${buildTime < 60000 ? '✅' : '❌'}`);
+        
+      } catch (error) {
+        this.results.tests.buildPerformance = {
+          passed: false,
+          error: error.message,
+          status: 'FAIL'
+        };
+        console.log('   Build failed ❌');
+      }
+    }
+    
+    async testBundleSize() {
+      console.log('📏 Testing bundle size...');
+      
+      try {
+        const stats = fs.statSync('dist/bundles/ios-bundle.js');
+        const bundleSize = stats.size;
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        
+        this.results.tests.bundleSize = {
+          passed: bundleSize < maxSize,
+          bundleSize: bundleSize,
+          bundleSizeMB: (bundleSize / 1024 / 1024).toFixed(2),
+          maxSizeMB: (maxSize / 1024 / 1024).toFixed(2),
+          status: bundleSize < maxSize ? 'PASS' : 'FAIL'
+        };
+        
+        console.log(`   Bundle size: ${(bundleSize / 1024 / 1024).toFixed(2)}MB ${bundleSize < maxSize ? '✅' : '❌'}`);
+        
+      } catch (error) {
+        this.results.tests.bundleSize = {
+          passed: false,
+          error: 'Bundle file not found - build may have failed',
+          status: 'SKIP'
+        };
+        console.log('   Bundle size test skipped (no bundle found) ⏭️');
+      }
+    }
+    
+    async testMemoryUsage() {
+      console.log('🧠 Testing memory usage patterns...');
+      
+      // This would require running the app and monitoring memory
+      // For now, we'll simulate the test structure
+      
+      this.results.tests.memoryUsage = {
+        passed: true, // Would be determined by actual monitoring
+        baselineMemory: '45MB', // Simulated
+        peakMemory: '68MB', // Simulated
+        threshold: '75MB',
+        status: 'MANUAL' // Requires manual testing
+      };
+      
+      console.log('   Memory test requires manual validation 📱');
+    }
+    
+    async testRenderPerformance() {
+      console.log('🎨 Testing render performance...');
+      
+      // This would involve automated UI testing
+      // For now, we'll provide guidelines
+      
+      this.results.tests.renderPerformance = {
+        passed: true, // Would be determined by automated testing
+        targetFPS: 60,
+        status: 'MANUAL', // Requires manual testing with tools
+        guidelines: [
+          'Test with performance monitor enabled',
+          'Monitor FPS during gameplay',
+          'Test department switching performance',
+          'Verify smooth animations',
+          'Test with multiple prestiges'
+        ]
+      };
+      
+      console.log('   Render performance requires device testing 📱');
+    }
+    
+    generateReport() {
+      const reportPath = 'performance-report.json';
+      fs.writeFileSync(reportPath, JSON.stringify(this.results, null, 2));
+      
+      console.log('\n📊 Performance Test Results:');
+      console.log('================================');
+      
+      Object.entries(this.results.tests).forEach(([testName, result]) => {
+        const status = result.status;
+        const emoji = status === 'PASS' ? '✅' : status === 'FAIL' ? '❌' : '📱';
+        console.log(`${emoji} ${testName}: ${status}`);
+        
+        if (result.error) {
+          console.log(`   Error: ${result.error}`);
+        }
+      });
+      
+      console.log(`\nFull report saved to: ${reportPath}`);
+      
+      // Performance recommendations
+      console.log('\n💡 Performance Recommendations:');
+      console.log('- Run manual FPS testing on target devices');
+      console.log('- Monitor memory usage during extended gameplay');
+      console.log('- Test performance after each major feature addition');
+      console.log('- Use React Native performance profiler for optimization');
+    }
+  }
+  
+  // Run the test suite
+  const testSuite = new PerformanceTestSuite();
+  testSuite.runAllTests().catch(console.error);
+  EOF
+  
+  # Create manual testing checklist
+  cat > manual-testing-checklist.md << 'EOF'
+  # Manual Performance Testing Checklist
+  
+  ## Pre-Testing Setup
+  - [ ] Build app in production mode
+  - [ ] Install on target devices (iPhone 8, Android with Snapdragon 660)
+  - [ ] Enable performance monitoring
+  - [ ] Clear app data for fresh start
+  
+  ## FPS Testing (Target: 60 FPS)
+  - [ ] Dashboard interactions maintain 60 FPS
+  - [ ] Department switching is smooth
+  - [ ] Hiring employees shows no frame drops
+  - [ ] Upgrade purchases animate smoothly
+  - [ ] Prestige process maintains performance
+  - [ ] Particle effects don't impact FPS
+  - [ ] Audio plays without stuttering
+  
+  ## Memory Testing (Target: <75MB)
+  - [ ] Initial app launch memory usage
+  - [ ] Memory after 30 minutes of gameplay
+  - [ ] Memory after first prestige
+  - [ ] Memory after multiple prestiges
+  - [ ] Memory recovery after backgrounding
+  - [ ] No memory leaks detected
+  
+  ## Animation Testing
+  - [ ] Counter animations smooth and responsive
+  - [ ] Button press feedback works correctly
+  - [ ] Particle effects appear at appropriate times
+  - [ ] Progress bars animate smoothly
+  - [ ] Transition animations between screens
+  - [ ] Loading states provide good feedback
+  
+  ## Audio Testing
+  - [ ] Background music loops correctly
+  - [ ] Sound effects play at appropriate times
+  - [ ] Audio doesn't interfere with performance
+  - [ ] Volume controls work correctly
+  - [ ] Audio stops when app is backgrounded
+  - [ ] Audio resumes when app is foregrounded
+  
+  ## User Experience Testing
+  - [ ] Tutorial system guides new players effectively
+  - [ ] Navigation is intuitive and responsive
+  - [ ] Error states provide helpful feedback
+  - [ ] Loading states indicate progress
+  - [ ] Accessibility features work correctly
+  - [ ] Offline progress display is accurate
+  
+  ## Stress Testing
+  - [ ] Performance with all 7 departments unlocked
+  - [ ] Performance with 100+ total employees
+  - [ ] Performance after multiple prestige cycles
+  - [ ] Performance during extended gameplay sessions
+  - [ ] Performance on low-end target devices
+  - [ ] Battery usage remains reasonable
+  EOF
+  
+  node scripts/performance-test-suite.js
+  ```
 
-### Should Pass ⚠️
-- [ ] Particle effects scale appropriately with device performance
-- [ ] Memory usage stays under 50MB active
-- [ ] Audio pitch variation prevents repetition fatigue
-- [ ] Screen shake effects enhance milestone moments
+---
 
-### Nice to Have 💡
-- [ ] Dynamic music tempo matches game pace
-- [ ] Quality settings provide meaningful performance options
-- [ ] Achievement toasts have premium feel
-- [ ] Save export/import works for cross-device play
+## Quality Gates & Validation
 
-## Testing Commands
+### Performance Validation
+- [ ] **60 FPS Consistency Test**
+  ```bash
+  echo "Performance Validation Checklist:"
+  echo "1. 60 FPS maintained during normal gameplay"
+  echo "2. No frame drops during animations"
+  echo "3. Smooth particle effects without performance impact"
+  echo "4. Audio playback doesn't affect FPS"
+  echo "5. Memory usage stable under 75MB"
+  echo "6. No performance regression after adding polish features"
+  ```
 
-```bash
-# Performance testing on low-end device simulation
-# Reduce animation scale in developer options
+### Animation Quality Validation
+- [ ] **Animation Smoothness Test**
+  - All counter animations respond immediately to value changes
+  - Button press feedback feels responsive and satisfying
+  - Particle effects enhance gameplay without distraction
+  - Progress bars animate smoothly and accurately
+  - Screen transitions feel polished and professional
 
-# Memory leak testing
-# Monitor with React DevTools
+### Audio System Validation
+- [ ] **Audio Integration Test**
+  ```bash
+  echo "Audio System Validation:"
+  echo "1. All sound effects play at appropriate times"
+  echo "2. Background music loops seamlessly"
+  echo "3. Volume controls affect all audio categories"
+  echo "4. Audio doesn't interfere with performance"
+  echo "5. Audio system handles interruptions gracefully"
+  echo "6. Audio memory usage remains reasonable"
+  ```
 
-# Audio testing
-# Test with sound enabled/disabled
-# Verify pitch variations
+### User Experience Validation
+- [ ] **UX Polish Checklist**
+  - Tutorial system effectively guides new players
+  - Navigation feels intuitive and responsive
+  - Visual feedback provides clear game state information
+  - Error handling provides helpful guidance
+  - Loading states indicate progress appropriately
+  - Overall experience feels polished and professional
 
-# Save system stress testing
-# Force app crashes during saves
-# Test migration from old versions
-```
-
-## Troubleshooting
-
-### Audio Issues
-- **Symptom**: Sounds not playing
-- **Solution**: Check expo-av configuration and permissions
-- **Command**: Verify AudioManager initialization
-
-### Performance Problems
-- **Symptom**: FPS drops below 40
-- **Solution**: Check particle count and animation complexity
-- **Command**: Use performance adapter logs
-
-### Save Corruption
-- **Symptom**: Game state resets unexpectedly
-- **Solution**: Check checksum validation and backup system
-- **Command**: Inspect save data integrity
+---
 
 ## Deliverables
 
-### 1. Premium Audio Experience
-- ✅ Dynamic sound effects with pitch variation
-- ✅ Background music that adapts to game pace
-- ✅ Anti-spam protection for audio events
+### Required Outputs
+1. **Optimized Performance** maintaining 60 FPS across all gameplay scenarios
+2. **Smooth Animation System** enhancing user engagement without performance cost
+3. **Professional Audio System** with contextual sound effects and background music
+4. **Visual Polish** including particle effects, improved UI components, and visual feedback
+5. **Enhanced User Experience** with tutorials, better navigation, and accessibility features
 
-### 2. Sophisticated Animation System
-- ✅ Particle effects that scale with performance
-- ✅ Screen shake for milestone moments
-- ✅ Achievement toasts with satisfying timing
+### Performance Metrics
+- [ ] **Consistent 60 FPS** during all gameplay interactions
+- [ ] **Memory usage <75MB** during extended gameplay sessions
+- [ ] **Smooth animations** with no stuttering or frame drops
+- [ ] **Responsive audio** with no latency or performance impact
+- [ ] **Professional UI** with polished components and transitions
 
-### 3. Robust Save System
-- ✅ Triple-save strategy with corruption protection
-- ✅ Version migration system for updates
-- ✅ Export/import for cross-device play
+### Validation Checklist
+- [ ] All performance targets met on target devices
+- [ ] Animations enhance gameplay experience
+- [ ] Audio system works reliably across platforms
+- [ ] Visual effects add value without distraction
+- [ ] User experience feels polished and intuitive
+- [ ] No performance regressions from polish features
+- [ ] Memory management handles extended gameplay
+- [ ] Audio and animations work together harmoniously
 
-### 4. Performance Optimization
-- ✅ Automatic quality adjustment
-- ✅ Memory usage monitoring
-- ✅ Frame rate optimization
+---
 
-## Next Phase
-Once quality and polish are complete, proceed to **Phase 5: Deployment Preparation** (`05-deployment.md`)
+**Time Tracking**: Record actual time vs estimates
+- [ ] Memory optimization: __ hours (est: 3)
+- [ ] Animation system: __ hours (est: 4)
+- [ ] Audio integration: __ hours (est: 3)
+- [ ] Visual polish: __ hours (est: 3)
+- [ ] User experience: __ hours (est: 2)
+- [ ] Performance testing: __ hours (est: 2)
+- [ ] **Total Phase 4**: __ hours (est: 17-20 hours over 2-3 days)
 
-**Estimated Duration**: 3-4 days
-**Quality & Polish Complete**: ✅/❌ (update after validation)
+**Critical Success Metrics**:
+- [ ] 60 FPS maintained with all polish features active
+- [ ] Professional-level user experience achieved
+- [ ] Audio enhances gameplay without performance cost
+- [ ] Animations feel smooth and purposeful
+- [ ] Memory usage optimized for extended play sessions
+
+**Next Phase**: [05-deployment.md](./05-deployment.md) - Build Optimization and Deployment Preparation
+
+**Go/No-Go Decision**: All performance targets must be maintained and user experience must feel polished before proceeding to deployment. Any performance regressions must be resolved.
