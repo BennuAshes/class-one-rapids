@@ -1,450 +1,410 @@
-# PetSoft Tycoon: Advanced Product Requirements Document
-## Version 8.0 | Cross-Platform Idle Game
-
-### Executive Summary
-PetSoft Tycoon is a premium idle/incremental game where players build a software empire focused on pet business solutions. Starting from a garage with a single laptop, players grow their company through seven interconnected departments, ultimately reaching IPO status. The game emphasizes immediate engagement, satisfying progression loops, and exceptional polish over complex mechanics.
-
-### Product Vision
-**Mission:** Create the most polished and satisfying idle game experience that captures the fantasy of building a tech empire from scratch.
-
-**Target Audience:** 
-- Primary: Casual gamers who enjoy idle/incremental games (18-35)
-- Secondary: Business simulation enthusiasts
-- Tertiary: Mobile gamers seeking premium experiences
-
-**Success Criteria:**
-- 40%+ Day 1 retention
-- 8+ minute average session length
-- 90%+ tutorial-free onboarding success
-- 60 FPS on 5-year-old devices
+# PetSoft Tycoon: Product Requirements Document
+## Version 1.0 | Pet Business Software Idle Game
 
 ---
 
-## Core Features & User Stories
+## Executive Summary
 
-### Epic 1: Core Gameplay Loop
-**Goal:** Establish the fundamental click-to-automate progression within first 5 minutes
+### Product Overview
+PetSoft Tycoon is a web-based idle/incremental game where players build a pet business software company from a garage startup to a billion-dollar IPO. The game combines proven idle game mechanics with a compelling business growth narrative, targeting players who enjoy resource management and progression-based gameplay.
 
-#### Story 1.1: Immediate Engagement (Priority: P0)
+### Market Opportunity
+The idle game market generates over $3 billion annually, with successful titles like Cookie Clicker and Adventure Capitalist demonstrating sustained player engagement. Our pet business software theme differentiates us while appealing to entrepreneurs, pet lovers, and gamers seeking meaningful progression.
+
+### Success Criteria
+- **Engagement**: 40% D1 retention, 20% D7 retention, 8+ minute sessions
+- **Progression**: 60% reach first prestige, 10% achieve IPO
+- **Quality**: Tutorial-free onboarding with <1% bug reports
+- **Timeline**: 4-week MVP delivery (3 weeks development + 1 week polish)
+
+### Business Objectives
+1. Establish presence in idle game market with exceptional polish
+2. Build engaged player base for future monetization
+3. Validate pet business software theme for potential expansion
+4. Create technical foundation for cross-platform deployment
+
+---
+
+## User Stories & Acceptance Criteria
+
+### Epic 1: Core Game Loop
+*As a player, I want to experience immediate satisfaction and clear progression from the first click*
+
+#### Story 1.1: Immediate Code Production
 **As a** new player  
-**I want to** start playing immediately without tutorials  
-**So that** I feel instant gratification and control
+**I want to** start producing resources with my first click  
+**So that** I understand the game mechanics immediately  
 
 **Acceptance Criteria:**
-- Game loads to playable state in <3 seconds
-- First interactive element (Write Code button) is obvious and pulsing
-- Click produces immediate visual/audio feedback
-- Counter shows progress after first click
-- First automation option appears within 10 seconds
+- Given I load the game for the first time
+- When I click the "WRITE CODE" button
+- Then I receive +1 Line of Code with visual feedback
+- And the counter animates with typewriter sound
+- And after 5 clicks, "Hire Junior Dev $10" button appears
 
-#### Story 1.2: Code Production System (Priority: P0)
-**As a** player  
-**I want to** produce code through clicking and automation  
-**So that** I can progress and unlock new features
+**Definition of Done:**
+- Button responds in <50ms
+- Sound plays without audio conflicts
+- Animation completes smoothly
+- Next purchase option is clearly visible
 
-**Acceptance Criteria:**
-- Manual clicking produces 1 line of code per click
-- Junior Dev automation produces 0.1 lines/second
-- Visual feedback shows code being written (typewriter effect)
-- Code counter updates smoothly with no lag
-- Sound effects vary to prevent repetition
-
-#### Story 1.3: Feature Conversion Mechanic (Priority: P0)
-**As a** player  
-**I want to** convert code into features and money  
-**So that** I understand the business simulation aspect
+#### Story 1.2: First Automation
+**As a** player who hired their first developer  
+**I want to** see automated code production  
+**So that** I understand the automation benefit  
 
 **Acceptance Criteria:**
-- "Ship Feature" button appears after first hire
-- 10 lines of code = 1 Basic Feature = $15
-- Conversion happens instantly with visual feedback
-- Money counter appears with cash register sound
-- Clear visual connection between code → features → money
+- Given I have hired a Junior Dev
+- When the automation starts
+- Then I see 0.1 lines of code per second generated
+- And a dev sprite animation shows typing
+- And "Ship Feature" button appears
+- And I can convert 10 lines → $15
+
+**Definition of Done:**
+- Automation runs at consistent rate
+- Visual sprite animates continuously
+- Currency conversion works accurately
+- Money counter displays with sound
 
 ### Epic 2: Department Systems
-**Goal:** Create depth through seven interconnected departments
+*As a player, I want distinct departments that work together to create strategic depth*
 
-#### Story 2.1: Development Department (Priority: P0)
+#### Story 2.1: Development Department
 **As a** player  
-**I want to** build a development team  
-**So that** I can automate code production
+**I want to** manage a development team  
+**So that** I can produce features efficiently  
 
 **Acceptance Criteria:**
-- Four unit types: Junior Dev ($10), Mid Dev ($100), Senior Dev ($1,000), Tech Lead ($10,000)
-- Each unit has distinct production rate and visual representation
-- Cost scaling follows formula: Base * 1.15^owned
-- Bulk purchase options at 10, 25, 50, 100
-- Department efficiency bonus at milestones
+- Given I have unlocked Development department
+- When I hire developers (Junior, Mid, Senior, Tech Lead)
+- Then each produces code at specified rates
+- And I can upgrade with Better IDEs (+25/50/100% speed)
+- And Pair Programming gives +2x efficiency at 25 devs
+- And Code Reviews reduce bugs at 50 devs
 
-#### Story 2.2: Sales Department (Priority: P0)
-**As a** player  
-**I want to** generate and convert leads  
-**So that** I can multiply my revenue
+**Definition of Done:**
+- All unit types function with correct rates
+- Upgrades apply multipliers accurately
+- Department synergies work as designed
+- Visual feedback shows department activity
 
-**Acceptance Criteria:**
-- Unlocks at $500 total earned
-- Sales reps generate leads automatically
-- Leads + Features = Higher revenue than raw features
-- Visual feedback shows sales calls/emails
-- Department synergy with Development visible
-
-#### Story 2.3: Customer Experience Department (Priority: P1)
-**As a** player  
-**I want to** improve customer retention  
-**So that** I can multiply revenue through satisfaction
+#### Story 2.2: Sales Department Integration
+**As a** player with features to sell  
+**I want to** convert features into higher revenue  
+**So that** I can grow my business faster  
 
 **Acceptance Criteria:**
-- Unlocks at $10,000 total earned
-- Support tickets resolved increase retention multiplier
-- Retention affects all future sales (1.1x → 3x)
-- Happy customers generate referral leads
-- Visual feedback shows customer satisfaction levels
+- Given I have features and sales team
+- When sales reps generate leads (0.2-20 leads/sec by type)
+- Then I can combine 1 Lead + Features for revenue
+- And Basic Feature + Lead = $50
+- And Advanced Feature + Lead = $500
+- And Premium Feature + Lead = $5,000
 
-#### Story 2.4: Product Department (Priority: P1)
-**As a** player  
-**I want to** enhance feature value through research  
-**So that** I can create premium products
+**Definition of Done:**
+- Lead generation rates are accurate
+- Feature conversion ratios work correctly
+- Revenue scaling follows design specification
+- Department bonuses apply properly
 
-**Acceptance Criteria:**
-- Unlocks at $50,000 total earned
-- Insights combine with features for 2x value
-- Product roadmap provides global bonuses
-- User research unlocks new feature types
-- Visual representation of product evolution
+### Epic 3: Progression System
+*As a player, I want meaningful progression that motivates continued play*
 
-#### Story 2.5: Design Department (Priority: P1)
-**As a** player  
-**I want to** add polish to increase value  
-**So that** everything becomes more effective
-
-**Acceptance Criteria:**
-- Unlocks at $100,000 total earned
-- Polish points increase feature value
-- Experience points boost conversion rates
-- Design system unlock at 50 designers (2x production)
-- Visual office becomes more beautiful with design investment
-
-#### Story 2.6: QA Department (Priority: P2)
-**As a** player  
-**I want to** prevent bugs and save costs  
-**So that** I can maintain quality and efficiency
-
-**Acceptance Criteria:**
-- Unlocks at $250,000 total earned
-- Each bug caught saves 10x its cost
-- Bug prevention reduces support tickets
-- Quality affects customer retention
-- Visual feedback shows bugs being caught
-
-#### Story 2.7: Marketing Department (Priority: P2)
-**As a** player  
-**I want to** amplify all growth metrics  
-**So that** I can achieve exponential growth
-
-**Acceptance Criteria:**
-- Unlocks at $1,000,000 total earned
-- Brand points multiply lead generation
-- Campaigns create temporary 10x boosts
-- Viral mechanics enable exponential growth
-- Visual feedback shows marketing campaigns
-
-### Epic 3: Progression & Prestige Systems
-**Goal:** Create long-term engagement through meta-progression
-
-#### Story 3.1: Manager Automation (Priority: P0)
-**As a** player  
-**I want to** automate department purchases  
-**So that** I can focus on strategy over clicking
-
-**Acceptance Criteria:**
-- Managers unlock at $50,000 total earned
-- Each department can have one manager
-- Managers auto-purchase most efficient units
-- Managers auto-convert resources optimally
-- Visual indicator shows manager activity
-
-#### Story 3.2: Investor Rounds (Prestige) (Priority: P0)
-**As a** player  
+#### Story 3.1: Prestige System (Investor Rounds)
+**As a** player who has grown significantly  
 **I want to** reset for permanent bonuses  
-**So that** I can progress faster each cycle
+**So that** I can progress faster in subsequent runs  
 
 **Acceptance Criteria:**
-- First prestige available at $10M valuation
-- Investor Points (IP) based on valuation at reset
-- IP provides permanent multipliers:
-  - +10% starting capital per IP
-  - +1% global speed per IP
-  - +2% department synergy per 10 IP
-- Clear UI showing prestige benefits
+- Given I have reached $10M valuation
+- When I choose to take investor funding
+- Then I reset progress but keep Investor Points (1 IP per $1M)
+- And IP provides: Starting Capital +10% per IP
+- And Global Speed +1% per IP
+- And Department Synergy +2% per 10 IP
+
+**Definition of Done:**
+- Reset mechanics preserve only intended bonuses
+- IP calculations are mathematically correct
+- UI clearly shows prestige benefits
 - Confirmation dialog prevents accidental resets
 
-#### Story 3.3: Achievement System (Priority: P1)
-**As a** player  
-**I want to** unlock achievements  
-**So that** I have additional goals and rewards
+#### Story 3.2: Achievement System
+**As a** player making progress  
+**I want to** receive recognition for milestones  
+**So that** I feel rewarded for my accomplishments  
 
 **Acceptance Criteria:**
-- 50 achievements at launch
-- Categories: Speed, Volume, Efficiency, Discovery
-- Each achievement provides small permanent bonus
-- Visual notification on unlock
-- Achievement gallery shows progress
+- Given I complete specific actions
+- When I reach achievement thresholds
+- Then I receive achievement notification
+- And achievements track in persistent collection
+- And special achievements provide gameplay bonuses
 
-#### Story 3.4: Statistics Tracking (Priority: P1)
-**As a** player  
-**I want to** see detailed statistics  
-**So that** I can optimize my strategy
+**Definition of Done:**
+- 50 achievements implemented and tested
+- Notifications display appropriately
+- Achievement progress persists across sessions
+- Bonus effects apply correctly
 
-**Acceptance Criteria:**
-- Lifetime stats persist through prestige
-- Current run stats show session progress
-- Department efficiency breakdowns
-- Revenue source analysis
-- Time-based progression charts
+### Epic 4: User Experience & Polish
+*As a player, I want smooth, responsive gameplay with excellent feedback*
 
-### Epic 4: Polish & Game Feel
-**Goal:** Create exceptional moment-to-moment satisfaction
-
-#### Story 4.1: Visual Feedback System (Priority: P0)
-**As a** player  
-**I want to** see immediate visual responses  
-**So that** every action feels impactful
+#### Story 4.1: Audio-Visual Feedback
+**As a** player interacting with the game  
+**I want to** receive satisfying feedback for actions  
+**So that** the game feels responsive and engaging  
 
 **Acceptance Criteria:**
-- Number popups scale with value (+1 → +1M)
-- Screen shake on major milestones
-- Particle effects on achievements
-- Color progression indicates value tiers
-- All animations run at 60 FPS
+- Given I perform any game action
+- When numbers change or milestones occur
+- Then appropriate visual effects display
+- And audio feedback plays without conflicts
+- And animations complete smoothly at 60fps
 
-#### Story 4.2: Audio Design (Priority: P0)
-**As a** player  
-**I want to** hear satisfying sound effects  
-**So that** the game feels responsive and rewarding
+**Definition of Done:**
+- All interactions have visual feedback
+- Audio mixing prevents overlapping conflicts
+- Animations run smoothly on target devices
+- Particle effects enhance without overwhelming
 
-**Acceptance Criteria:**
-- Unique sounds for each action type
-- Pitch variation prevents repetition
-- Volume scales inversely with frequency
-- Milestone sounds override normal sounds
-- Music adapts to game pace
-- Master volume and mute options
-
-#### Story 4.3: Office Evolution (Priority: P1)
-**As a** player  
-**I want to** see my office grow  
-**So that** I feel progression visually
+#### Story 4.2: Responsive Performance
+**As a** player on various devices  
+**I want to** consistent 60fps performance  
+**So that** the game runs smoothly everywhere  
 
 **Acceptance Criteria:**
-- Garage → Small Office at $10K
-- Small → Medium Office at $1M
-- Medium → Campus at $100M
-- Campus → Tech Giant HQ at $1B
-- Smooth transitions between stages
-- Department areas visually expand
+- Given I run the game on Intel HD Graphics 4000
+- When the game loop executes
+- Then frame rate maintains 60fps consistently
+- And memory usage stays below 50MB
+- And initial download is under 3MB
 
-#### Story 4.4: UI Polish (Priority: P1)
-**As a** player  
-**I want to** interact with smooth, responsive UI  
-**So that** the game feels premium
+**Definition of Done:**
+- Performance testing passes on minimum spec
+- Memory profiling shows no leaks
+- Bundle size optimization complete
+- Cross-browser compatibility verified
 
-**Acceptance Criteria:**
-- All buttons respond in <50ms
-- Hover states on all interactive elements
-- Smooth panel transitions (ease-out-back)
-- Progress bars fill smoothly
-- Next unlock always visible
-- No UI element blocks important information
+### Epic 5: Data Persistence
+*As a player, I want my progress saved and accessible across sessions*
 
-### Epic 5: Persistence & Performance
-**Goal:** Ensure smooth, reliable gameplay experience
-
-#### Story 5.1: Save System (Priority: P0)
-**As a** player  
-**I want to** have my progress saved  
-**So that** I can return anytime
+#### Story 5.1: Save System
+**As a** player making progress  
+**I want to** have my game state saved automatically  
+**So that** I don't lose progress between sessions  
 
 **Acceptance Criteria:**
-- Auto-save every 30 seconds
-- Manual save button available
-- Save indicator shows last save time
-- LocalStorage with compression
-- Export/Import save feature
-- Cloud save ready (future feature)
+- Given I am playing the game
+- When 30 seconds pass or significant events occur
+- Then game state saves to localStorage
+- And I can reload and continue from saved state
+- And save data includes all department progress
 
-#### Story 5.2: Offline Progression (Priority: P0)
-**As a** player  
-**I want to** progress while away  
-**So that** I'm rewarded for returning
+**Definition of Done:**
+- Auto-save triggers every 30 seconds
+- Manual save option available
+- Save/load preserves complete game state
+- Error handling for corrupted saves
 
-**Acceptance Criteria:**
-- Calculate offline earnings on return
-- 12-hour cap on offline progression
-- Show offline earnings summary
-- Reduced efficiency offline (70%)
-- Option to watch ad for 100% offline (future)
-
-#### Story 5.3: Performance Optimization (Priority: P0)
-**As a** player  
-**I want to** smooth gameplay on any device  
-**So that** I can play anywhere
+#### Story 5.2: Offline Progress
+**As a** player returning after time away  
+**I want to** see progress made while offline  
+**So that** the game rewards me for returning  
 
 **Acceptance Criteria:**
-- 60 FPS on Intel HD Graphics 4000
-- <3MB initial download
-- <50MB RAM usage
-- Instant response to all inputs
-- Performance settings (low/medium/high)
-- Auto-adjust quality based on framerate
+- Given I was away for less than 12 hours
+- When I return to the game
+- Then offline progress calculates based on last known rates
+- And I receive summary of offline gains
+- And progress caps at 12-hour maximum
 
-#### Story 5.4: Cross-Platform Support (Priority: P1)
-**As a** player  
-**I want to** play on any modern browser  
-**So that** I have flexibility
-
-**Acceptance Criteria:**
-- Chrome 90+ full support
-- Firefox 88+ full support
-- Safari 14+ full support
-- Edge 90+ full support
-- Mobile responsive (tablet+)
-- Touch controls for mobile
+**Definition of Done:**
+- Offline calculation accuracy verified
+- Progress summary UI implemented
+- 12-hour cap enforced correctly
+- Edge cases (tab switching) handled
 
 ---
 
 ## Technical Requirements
 
-### Architecture Specifications
-- **Framework:** React Native with Expo (cross-platform)
-- **State Management:** Legend State (@beta) for reactive performance
-- **Animation:** React Native Reanimated for 60 FPS
-- **Audio:** Expo AV for sound management
-- **Storage:** Async Storage for saves
-- **Architecture Pattern:** Vertical slicing with feature-based organization
+### Platform & Performance
+- **Web Browsers**: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
+- **Performance**: 60 FPS on Intel HD Graphics 4000, <50MB RAM
+- **Download Size**: <3MB initial bundle
+- **Response Time**: <50ms for all user interactions
 
-### Performance Requirements
-- Initial load time: <3 seconds
-- Frame rate: 60 FPS minimum
-- Memory usage: <50MB active
-- Battery usage: <5% per hour (mobile)
-- Network: Offline-first, optional cloud sync
+### Architecture & Technology
+- **Framework**: Vanilla JavaScript (no frameworks for performance)
+- **Rendering**: Canvas API for particles, DOM for UI
+- **Audio**: Web Audio API with fallback support
+- **Storage**: LocalStorage for save data
+- **Game Loop**: RequestAnimationFrame for smooth updates
 
-### Security Requirements
-- No sensitive data collection
-- COPPA compliant
-- Optional analytics (opt-in)
-- Secure save encryption
-- No third-party trackers in MVP
+### Integration Requirements
+- **Save System**: JSON-based state serialization
+- **Audio**: Background music + SFX with volume controls
+- **Analytics**: Event tracking for user behavior analysis
+- **Testing**: Unit tests for core game mechanics
+
+### Security & Privacy
+- **Data**: All data stored locally, no server communication
+- **Privacy**: No personal data collection in MVP
+- **Security**: Input validation for save data integrity
 
 ---
 
-## Success Metrics
+## Success Metrics & KPIs
 
 ### Engagement Metrics
-- **D1 Retention:** >40%
-- **D7 Retention:** >20%
-- **D30 Retention:** >10%
-- **Session Length:** 8+ minutes average
-- **Sessions/Day:** 5+ average
+| Metric | Target | Measurement Method |
+|--------|--------|-------------------|
+| D1 Retention | >40% | Players returning day 1 |
+| D7 Retention | >20% | Players returning week 1 |
+| D30 Retention | >10% | Players returning month 1 |
+| Session Length | 8+ minutes | Average time per session |
+| Sessions/Day | 5+ | Daily active user sessions |
 
 ### Progression Metrics
-- **Tutorial Completion:** >90% (no tutorial needed)
-- **First Prestige:** >60% of D7 players
-- **Second Prestige:** >40% of D14 players
-- **IPO Achievement:** >10% of D30 players
+| Milestone | Target | Business Impact |
+|-----------|--------|----------------|
+| Tutorial Completion | >90% | Core loop understanding |
+| First Department Unlock | >80% | Depth comprehension |
+| First Prestige | >60% | Long-term engagement |
+| Second Prestige | >40% | Mastery and optimization |
+| IPO Achievement | >10% | Complete experience |
 
 ### Quality Metrics
-- **Crash Rate:** <0.1%
-- **Load Success:** >99.9%
-- **Save Corruption:** <0.01%
-- **User Rating:** >4.5 stars
+| Metric | Target | Success Indicator |
+|--------|--------|------------------|
+| Tutorial-Free Onboarding | 100% | Intuitive design |
+| Audio Enabled | >70% | Audio design quality |
+| Bug Reports | <1% | Technical stability |
+| Recommendation Rate | >30% | Overall satisfaction |
+
+### Technical Performance
+| Metric | Target | Validation Method |
+|--------|--------|------------------|
+| Frame Rate | 60 FPS | Automated testing |
+| Load Time | <3 seconds | Network throttling |
+| Memory Usage | <50MB | Profiler monitoring |
+| Crash Rate | <0.1% | Error tracking |
 
 ---
 
 ## Development Timeline
 
-### Week 1: Core Systems
-- Basic game loop
-- Development & Sales departments
-- Save/Load system
-- Basic UI framework
+### Phase 1: Core Systems (Week 1)
+**Goal**: Establish fundamental game loop and department mechanics
 
-### Week 2: Expansion
-- All seven departments
-- Prestige system
-- Achievement system
-- Statistics tracking
+**Deliverables:**
+- Seven departments with unique mechanics implemented
+- Basic automation system (managers)
+- Save/load functionality with localStorage
+- Core audio and visual feedback systems
+- Offline progression with 12-hour cap
 
-### Week 3: Polish
-- All animations
-- Sound effects & music
-- Office evolution
-- Performance optimization
+**Success Criteria:**
+- All departments produce resources at specified rates
+- Automation works reliably
+- Save system preserves complete game state
+- Basic feedback enhances player actions
 
-### Week 4: Launch Preparation
-- Cross-platform testing
-- Performance tuning
-- Bug fixes
-- Analytics integration
+### Phase 2: Progression Systems (Week 2)  
+**Goal**: Implement long-term engagement and balance
+
+**Deliverables:**
+- Mathematical balance for cost/production curves
+- Prestige system (Investor Rounds) with permanent bonuses
+- Achievement system with 50+ achievements
+- Statistics tracking and display
+- Reset confirmation systems
+
+**Success Criteria:**
+- Progression feels rewarding at all stages
+- Prestige system provides meaningful choices
+- Achievements guide and reward player behavior
+- Mathematical balance tested and validated
+
+### Phase 3: Polish & Optimization (Week 3)
+**Goal**: Achieve exceptional game feel and performance
+
+**Deliverables:**
+- All animations smooth and responsive
+- Audio mixing and dynamic music system
+- Tutorial-free onboarding experience
+- Performance optimization for target devices
+- Cross-browser testing and compatibility
+
+**Success Criteria:**
+- 60 FPS performance on minimum spec hardware
+- All interactions feel responsive and satisfying
+- New players can start playing without instruction
+- Game runs consistently across browsers
+
+### Phase 4: Final Polish & Launch Prep (Week 4)
+**Goal**: Perfect the player experience and prepare for release
+
+**Deliverables:**
+- Final balancing adjustments based on playtesting
+- Bug fixes and edge case handling
+- Analytics integration for success tracking
+- Launch preparation and deployment setup
+
+**Success Criteria:**
+- All success metrics achievable through testing
+- No critical bugs or performance issues
+- Analytics tracking validates KPI measurement
+- Game ready for public release
 
 ---
 
-## Risk Assessment
+## Risk Assessment & Mitigation
 
 ### Technical Risks
-- **Performance on older devices:** Mitigate with quality settings
-- **Save corruption:** Implement backup saves and validation
-- **Browser compatibility:** Progressive enhancement approach
+| Risk | Probability | Impact | Mitigation Strategy |
+|------|-------------|--------|-------------------|
+| Performance on low-end devices | Medium | High | Early performance testing, optimization sprints |
+| Save data corruption | Low | High | Robust error handling, backup saves |
+| Browser compatibility issues | Medium | Medium | Comprehensive testing matrix |
+| Audio implementation problems | Low | Medium | Fallback systems, graceful degradation |
 
 ### Design Risks
-- **Balance issues:** Extensive playtesting and telemetry
-- **Tutorial-free confusion:** Iterate on first-time user experience
-- **Prestige timing:** A/B test different thresholds
+| Risk | Probability | Impact | Mitigation Strategy |
+|------|-------------|--------|-------------------|
+| Balancing issues | High | High | Extensive playtesting, mathematical modeling |
+| Tutorial-free onboarding fails | Medium | High | User testing, iterative refinement |
+| Player engagement drops | Medium | High | Metrics monitoring, rapid iteration |
+| Department complexity overwhelms | Low | Medium | Progressive disclosure, clear feedback |
 
 ### Business Risks
-- **Low retention:** Focus on first 5 minutes polish
-- **No monetization in MVP:** Plan for quick follow-up update
-- **Competition:** Differentiate through polish and theme
+| Risk | Probability | Impact | Mitigation Strategy |
+|------|-------------|--------|-------------------|
+| Market competition | High | Medium | Focus on exceptional polish and feel |
+| Player acquisition challenges | Medium | High | Strong viral mechanics, word-of-mouth focus |
+| Monetization unclear | Low | Low | MVP focuses on engagement first |
 
 ---
 
-## Appendices
+## Appendix: INVEST Validation
 
-### A. Detailed Cost Formulas
-```
-Unit Cost = Base * 1.15^owned
-Feature Value = Base * (1 + Bonuses) * Prestige_Multiplier
-Department Synergy = (Dept1_Units * Dept2_Units)^0.5 * 0.01
-```
+All user stories follow INVEST principles:
 
-### B. Complete Achievement List
-[50 achievements with requirements and rewards - detailed separately]
-
-### C. Localization Requirements
-- English only for MVP
-- Text extraction system for future localization
-- Number formatting per locale
-- RTL support consideration
-
-### D. Analytics Events
-- Session start/end
-- Department unlocks
-- Prestige activations
-- Achievement unlocks
-- Purchase patterns
+**Independent**: Each story can be developed and tested separately
+**Negotiable**: Stories include acceptance criteria but allow implementation flexibility  
+**Valuable**: Each story delivers specific player value or business benefit
+**Estimable**: Stories are specific enough for accurate time estimation
+**Small**: Stories represent 1-3 days of development work maximum
+**Testable**: Clear acceptance criteria enable verification of completion
 
 ---
 
-## Approval
+## Conclusion
 
-**Product Owner:** ___________________ Date: ___________
+PetSoft Tycoon represents a strategic entry into the idle game market, focusing on exceptional execution of proven mechanics rather than risky innovation. The 4-week development timeline balances ambitious scope with achievable deliverables, while the comprehensive success metrics ensure we can measure and optimize player engagement.
 
-**Tech Lead:** ___________________ Date: ___________
+The pet business software theme provides narrative coherence without limiting mechanical creativity, and the progressive department system offers depth that can sustain long-term player engagement. With careful attention to the first 5 minutes of gameplay and tutorial-free onboarding, PetSoft Tycoon will demonstrate that excellence in execution can differentiate even in a crowded market.
 
-**Design Lead:** ___________________ Date: ___________
-
-**QA Lead:** ___________________ Date: ___________
-
----
-
-*This PRD represents the complete requirements for PetSoft Tycoon MVP. Any changes must go through the change control process.*
+Success depends on achieving the specified retention rates and progression metrics while maintaining technical performance standards. The weekly milestone structure allows for course correction while ensuring we deliver a polished, engaging experience that players will recommend to others.

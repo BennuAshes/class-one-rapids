@@ -1,326 +1,548 @@
 {
-  "runbook_version": "8.0.0",
-  "last_updated": "2025-08-09",
-  "overall_progress": {
-    "total_phases": 6,
-    "completed_phases": 0,
-    "current_phase": "00-analysis",
-    "estimated_completion": "2025-08-20"
+  "project": {
+    "name": "PetSoft Tycoon",
+    "version": "1.0.0",
+    "description": "Mobile-first React Native idle game with Legend State v3",
+    "startDate": "2025-01-XX",
+    "targetCompletionDate": "2025-XX-XX",
+    "estimatedDuration": "14-21 days"
   },
   "phases": {
-    "00-analysis": {
-      "title": "Requirements Analysis & Tech Stack Validation",
+    "analysis": {
+      "id": "00-analysis",
+      "name": "Analysis & Planning",
       "status": "pending",
-      "progress_percentage": 0,
-      "estimated_duration_days": 1,
-      "start_date": null,
-      "completion_date": null,
+      "progress": 0,
+      "estimatedHours": 16,
+      "actualHours": 0,
+      "startDate": null,
+      "completionDate": null,
+      "blockers": [],
       "tasks": {
-        "tech_stack_verification": {
+        "technical_analysis": {
+          "description": "Review technical requirements and architecture synthesis",
           "status": "pending",
-          "subtasks": [
-            "expo_sdk_52_availability_check",
-            "legend_state_beta_compatibility",
-            "react_native_076_new_architecture"
-          ]
+          "estimatedHours": 2,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "critical"
         },
-        "development_environment_assessment": {
+        "performance_baseline": {
+          "description": "Establish mobile performance baselines and targets",
           "status": "pending",
-          "subtasks": [
-            "nodejs_version_check",
-            "platform_development_tools",
-            "vscode_extensions"
-          ]
-        },
-        "architecture_validation": {
-          "status": "pending",
-          "subtasks": [
-            "performance_requirements_analysis",
-            "cross_platform_compatibility_matrix"
-          ]
+          "estimatedHours": 3,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "high"
         },
         "risk_assessment": {
+          "description": "Document potential issues and mitigation strategies",
           "status": "pending",
-          "subtasks": [
-            "legend_state_beta_stability",
-            "save_corruption_prevention",
-            "performance_on_low_end_devices"
-          ]
+          "estimatedHours": 4,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "high"
+        },
+        "task_breakdown": {
+          "description": "Create detailed implementation plan for all phases",
+          "status": "pending",
+          "estimatedHours": 4,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "critical"
+        },
+        "team_readiness": {
+          "description": "Assess team knowledge and plan training sessions",
+          "status": "pending",
+          "estimatedHours": 3,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "medium"
         }
       },
-      "deliverables": [
-        "environment_setup_script",
-        "risk_mitigation_plan",
-        "architecture_decision_record"
-      ],
-      "blockers": [],
-      "notes": []
+      "qualityGates": [
+        "All technical requirements understood and feasible",
+        "Performance targets validated on representative hardware",
+        "High-risk areas identified with mitigation plans",
+        "Team training needs assessed and planned",
+        "Detailed implementation plan created and reviewed"
+      ]
     },
-    "01-foundation": {
-      "title": "Foundation Setup",
+    "foundation": {
+      "id": "01-foundation",
+      "name": "Project Setup",
       "status": "pending",
-      "progress_percentage": 0,
-      "estimated_duration_days": 3,
-      "start_date": null,
-      "completion_date": null,
+      "progress": 0,
+      "estimatedHours": 24,
+      "actualHours": 0,
+      "startDate": null,
+      "completionDate": null,
+      "blockers": [],
+      "dependencies": ["analysis"],
       "tasks": {
-        "project_initialization": {
+        "expo_project_init": {
+          "description": "Create Expo project with TypeScript and dependencies",
           "status": "pending",
-          "subtasks": [
-            "create_expo_project",
-            "verify_expo_sdk_version"
-          ]
+          "estimatedHours": 4,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "critical"
         },
-        "core_dependencies_installation": {
+        "legend_state_integration": {
+          "description": "Set up Legend State v3 with MMKV persistence",
           "status": "pending",
-          "subtasks": [
-            "install_legend_state_beta",
-            "install_animation_ui_dependencies",
-            "install_storage_security"
-          ]
+          "estimatedHours": 6,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "critical"
         },
-        "critical_configuration_setup": {
+        "hybrid_routing": {
+          "description": "Implement hybrid routing structure with delegation pattern",
           "status": "pending",
-          "subtasks": [
-            "metro_configuration_legend_state",
-            "babel_configuration_reanimated",
-            "typescript_strict_configuration"
-          ]
+          "estimatedHours": 5,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "critical"
         },
-        "directory_structure_implementation": {
+        "performance_monitoring": {
+          "description": "Create performance monitoring baseline",
           "status": "pending",
-          "subtasks": [
-            "create_vertical_slice_architecture",
-            "validate_directory_structure"
-          ]
+          "estimatedHours": 4,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "high"
+        },
+        "testing_framework": {
+          "description": "Setup testing framework with Legend State integration",
+          "status": "pending",
+          "estimatedHours": 3,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "medium"
+        },
+        "build_validation": {
+          "description": "Test builds on iOS and Android platforms",
+          "status": "pending",
+          "estimatedHours": 2,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "high"
         }
       },
-      "deliverables": [
-        "working_expo_project",
-        "architecture_foundation",
-        "development_environment"
-      ],
-      "blockers": [],
-      "notes": []
+      "qualityGates": [
+        "Project builds successfully on all target platforms",
+        "Legend State integration functional with persistence",
+        "Hybrid routing pattern implemented correctly",
+        "60 FPS baseline achieved on target device",
+        "No critical console errors or warnings"
+      ]
     },
-    "02-core-features": {
-      "title": "Core Game Features",
+    "core_features": {
+      "id": "02-core-features",
+      "name": "Core Game Loop",
       "status": "pending",
-      "progress_percentage": 0,
-      "estimated_duration_days": 4,
-      "start_date": null,
-      "completion_date": null,
+      "progress": 0,
+      "estimatedHours": 32,
+      "actualHours": 0,
+      "startDate": null,
+      "completionDate": null,
+      "blockers": [],
+      "dependencies": ["foundation"],
       "tasks": {
-        "core_game_loop_implementation": {
+        "game_loop": {
+          "description": "Implement fixed timestep game loop with consistent updates",
           "status": "pending",
-          "subtasks": [
-            "create_game_engine_service",
-            "create_game_loop_hook"
-          ]
+          "estimatedHours": 6,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "critical"
         },
-        "click_mechanics_progression": {
+        "manual_gameplay": {
+          "description": "Create manual clicking mechanics and basic progression",
           "status": "pending",
-          "subtasks": [
-            "implement_click_handler",
-            "create_main_click_button_component"
-          ]
+          "estimatedHours": 5,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "critical"
         },
-        "resource_management_ui": {
+        "save_load_system": {
+          "description": "Build robust persistence with corruption recovery",
           "status": "pending",
-          "subtasks": [
-            "create_resource_counter_component",
-            "create_resource_bar_component"
-          ]
+          "estimatedHours": 6,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "critical"
         },
-        "basic_achievement_system": {
+        "bignumber_integration": {
+          "description": "Add BigNumber.js for large value handling",
           "status": "pending",
-          "subtasks": [
-            "create_achievement_state",
-            "create_achievement_checker_service"
-          ]
+          "estimatedHours": 3,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "high"
+        },
+        "ui_components": {
+          "description": "Create enhanced UI components with animations",
+          "status": "pending",
+          "estimatedHours": 6,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "high"
+        },
+        "dashboard_enhancement": {
+          "description": "Update dashboard with core feature integration",
+          "status": "pending",
+          "estimatedHours": 4,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "medium"
+        },
+        "testing": {
+          "description": "Create comprehensive tests for core features",
+          "status": "pending",
+          "estimatedHours": 2,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "medium"
         }
       },
-      "deliverables": [
-        "functional_game_core",
-        "ui_components",
-        "achievement_system"
-      ],
-      "blockers": [],
-      "notes": []
+      "qualityGates": [
+        "Core game loop maintains consistent 60 FPS",
+        "Manual actions provide immediate feedback",
+        "Save/load preserves all game state correctly",
+        "Currency system works with large numbers",
+        "Memory usage remains stable during extended play"
+      ]
     },
-    "03-integration": {
-      "title": "Department Systems & Integration",
+    "integration": {
+      "id": "03-integration",
+      "name": "Department Systems",
       "status": "pending",
-      "progress_percentage": 0,
-      "estimated_duration_days": 5,
-      "start_date": null,
-      "completion_date": null,
+      "progress": 0,
+      "estimatedHours": 28,
+      "actualHours": 0,
+      "startDate": null,
+      "completionDate": null,
+      "blockers": [],
+      "dependencies": ["core_features"],
       "tasks": {
-        "complete_department_state_management": {
+        "department_architecture": {
+          "description": "Create department base classes and type system",
           "status": "pending",
-          "subtasks": [
-            "expand_department_state_schema"
-          ]
+          "estimatedHours": 4,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "critical"
         },
-        "department_unlock_system": {
+        "department_store": {
+          "description": "Implement all 7 departments with Legend State",
           "status": "pending",
-          "subtasks": [
-            "create_department_unlock_logic"
-          ]
+          "estimatedHours": 6,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "critical"
         },
-        "employee_management_components": {
+        "department_ui": {
+          "description": "Create department management interface",
           "status": "pending",
-          "subtasks": [
-            "create_employee_card_component",
-            "create_department_panel_component"
-          ]
+          "estimatedHours": 7,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "high"
         },
-        "manager_automation_system": {
+        "department_cards": {
+          "description": "Build individual department card components",
           "status": "pending",
-          "subtasks": [
-            "create_manager_card_component"
-          ]
+          "estimatedHours": 4,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "high"
         },
-        "prestige_system_implementation": {
+        "prestige_system": {
+          "description": "Implement prestige mechanics with investor points",
           "status": "pending",
-          "subtasks": [
-            "create_prestige_state_management",
-            "create_prestige_calculator_service"
-          ]
+          "estimatedHours": 5,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "high"
+        },
+        "achievement_system": {
+          "description": "Create achievement tracking and rewards",
+          "status": "pending",
+          "estimatedHours": 2,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "medium"
         }
       },
-      "deliverables": [
-        "complete_department_system",
-        "prestige_system",
-        "integrated_game_experience"
-      ],
-      "blockers": [],
-      "notes": []
+      "qualityGates": [
+        "All 7 departments unlock and function correctly",
+        "Employee hiring works across all departments",
+        "Prestige system provides compelling reset mechanics",
+        "Achievement system tracks and rewards appropriately",
+        "60 FPS maintained with full system complexity"
+      ]
     },
-    "04-quality": {
-      "title": "Quality & Polish",
+    "quality": {
+      "id": "04-quality",
+      "name": "Polish & Performance",
       "status": "pending",
-      "progress_percentage": 0,
-      "estimated_duration_days": 4,
-      "start_date": null,
-      "completion_date": null,
+      "progress": 0,
+      "estimatedHours": 20,
+      "actualHours": 0,
+      "startDate": null,
+      "completionDate": null,
+      "blockers": [],
+      "dependencies": ["integration"],
       "tasks": {
-        "audio_system_implementation": {
+        "memory_optimization": {
+          "description": "Optimize memory management and performance",
           "status": "pending",
-          "subtasks": [
-            "install_configure_audio_dependencies",
-            "create_audio_manager_service",
-            "create_audio_hook_components"
-          ]
+          "estimatedHours": 4,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "critical"
         },
-        "advanced_animation_system": {
+        "animation_system": {
+          "description": "Implement smooth animations with Reanimated 3",
           "status": "pending",
-          "subtasks": [
-            "create_animation_configuration",
-            "create_particle_effect_component",
-            "create_screen_shake_effect"
-          ]
+          "estimatedHours": 5,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "high"
         },
-        "performance_optimization_system": {
+        "audio_integration": {
+          "description": "Add comprehensive audio system with Expo AV",
           "status": "pending",
-          "subtasks": [
-            "create_performance_adapter",
-            "create_quality_settings_component"
-          ]
+          "estimatedHours": 4,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "medium"
         },
-        "robust_save_load_system": {
+        "visual_polish": {
+          "description": "Create particle effects and enhanced UI components",
           "status": "pending",
-          "subtasks": [
-            "create_advanced_save_manager"
-          ]
+          "estimatedHours": 4,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "medium"
         },
-        "achievement_toast_system": {
+        "user_experience": {
+          "description": "Implement tutorials and accessibility features",
           "status": "pending",
-          "subtasks": [
-            "create_achievement_toast_component"
-          ]
+          "estimatedHours": 3,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "low"
         }
       },
-      "deliverables": [
-        "premium_audio_experience",
-        "sophisticated_animation_system",
-        "robust_save_system",
-        "performance_optimization"
-      ],
-      "blockers": [],
-      "notes": []
+      "qualityGates": [
+        "60 FPS maintained with all polish features active",
+        "Professional-level user experience achieved",
+        "Audio enhances gameplay without performance cost",
+        "Animations feel smooth and purposeful",
+        "Memory usage optimized for extended play sessions"
+      ]
     },
-    "05-deployment": {
-      "title": "Deployment Preparation",
+    "deployment": {
+      "id": "05-deployment",
+      "name": "Build & Launch",
       "status": "pending",
-      "progress_percentage": 0,
-      "estimated_duration_days": 3,
-      "start_date": null,
-      "completion_date": null,
+      "progress": 0,
+      "estimatedHours": 12,
+      "actualHours": 0,
+      "startDate": null,
+      "completionDate": null,
+      "blockers": [],
+      "dependencies": ["quality"],
       "tasks": {
-        "production_build_configuration": {
+        "build_optimization": {
+          "description": "Configure production builds for optimal performance",
           "status": "pending",
-          "subtasks": [
-            "configure_eas_build",
-            "create_eas_build_configuration",
-            "configure_app_configuration"
-          ]
+          "estimatedHours": 2,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "critical"
         },
-        "asset_optimization_preparation": {
+        "eas_configuration": {
+          "description": "Set up EAS Build for cloud builds",
           "status": "pending",
-          "subtasks": [
-            "create_app_icons_all_sizes",
-            "create_splash_screen_assets",
-            "optimize_audio_assets"
-          ]
+          "estimatedHours": 2,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "critical"
         },
-        "platform_specific_optimizations": {
+        "analytics_setup": {
+          "description": "Implement crash reporting and analytics",
           "status": "pending",
-          "subtasks": [
-            "ios_specific_configuration",
-            "android_specific_configuration"
-          ]
-        },
-        "performance_testing_validation": {
-          "status": "pending",
-          "subtasks": [
-            "create_performance_test_suite",
-            "device_testing_matrix"
-          ]
+          "estimatedHours": 3,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "high"
         },
         "app_store_preparation": {
+          "description": "Create store listings and marketing assets",
           "status": "pending",
-          "subtasks": [
-            "create_app_store_listing_content",
-            "create_privacy_policy"
-          ]
+          "estimatedHours": 3,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "high"
+        },
+        "production_builds": {
+          "description": "Create and verify production builds",
+          "status": "pending",
+          "estimatedHours": 1,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "critical"
+        },
+        "cicd_setup": {
+          "description": "Create automated deployment pipeline",
+          "status": "pending",
+          "estimatedHours": 1,
+          "actualHours": 0,
+          "assignee": null,
+          "priority": "medium"
         }
       },
-      "deliverables": [
-        "production_ready_builds",
-        "complete_store_listings",
-        "quality_assurance",
-        "deployment_infrastructure"
-      ],
-      "blockers": [],
-      "notes": []
+      "qualityGates": [
+        "Production builds successful for both platforms",
+        "Bundle sizes meet target requirements",
+        "Performance monitoring functional and reporting",
+        "App store assets complete and professional",
+        "Automated deployment pipeline operational"
+      ]
     }
   },
-  "critical_success_factors": {
-    "performance_60_fps_maintained": false,
-    "cross_platform_consistency": false,
-    "legend_state_performance_optimization": false,
-    "save_system_robustness": false,
-    "user_experience_smoothness": false
+  "metrics": {
+    "performance": {
+      "fps_target": 60,
+      "memory_target_mb": 75,
+      "bundle_size_target_mb": 10,
+      "cold_start_target_ms": 3000,
+      "response_time_target_ms": 50,
+      "current_fps": null,
+      "current_memory_mb": null,
+      "current_bundle_size_mb": null,
+      "last_performance_test": null
+    },
+    "quality": {
+      "test_coverage_target": 80,
+      "current_test_coverage": null,
+      "critical_bugs": 0,
+      "high_priority_bugs": 0,
+      "performance_regressions": 0,
+      "last_quality_check": null
+    },
+    "development": {
+      "total_estimated_hours": 132,
+      "total_actual_hours": 0,
+      "efficiency_ratio": null,
+      "completed_tasks": 0,
+      "total_tasks": 26,
+      "completion_percentage": 0
+    }
   },
-  "team_assignments": {
-    "senior_engineer": "Primary implementer following runbook",
-    "qa_tester": "TBD - Phase 4 and 5 validation",
-    "product_owner": "TBD - Requirements validation and feedback"
+  "risks": [
+    {
+      "id": "performance_regression",
+      "description": "Performance regression from Legend State vs original PRD",
+      "probability": "medium",
+      "impact": "high",
+      "status": "identified",
+      "mitigation": "Continuous performance monitoring and optimization",
+      "owner": null
+    },
+    {
+      "id": "architectural_complexity",
+      "description": "Team struggles with hybrid routing and Legend State patterns",
+      "probability": "high",
+      "impact": "medium",
+      "status": "identified",
+      "mitigation": "Comprehensive documentation and team training",
+      "owner": null
+    },
+    {
+      "id": "cross_platform_issues",
+      "description": "Inconsistent behavior between iOS and Android",
+      "probability": "medium",
+      "impact": "medium",
+      "status": "identified",
+      "mitigation": "Platform-specific testing matrix and abstraction layers",
+      "owner": null
+    },
+    {
+      "id": "timeline_extension",
+      "description": "Development takes longer than estimated",
+      "probability": "medium",
+      "impact": "high",
+      "status": "identified",
+      "mitigation": "Phased approach with validation gates and risk-based prioritization",
+      "owner": null
+    }
+  ],
+  "team": {
+    "roles": [
+      {
+        "title": "Senior React Native Developer",
+        "responsibilities": ["Architecture implementation", "Performance optimization", "Legend State integration"],
+        "required_skills": ["React Native", "TypeScript", "Performance optimization"],
+        "training_needs": ["Legend State v3", "Expo Router", "Mobile performance"]
+      },
+      {
+        "title": "Game Developer",
+        "responsibilities": ["Game mechanics", "Balance tuning", "User experience"],
+        "required_skills": ["Game design", "JavaScript", "UI/UX"],
+        "training_needs": ["React Native patterns", "Mobile game optimization"]
+      },
+      {
+        "title": "QA Engineer",
+        "responsibilities": ["Testing", "Performance validation", "Device compatibility"],
+        "required_skills": ["Mobile testing", "Performance testing", "Automation"],
+        "training_needs": ["React Native testing tools", "Performance profiling"]
+      }
+    ]
   },
-  "environment_status": {
-    "development": "not_setup",
-    "staging": "not_setup",
-    "production": "not_setup"
-  }
+  "environment": {
+    "development": {
+      "node_version": ">=18.0.0",
+      "npm_version": ">=8.0.0",
+      "expo_cli_version": ">=6.0.0",
+      "required_tools": ["Xcode 14+", "Android Studio", "iOS Simulator", "Android SDK 33+"]
+    },
+    "production": {
+      "target_platforms": ["iOS 13.0+", "Android API 23+"],
+      "deployment_method": "EAS Build + App Store/Google Play",
+      "monitoring": ["Crash reporting", "Performance analytics", "User analytics"]
+    }
+  },
+  "documentation": {
+    "technical_docs": [
+      "Technical Requirements Document",
+      "Architecture Synthesis Document", 
+      "API Documentation",
+      "Performance Guidelines",
+      "Deployment Guide"
+    ],
+    "user_docs": [
+      "User Manual",
+      "Tutorial System",
+      "FAQ",
+      "Troubleshooting Guide"
+    ],
+    "business_docs": [
+      "App Store Listing",
+      "Marketing Materials",
+      "Privacy Policy",
+      "Terms of Service"
+    ]
+  },
+  "lastUpdated": "2025-01-XX",
+  "nextReview": "2025-XX-XX",
+  "notes": [
+    "Progress tracking to be updated daily during active development",
+    "Performance metrics to be measured at each phase completion",
+    "Risk assessment to be reviewed weekly",
+    "Team training to be scheduled before foundation phase"
+  ]
 }

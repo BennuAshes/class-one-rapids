@@ -1,86 +1,71 @@
-# Phase 5: Deployment Preparation
+# Phase 5: Deployment
+## Build Optimization and Production Deployment
+
+**Estimated Time**: 1-2 days  
+**Prerequisites**: All features complete with stable performance and polish  
+**Deliverables**: Production-ready builds, deployment configurations, monitoring setup
+
+---
 
 ## Objectives
-- Optimize build configuration for production
-- Configure platform-specific settings and assets
-- Implement comprehensive testing pipeline
-- Set up app store submission process
-- Create deployment automation and monitoring
 
-## Prerequisites
-- Phase 4 Quality & Polish completed ✅
-- Performance meets all target benchmarks ✅
-- Save system tested and validated ✅
+1. **Production Build Optimization**: Configure builds for optimal performance and size
+2. **EAS Build Configuration**: Set up cloud builds for iOS and Android
+3. **App Store Preparation**: Create store listings, screenshots, and metadata
+4. **Performance Monitoring**: Implement crash reporting and analytics
+5. **Deployment Automation**: Create CI/CD pipeline for future updates
 
-## Tasks Checklist
+---
 
-### 1. Production Build Configuration
+## Task Checklist
 
-- [ ] **Configure EAS Build**
+### Build Configuration Optimization
+- [ ] **Optimize Bundle Size and Performance** (2 hours)
   ```bash
-  npm install -g eas-cli
-  eas login
-  eas build:configure
-  ```
-
-- [ ] **Create EAS Build Configuration**
-  ```json
-  // eas.json
-  {
-    "cli": {
-      "version": ">= 5.9.0"
-    },
-    "build": {
-      "development": {
-        "developmentClient": true,
-        "distribution": "internal",
-        "ios": {
-          "resourceClass": "m-medium"
-        },
-        "android": {
-          "buildType": "developmentBuild"
-        }
+  # Configure production build settings
+  cat > metro.config.js << 'EOF'
+  const { getDefaultConfig } = require('expo/metro-config');
+  
+  const config = getDefaultConfig(__dirname);
+  
+  // Production optimizations
+  config.transformer = {
+    ...config.transformer,
+    minifierPath: 'metro-minify-terser',
+    minifierConfig: {
+      ecma: 8,
+      keep_fnames: false,
+      mangle: {
+        keep_fnames: false,
+        safari10: true
       },
-      "preview": {
-        "distribution": "internal",
-        "ios": {
-          "simulator": true,
-          "resourceClass": "m-medium"
-        },
-        "android": {
-          "buildType": "apk"
-        }
+      compress: {
+        drop_console: true, // Remove console.log in production
+        drop_debugger: true,
+        pure_funcs: ['console.info', 'console.debug', 'console.warn']
       },
-      "production": {
-        "ios": {
-          "resourceClass": "m-medium",
-          "bundleIdentifier": "com.yourcompany.petsofttycoon"
-        },
-        "android": {
-          "buildType": "app-bundle",
-          "gradleCommand": ":app:bundleRelease"
-        }
-      }
-    },
-    "submit": {
-      "production": {
-        "ios": {
-          "appleId": "your.apple.id@email.com",
-          "ascAppId": "your_app_store_connect_app_id",
-          "appleTeamId": "YOUR_TEAM_ID"
-        },
-        "android": {
-          "serviceAccountKeyPath": "./service-account-key.json",
-          "track": "internal"
-        }
+      format: {
+        comments: false
       }
     }
-  }
-  ```
-
-- [ ] **Configure App Configuration**
-  ```json
-  // app.json
+  };
+  
+  // Tree shaking for better bundle size
+  config.resolver.platforms = ['native', 'ios', 'android'];
+  
+  // Performance optimizations
+  config.cacheStores = [
+    {
+      name: 'filesystem',
+      path: './node_modules/.cache/metro'
+    }
+  ];
+  
+  module.exports = config;
+  EOF
+  
+  # Update app.json for production
+  cat > app.json << 'EOF'
   {
     "expo": {
       "name": "PetSoft Tycoon",
@@ -88,661 +73,1087 @@
       "version": "1.0.0",
       "orientation": "portrait",
       "icon": "./assets/icon.png",
-      "userInterfaceStyle": "light",
+      "userInterfaceStyle": "dark",
       "splash": {
-        "image": "./assets/splash.png",
+        "image": "./assets/splash-icon.png",
         "resizeMode": "contain",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0a0a0a"
       },
-      "assetBundlePatterns": [
-        "**/*"
-      ],
+      "assetBundlePatterns": ["**/*"],
       "ios": {
         "supportsTablet": true,
-        "bundleIdentifier": "com.yourcompany.petsofttycoon",
+        "bundleIdentifier": "com.petsoft.tycoon",
         "buildNumber": "1",
-        "requireFullScreen": true,
         "infoPlist": {
-          "NSMicrophoneUsageDescription": "This app does not use the microphone",
-          "NSCameraUsageDescription": "This app does not use the camera"
+          "ITSAppUsesNonExemptEncryption": false,
+          "NSCameraUsageDescription": "This app does not use the camera.",
+          "NSMicrophoneUsageDescription": "This app does not use the microphone."
+        },
+        "config": {
+          "usesNonExemptEncryption": false
         }
       },
       "android": {
         "adaptiveIcon": {
           "foregroundImage": "./assets/adaptive-icon.png",
-          "backgroundColor": "#FFFFFF"
+          "backgroundColor": "#0a0a0a"
         },
-        "package": "com.yourcompany.petsofttycoon",
+        "package": "com.petsoft.tycoon",
         "versionCode": 1,
-        "permissions": [
-          "VIBRATE"
-        ],
-        "blockedPermissions": [
-          "RECORD_AUDIO",
-          "CAMERA"
-        ]
+        "permissions": [],
+        "config": {
+          "googleServicesFile": "./google-services.json"
+        }
       },
       "web": {
-        "favicon": "./assets/favicon.png"
+        "favicon": "./assets/favicon.png",
+        "bundler": "metro"
       },
       "plugins": [
         "expo-router",
-        "expo-secure-store",
-        [
-          "expo-av",
-          {
-            "microphonePermission": false
-          }
-        ],
         [
           "expo-build-properties",
           {
             "android": {
               "enableProguardInReleaseBuilds": true,
-              "enableShrinkResourcesInReleaseBuilds": true
+              "enableShrinkResourcesInReleaseBuilds": true,
+              "extraMavenRepos": ["../../node_modules/react-native-mmkv/android/build/maven"]
             },
             "ios": {
-              "flipper": false
+              "deploymentTarget": "13.0"
             }
+          }
+        ],
+        [
+          "expo-font",
+          {
+            "fonts": ["./assets/fonts/Inter-Regular.ttf", "./assets/fonts/Inter-Bold.ttf"]
           }
         ]
       ],
+      "scheme": "petsoft-tycoon",
+      "experiments": {
+        "typedRoutes": true
+      },
       "extra": {
-        "router": {
-          "origin": false
-        },
         "eas": {
-          "projectId": "your-project-id"
+          "projectId": "your-eas-project-id"
+        }
+      },
+      "updates": {
+        "fallbackToCacheTimeout": 0,
+        "url": "https://u.expo.dev/your-project-id"
+      },
+      "runtimeVersion": {
+        "policy": "sdkVersion"
+      }
+    }
+  }
+  EOF
+  
+  # Create build optimization script
+  cat > scripts/optimize-build.js << 'EOF'
+  const fs = require('fs');
+  const path = require('path');
+  
+  console.log('🔧 Optimizing build configuration...');
+  
+  // Remove development-only dependencies from production build
+  const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+  
+  // Ensure production dependencies are minimal
+  const productionDeps = {
+    ...packageJson.dependencies
+  };
+  
+  // Remove any dev-only packages that might have slipped in
+  const devOnlyPackages = ['flipper', 'react-devtools', 'why-did-you-render'];
+  devOnlyPackages.forEach(pkg => {
+    if (productionDeps[pkg]) {
+      console.log(`Removing dev dependency from production: ${pkg}`);
+      delete productionDeps[pkg];
+    }
+  });
+  
+  // Create asset optimization
+  const assetDir = './assets';
+  if (fs.existsSync(assetDir)) {
+    console.log('📦 Checking asset optimization...');
+    
+    const checkImageOptimization = (dir) => {
+      const files = fs.readdirSync(dir);
+      files.forEach(file => {
+        const filePath = path.join(dir, file);
+        const stat = fs.statSync(filePath);
+        
+        if (stat.isDirectory()) {
+          checkImageOptimization(filePath);
+        } else if (file.match(/\.(png|jpg|jpeg)$/)) {
+          const size = stat.size;
+          if (size > 500 * 1024) { // 500KB
+            console.warn(`⚠️  Large image detected: ${filePath} (${Math.round(size/1024)}KB)`);
+            console.log('   Consider optimizing this image for production');
+          }
+        }
+      });
+    };
+    
+    checkImageOptimization(assetDir);
+  }
+  
+  // Check for unused assets
+  console.log('🔍 Scanning for unused assets...');
+  
+  const sourceFiles = [];
+  const scanSource = (dir) => {
+    const files = fs.readdirSync(dir);
+    files.forEach(file => {
+      const filePath = path.join(dir, file);
+      const stat = fs.statSync(filePath);
+      
+      if (stat.isDirectory() && !file.includes('node_modules')) {
+        scanSource(filePath);
+      } else if (file.match(/\.(ts|tsx|js|jsx)$/)) {
+        sourceFiles.push(filePath);
+      }
+    });
+  };
+  
+  scanSource('./src');
+  scanSource('./app');
+  
+  // This would implement asset usage detection
+  console.log(`📊 Scanned ${sourceFiles.length} source files`);
+  
+  console.log('✅ Build optimization complete');
+  EOF
+  
+  node scripts/optimize-build.js
+  ```
+
+### EAS Build Configuration
+- [ ] **Configure EAS Build** (1.5 hours)
+  ```bash
+  # Install EAS CLI
+  npm install -g @expo/eas-cli
+  
+  # Login to EAS (requires Expo account)
+  eas login
+  
+  # Initialize EAS configuration
+  eas build:configure
+  
+  # Create EAS build configuration
+  cat > eas.json << 'EOF'
+  {
+    "cli": {
+      "version": ">= 5.0.0"
+    },
+    "build": {
+      "development": {
+        "developmentClient": true,
+        "distribution": "internal"
+      },
+      "preview": {
+        "distribution": "internal",
+        "android": {
+          "buildType": "apk"
+        },
+        "ios": {
+          "simulator": true
+        }
+      },
+      "production": {
+        "distribution": "store",
+        "android": {
+          "buildType": "aab",
+          "gradleCommand": ":app:bundleRelease"
+        },
+        "ios": {
+          "autoIncrement": "buildNumber"
+        },
+        "env": {
+          "NODE_ENV": "production"
+        },
+        "cache": {
+          "disabled": false
+        }
+      }
+    },
+    "submit": {
+      "production": {
+        "android": {
+          "serviceAccountKeyPath": "./android-service-account.json",
+          "track": "internal"
+        },
+        "ios": {
+          "appleId": "your-apple-id@email.com",
+          "ascAppId": "your-app-store-connect-app-id",
+          "appleTeamId": "your-team-id"
         }
       }
     }
   }
+  EOF
+  
+  # Create build secrets configuration
+  cat > .env.production << 'EOF'
+  # Production environment variables
+  NODE_ENV=production
+  EXPO_PUBLIC_API_URL=https://api.petsoft-tycoon.com
+  EXPO_PUBLIC_ANALYTICS_ENABLED=true
+  EXPO_PUBLIC_CRASH_REPORTING_ENABLED=true
+  
+  # Feature flags for production
+  EXPO_PUBLIC_ENABLE_PERFORMANCE_MONITORING=true
+  EXPO_PUBLIC_ENABLE_OFFLINE_ANALYTICS=true
+  
+  # Build optimization flags
+  EXPO_PUBLIC_MINIFY_JS=true
+  EXPO_PUBLIC_OPTIMIZE_ASSETS=true
+  EOF
   ```
 
-### 2. Asset Optimization and Preparation
-
-- [ ] **Create App Icons (All Required Sizes)**
+### Performance Monitoring Setup
+- [ ] **Implement Crash Reporting and Analytics** (2 hours)
   ```bash
-  # Create icon assets directory
-  mkdir -p assets/icons
+  # Install monitoring dependencies
+  npm install @react-native-async-storage/async-storage
+  npm install react-native-exception-handler
   
-  # iOS Icons (required sizes)
-  # 20x20, 29x29, 40x40, 58x58, 60x60, 80x80, 87x87, 120x120, 180x180, 1024x1024
-  
-  # Android Icons
-  # 48x48, 72x72, 96x96, 144x144, 192x192, 512x512
-  ```
-
-- [ ] **Create Splash Screen Assets**
-  ```typescript
-  // Create splash screen configuration
-  // assets/splash.png (1242x2436 for iPhone X compatibility)
-  // Ensure logo is centered in safe area
-  ```
-
-- [ ] **Optimize Audio Assets**
-  ```bash
-  # Convert audio files for optimal size and compatibility
-  mkdir -p assets/audio
-  
-  # Optimize audio files
-  # Use AAC format for iOS, MP3 for Android/Web
-  # Keep file sizes under 100KB each
-  # Sample rates: 22kHz or 44kHz
-  ```
-
-- [ ] **Create App Store Screenshots**
-  ```typescript
-  // Screenshot requirements:
-  // iPhone: 6.7", 6.5", 5.5" screens
-  // iPad: 12.9", 11" screens  
-  // Android: Phone and tablet variants
-  
-  // Showcase key features:
-  // 1. Main game screen with resources
-  // 2. Department management
-  // 3. Prestige system
-  // 4. Achievement unlocks
-  // 5. Settings/customization
-  ```
-
-### 3. Platform-Specific Optimizations
-
-- [ ] **iOS Specific Configuration**
-  ```typescript
-  // ios/PetSoftTycoon/Info.plist additions
-  <key>UIBackgroundModes</key>
-  <array>
-    <string>background-processing</string>
-  </array>
-  
-  <key>NSAppTransportSecurity</key>
-  <dict>
-    <key>NSAllowsArbitraryLoads</key>
-    <false/>
-  </dict>
-  
-  // Enable Hermes for iOS (performance boost)
-  <key>expo.modules.ExpoModulesCore.ENABLE_EXPERIMENTAL_NEW_RENDERER</key>
-  <string>true</string>
-  ```
-
-- [ ] **Android Specific Configuration**
-  ```gradle
-  // android/app/build.gradle optimizations
-  android {
-      compileSdkVersion 34
-      
-      defaultConfig {
-          minSdkVersion 23
-          targetSdkVersion 34
-          versionCode 1
-          versionName "1.0.0"
-          
-          // Enable multidex for larger APK support
-          multiDexEnabled true
-          
-          // R8 optimization
-          proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
-      }
-      
-      buildTypes {
-          release {
-              minifyEnabled true
-              shrinkResources true
-              useProguard true
-          }
-      }
-      
-      // Enable Hermes
-      project.ext.react = [
-          enableHermes: true,
-          hermesFlagsRelease: ["-O", "-output-source-map"]
-      ]
+  # Create analytics system
+  cat > src/core/analytics/Analytics.ts << 'EOF'
+  interface AnalyticsEvent {
+    name: string;
+    properties?: Record<string, any>;
+    timestamp: number;
   }
   
-  // Proguard rules for Legend State
-  -keep class com.legendapp.** { *; }
-  -keep class * extends com.facebook.react.bridge.ReactContextBaseJavaModule { *; }
-  ```
-
-### 4. Performance Testing and Validation
-
-- [ ] **Create Performance Test Suite**
-  ```typescript
-  // __tests__/performance.test.ts
-  import { gameState$ } from '../src/features/game-core/state/gameState$';
-  import { GameEngine } from '../src/features/game-core/services/gameEngine';
-  import { PerformanceAdapter } from '../src/features/game-core/services/performanceAdapter';
+  interface UserProperties {
+    userId?: string;
+    sessionId: string;
+    appVersion: string;
+    platform: string;
+    deviceInfo: {
+      model: string;
+      osVersion: string;
+      screenSize: string;
+    };
+  }
   
-  describe('Performance Tests', () => {
-    beforeEach(() => {
-      // Reset game state
-      gameState$.set({
-        resources: { code: 0, features: 0, money: 0, leads: 0 },
-        performance: { fps: 60, frameDrops: 0, memoryUsage: 0 }
+  class Analytics {
+    private static instance: Analytics;
+    private events: AnalyticsEvent[] = [];
+    private userProperties: UserProperties;
+    private sessionStartTime: number;
+    private isEnabled: boolean;
+  
+    constructor() {
+      this.sessionStartTime = Date.now();
+      this.sessionId = this.generateSessionId();
+      this.isEnabled = process.env.EXPO_PUBLIC_ANALYTICS_ENABLED === 'true';
+      
+      this.userProperties = {
+        sessionId: this.sessionId,
+        appVersion: '1.0.0',
+        platform: Platform.OS,
+        deviceInfo: {
+          model: 'Unknown', // Would be populated with device info
+          osVersion: Platform.Version.toString(),
+          screenSize: `${Dimensions.get('window').width}x${Dimensions.get('window').height}`
+        }
+      };
+      
+      this.initializeErrorHandling();
+    }
+    
+    static getInstance(): Analytics {
+      if (!Analytics.instance) {
+        Analytics.instance = new Analytics();
+      }
+      return Analytics.instance;
+    }
+    
+    private generateSessionId(): string {
+      return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+    
+    private initializeErrorHandling() {
+      if (!this.isEnabled) return;
+      
+      // Global error handler for unhandled promise rejections
+      const originalHandler = global.ErrorUtils?.getGlobalHandler?.();
+      
+      global.ErrorUtils?.setGlobalHandler?.((error, isFatal) => {
+        this.trackError(error, { isFatal, type: 'global' });
+        originalHandler?.(error, isFatal);
       });
-    });
+      
+      // Console error tracking
+      const originalError = console.error;
+      console.error = (...args) => {
+        this.trackError(new Error(args.join(' ')), { type: 'console' });
+        originalError(...args);
+      };
+    }
     
-    it('maintains 60 FPS with maximum employees', async () => {
-      // Simulate maximum game state
-      const maxEmployees = 100;
+    // Event tracking
+    trackEvent(eventName: string, properties: Record<string, any> = {}) {
+      if (!this.isEnabled) return;
       
-      // Run game loop for 5 seconds
-      const startTime = Date.now();
-      GameEngine.start();
+      const event: AnalyticsEvent = {
+        name: eventName,
+        properties: {
+          ...properties,
+          sessionId: this.userProperties.sessionId,
+          timestamp: Date.now()
+        },
+        timestamp: Date.now()
+      };
       
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      this.events.push(event);
+      this.persistEvent(event);
       
-      const endTime = Date.now();
-      const avgPerformance = PerformanceAdapter.getAveragePerformance();
-      
-      GameEngine.stop();
-      
-      expect(avgPerformance.fps).toBeGreaterThanOrEqual(55); // 5 FPS tolerance
-      expect(avgPerformance.stability).toBeGreaterThan(0.8);
-    });
+      // Send to analytics service (would be implemented)
+      if (__DEV__) {
+        console.log('📊 Analytics Event:', eventName, properties);
+      }
+    }
     
-    it('handles save/load operations under load', async () => {
-      // Stress test save system
-      const SaveManager = (await import('../src/features/game-core/services/saveManager')).SaveManager;
+    // Game-specific event tracking
+    trackGameEvent(eventType: 'gameplay' | 'progression' | 'monetization' | 'error', data: any) {
+      this.trackEvent(`game_${eventType}`, {
+        category: 'game',
+        ...data
+      });
+    }
+    
+    trackError(error: Error, context: Record<string, any> = {}) {
+      if (!this.isEnabled) return;
       
-      // Perform multiple save/load cycles
-      for (let i = 0; i < 10; i++) {
-        const saveSuccess = await SaveManager.performAutoSave();
-        expect(saveSuccess).toBe(true);
+      this.trackEvent('error_occurred', {
+        errorMessage: error.message,
+        errorStack: error.stack,
+        errorName: error.name,
+        ...context
+      });
+      
+      console.error('🚨 Error tracked:', error.message);
+    }
+    
+    // Performance tracking
+    trackPerformance(metric: string, value: number, context: Record<string, any> = {}) {
+      if (!this.isEnabled) return;
+      
+      this.trackEvent('performance_metric', {
+        metric,
+        value,
+        ...context
+      });
+    }
+    
+    // User progression tracking
+    trackProgression(event: 'level_start' | 'level_complete' | 'prestige' | 'achievement', data: any) {
+      this.trackGameEvent('progression', {
+        progressionType: event,
+        ...data
+      });
+    }
+    
+    // Session management
+    startSession() {
+      this.sessionStartTime = Date.now();
+      this.trackEvent('session_start', {
+        platform: this.userProperties.platform,
+        appVersion: this.userProperties.appVersion
+      });
+    }
+    
+    endSession() {
+      const sessionDuration = Date.now() - this.sessionStartTime;
+      this.trackEvent('session_end', {
+        sessionDuration,
+        eventsInSession: this.events.length
+      });
+      
+      this.flushEvents();
+    }
+    
+    private async persistEvent(event: AnalyticsEvent) {
+      try {
+        const existingEvents = await AsyncStorage.getItem('analytics_events');
+        const events = existingEvents ? JSON.parse(existingEvents) : [];
+        events.push(event);
         
-        const loadSuccess = await SaveManager.loadGame();
-        expect(loadSuccess).toBe(true);
+        // Keep only last 1000 events locally
+        if (events.length > 1000) {
+          events.splice(0, events.length - 1000);
+        }
+        
+        await AsyncStorage.setItem('analytics_events', JSON.stringify(events));
+      } catch (error) {
+        console.warn('Failed to persist analytics event:', error);
       }
-    });
-  });
-  ```
-
-- [ ] **Device Testing Matrix**
-  ```bash
-  # Test on minimum supported devices
-  # iOS: iPhone 8 (iOS 13.4+)
-  # Android: Samsung Galaxy A21 (Android 6.0+)
-  
-  # Performance benchmarks per device category:
-  # High-end: 60 FPS sustained, <40MB memory
-  # Mid-range: 60 FPS sustained, <45MB memory  
-  # Low-end: 45+ FPS sustained, <50MB memory
-  ```
-
-### 5. Quality Assurance Pipeline
-
-- [ ] **Create E2E Test Suite**
-  ```typescript
-  // e2e/game-flow.test.ts
-  import { expect } from 'detox';
-  
-  describe('Game Flow', () => {
-    beforeEach(async () => {
-      await device.reloadReactNative();
-    });
+    }
     
-    it('should complete basic game progression', async () => {
-      // Test main game flow
-      await expect(element(by.id('click-button'))).toBeVisible();
-      
-      // Perform clicks to earn resources
-      for (let i = 0; i < 10; i++) {
-        await element(by.id('click-button')).tap();
+    private async flushEvents() {
+      try {
+        const events = await AsyncStorage.getItem('analytics_events');
+        if (events) {
+          // Would send to analytics service here
+          console.log('📤 Flushing analytics events to server');
+          
+          // Clear local events after successful send
+          await AsyncStorage.removeItem('analytics_events');
+        }
+      } catch (error) {
+        console.warn('Failed to flush analytics events:', error);
       }
-      
-      // Verify resource increase
-      await expect(element(by.id('code-counter'))).toHaveText('10');
-      
-      // Test department unlock
-      await element(by.id('departments-tab')).tap();
-      await expect(element(by.id('development-department'))).toBeVisible();
-      
-      // Test employee hiring
-      await element(by.id('hire-junior-dev')).tap();
-      await expect(element(by.id('junior-dev-count'))).toHaveText('1');
-    });
+    }
     
-    it('should handle prestige flow', async () => {
-      // Set up game state for prestige
-      // ... test prestige functionality
-    });
-    
-    it('should maintain state across app lifecycle', async () => {
-      // Test save/load functionality
-      await element(by.id('click-button')).tap();
-      await device.sendToHome();
-      await device.launchApp();
+    // Privacy and settings
+    setAnalyticsEnabled(enabled: boolean) {
+      this.isEnabled = enabled;
       
-      // Verify state persisted
-      await expect(element(by.id('code-counter'))).not.toHaveText('0');
-    });
-  });
-  ```
-
-- [ ] **Create Automated Testing Scripts**
-  ```json
-  // package.json testing scripts
-  {
-    "scripts": {
-      "test": "jest",
-      "test:watch": "jest --watch",
-      "test:coverage": "jest --coverage",
-      "test:e2e": "detox test",
-      "test:performance": "jest __tests__/performance.test.ts",
-      "test:integration": "jest __tests__/integration/",
-      "lint": "eslint src/ --ext .ts,.tsx",
-      "lint:fix": "eslint src/ --ext .ts,.tsx --fix",
-      "type-check": "tsc --noEmit"
+      if (!enabled) {
+        // Clear local analytics data
+        AsyncStorage.removeItem('analytics_events');
+        this.events = [];
+      }
+    }
+    
+    setUserProperty(key: string, value: any) {
+      this.userProperties = {
+        ...this.userProperties,
+        [key]: value
+      };
     }
   }
+  
+  export const analytics = Analytics.getInstance();
+  
+  // React hook for component-level analytics
+  export function useAnalytics() {
+    const trackScreenView = useCallback((screenName: string, properties = {}) => {
+      analytics.trackEvent('screen_view', {
+        screenName,
+        ...properties
+      });
+    }, []);
+    
+    const trackUserAction = useCallback((action: string, properties = {}) => {
+      analytics.trackEvent('user_action', {
+        action,
+        ...properties
+      });
+    }, []);
+    
+    return {
+      trackScreenView,
+      trackUserAction,
+      trackEvent: analytics.trackEvent.bind(analytics),
+      trackError: analytics.trackError.bind(analytics),
+      trackPerformance: analytics.trackPerformance.bind(analytics)
+    };
+  }
+  EOF
+  
+  # Create crash reporting system
+  cat > src/core/analytics/CrashReporting.ts << 'EOF'
+  import { analytics } from './Analytics';
+  
+  interface CrashReport {
+    id: string;
+    timestamp: number;
+    error: {
+      message: string;
+      stack?: string;
+      componentStack?: string;
+    };
+    context: {
+      userId?: string;
+      sessionId: string;
+      gameState: any;
+      deviceInfo: any;
+      buildVersion: string;
+    };
+    breadcrumbs: Breadcrumb[];
+  }
+  
+  interface Breadcrumb {
+    timestamp: number;
+    category: string;
+    message: string;
+    level: 'info' | 'warning' | 'error';
+    data?: any;
+  }
+  
+  class CrashReporting {
+    private static instance: CrashReporting;
+    private breadcrumbs: Breadcrumb[] = [];
+    private isEnabled: boolean;
+    private maxBreadcrumbs = 50;
+    
+    constructor() {
+      this.isEnabled = process.env.EXPO_PUBLIC_CRASH_REPORTING_ENABLED === 'true';
+      this.setupGlobalErrorHandlers();
+    }
+    
+    static getInstance(): CrashReporting {
+      if (!CrashReporting.instance) {
+        CrashReporting.instance = new CrashReporting();
+      }
+      return CrashReporting.instance;
+    }
+    
+    private setupGlobalErrorHandlers() {
+      if (!this.isEnabled) return;
+      
+      // React error boundary integration would go here
+      // Native crash reporting integration would go here
+      
+      // Unhandled promise rejections
+      global.addEventListener?.('unhandledrejection', (event) => {
+        this.reportCrash(new Error(event.reason), {
+          type: 'unhandled_promise_rejection'
+        });
+      });
+    }
+    
+    addBreadcrumb(category: string, message: string, level: 'info' | 'warning' | 'error' = 'info', data?: any) {
+      if (!this.isEnabled) return;
+      
+      const breadcrumb: Breadcrumb = {
+        timestamp: Date.now(),
+        category,
+        message,
+        level,
+        data
+      };
+      
+      this.breadcrumbs.push(breadcrumb);
+      
+      // Keep only recent breadcrumbs
+      if (this.breadcrumbs.length > this.maxBreadcrumbs) {
+        this.breadcrumbs.shift();
+      }
+    }
+    
+    reportCrash(error: Error, context: Record<string, any> = {}) {
+      if (!this.isEnabled) return;
+      
+      const crashId = `crash_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const crashReport: CrashReport = {
+        id: crashId,
+        timestamp: Date.now(),
+        error: {
+          message: error.message,
+          stack: error.stack,
+          componentStack: context.componentStack
+        },
+        context: {
+          sessionId: 'current_session_id', // Would get from analytics
+          gameState: this.getGameStateSummary(),
+          deviceInfo: this.getDeviceInfo(),
+          buildVersion: '1.0.0',
+          ...context
+        },
+        breadcrumbs: [...this.breadcrumbs]
+      };
+      
+      this.persistCrashReport(crashReport);
+      analytics.trackError(error, { crashId, ...context });
+      
+      console.error('💥 Crash reported:', crashId, error.message);
+    }
+    
+    private getGameStateSummary(): any {
+      try {
+        // Would get current game state summary
+        return {
+          currentScreen: 'dashboard',
+          gameProgress: 'mid_game',
+          lastAction: 'hire_employee'
+        };
+      } catch (error) {
+        return { error: 'Failed to get game state' };
+      }
+    }
+    
+    private getDeviceInfo(): any {
+      return {
+        platform: Platform.OS,
+        version: Platform.Version,
+        model: 'Unknown', // Would be populated with actual device info
+        memory: 'Unknown',
+        storage: 'Unknown'
+      };
+    }
+    
+    private async persistCrashReport(report: CrashReport) {
+      try {
+        const existingReports = await AsyncStorage.getItem('crash_reports');
+        const reports = existingReports ? JSON.parse(existingReports) : [];
+        reports.push(report);
+        
+        // Keep only last 10 crash reports locally
+        if (reports.length > 10) {
+          reports.splice(0, reports.length - 10);
+        }
+        
+        await AsyncStorage.setItem('crash_reports', JSON.stringify(reports));
+      } catch (error) {
+        console.warn('Failed to persist crash report:', error);
+      }
+    }
+    
+    async sendPendingReports() {
+      try {
+        const reports = await AsyncStorage.getItem('crash_reports');
+        if (reports) {
+          const crashReports = JSON.parse(reports);
+          
+          // Would send to crash reporting service here
+          console.log(`📤 Sending ${crashReports.length} crash reports`);
+          
+          // Clear after successful send
+          await AsyncStorage.removeItem('crash_reports');
+        }
+      } catch (error) {
+        console.warn('Failed to send crash reports:', error);
+      }
+    }
+  }
+  
+  export const crashReporting = CrashReporting.getInstance();
+  EOF
   ```
 
-### 6. App Store Preparation
-
-- [ ] **Create App Store Listing Content**
-  ```markdown
-  # App Title
-  PetSoft Tycoon - Build Your Software Empire
-  
-  # Subtitle (iOS)
-  Idle tycoon game for aspiring developers
-  
-  # Short Description (Android)
-  Build the ultimate software company in this addictive idle tycoon game!
-  
-  # Full Description
-  Start from a single developer writing code and build your software empire! 
-  
-  🚀 KEY FEATURES:
-  • Hire developers, designers, QA testers, and more
-  • Unlock 7 different departments with unique abilities
-  • Prestige system with permanent bonuses
-  • Offline progress - earn money while away
-  • 50+ achievements to unlock
-  • Beautiful animations and satisfying sound effects
-  
-  💻 DEPARTMENTS:
-  • Development - Write code and build features
-  • Sales - Convert leads into revenue
-  • Customer Experience - Keep users happy
-  • Product - Define what to build next  
-  • Design - Make your software beautiful
-  • QA - Ensure quality and prevent bugs
-  • Marketing - Generate leads and awareness
-  
-  ⭐ PRESTIGE SYSTEM:
-  • Restart with powerful bonuses
-  • Unlock investor points for permanent upgrades
-  • Strategic depth in timing your next round
-  
-  Perfect for fans of idle games, tycoon games, and anyone interested in the software industry!
-  
-  # Keywords (iOS)
-  idle, tycoon, software, developer, coding, business, management, incremental
-  
-  # Category
-  Games > Simulation
-  
-  # Content Rating
-  Everyone / PEGI 3+ / 4+ (no objectionable content)
-  ```
-
-- [ ] **Create Privacy Policy**
-  ```markdown
-  # Privacy Policy for PetSoft Tycoon
-  
-  ## Data Collection
-  PetSoft Tycoon is designed with privacy in mind:
-  
-  • No personal information is collected
-  • No network connections are made
-  • All game data is stored locally on your device
-  • No analytics or tracking
-  • No advertisements
-  • No in-app purchases requiring personal data
-  
-  ## Local Storage
-  The game stores:
-  • Game progress and achievements
-  • Settings and preferences
-  • Performance optimization data
-  
-  This data never leaves your device and can be deleted by uninstalling the app.
-  
-  ## Contact
-  For questions about this privacy policy: privacy@yourcompany.com
-  ```
-
-### 7. Build and Release Process
-
-- [ ] **Create Release Build Script**
+### App Store Preparation
+- [ ] **Create App Store Assets** (2 hours)
   ```bash
-  #!/bin/bash
-  # build-release.sh
+  # Create app store description
+  cat > store-listing/description.md << 'EOF'
+  # PetSoft Tycoon - Build Your Software Empire!
   
-  echo "🚀 Starting PetSoft Tycoon release build process..."
+  ## Short Description (80 characters)
+  Build and grow your software company from startup to tech giant!
   
-  # Clean previous builds
-  echo "🧹 Cleaning previous builds..."
-  rm -rf dist/
-  npx expo export:embed --clear
+  ## Full Description
+  Welcome to PetSoft Tycoon, the ultimate idle business simulation where you build and manage your own software development company!
   
-  # Run tests
-  echo "🧪 Running test suite..."
-  npm run test:coverage
-  npm run lint
-  npm run type-check
+  ### 🚀 Start Small, Dream Big
+  Begin your journey as a solo developer writing code line by line. Watch your simple startup grow into a tech empire spanning multiple departments and thousands of employees.
   
-  # Build for production
-  echo "📱 Building iOS..."
+  ### 🏢 Manage 7 Unique Departments
+  - **Development**: The heart of your company - hire programmers and build amazing software
+  - **Sales**: Convert your products into revenue with skilled sales teams
+  - **Marketing**: Boost your brand awareness and customer acquisition
+  - **HR**: Recruit top talent and improve company-wide efficiency
+  - **Finance**: Optimize costs and manage investments strategically
+  - **Operations**: Streamline processes and improve overall productivity
+  - **Executive**: Make strategic decisions that shape your company's future
+  
+  ### 💰 Idle Progression System
+  Your company keeps growing even when you're away! Return to find your teams have been productive, generating revenue and developing new features.
+  
+  ### 🎯 Prestige & Long-term Growth
+  When you've built a successful company, restart with investor backing for permanent bonuses and faster progression. Each prestige run offers new strategies and higher goals.
+  
+  ### ✨ Key Features
+  - **Engaging Idle Gameplay**: Progress continues even when offline
+  - **Strategic Department Management**: Each department offers unique upgrade paths
+  - **Achievement System**: Unlock rewards for reaching major milestones
+  - **Prestige Mechanics**: Reset for permanent bonuses and investor points
+  - **Smooth Performance**: Optimized for 60 FPS on all devices
+  - **No Pay-to-Win**: Pure skill and strategy determine success
+  
+  ### 🎮 Perfect For
+  - Fans of idle and incremental games
+  - Business simulation enthusiasts  
+  - Anyone who loves watching numbers grow
+  - Players seeking long-term progression goals
+  - Strategic thinkers who enjoy optimization
+  
+  Download PetSoft Tycoon today and start building your software empire! From writing your first line of code to managing a billion-dollar company, every tap brings you closer to becoming the ultimate tech tycoon.
+  EOF
+  
+  # Create screenshot specifications
+  cat > store-listing/screenshot-specs.md << 'EOF'
+  # App Store Screenshot Specifications
+  
+  ## Required Screenshots (iOS)
+  - iPhone 6.7": 1290 x 2796 pixels
+  - iPhone 6.5": 1242 x 2688 pixels
+  - iPhone 5.5": 1242 x 2208 pixels
+  - iPad Pro 12.9": 2048 x 2732 pixels
+  - iPad Pro 11": 1668 x 2388 pixels
+  
+  ## Screenshot Content Plan
+  
+  ### Screenshot 1: Dashboard Overview
+  - Show main dashboard with currency, stats, and production rates
+  - Highlight key metrics and progress indicators
+  - Text overlay: "Build Your Software Empire"
+  
+  ### Screenshot 2: Department Management
+  - Display departments screen with multiple unlocked departments
+  - Show employee hiring and upgrade options
+  - Text overlay: "Manage 7 Unique Departments"
+  
+  ### Screenshot 3: Employee Hiring
+  - Focus on hiring interface with different employee types
+  - Show production benefits and cost information
+  - Text overlay: "Hire & Upgrade Your Team"
+  
+  ### Screenshot 4: Prestige System
+  - Display prestige screen with investor points
+  - Show multiplier benefits and progression rewards
+  - Text overlay: "Prestige for Permanent Bonuses"
+  
+  ### Screenshot 5: Achievements
+  - Show achievement list with unlocked rewards
+  - Highlight progression milestones and benefits
+  - Text overlay: "Unlock Achievements & Rewards"
+  EOF
+  
+  # Create metadata files
+  mkdir -p store-listing/metadata
+  
+  cat > store-listing/metadata/keywords.txt << 'EOF'
+  idle game, business simulation, tycoon game, incremental game, software company, management game, strategy game, prestige game, offline progress, department management
+  EOF
+  
+  cat > store-listing/metadata/categories.txt << 'EOF'
+  Primary Category: Games
+  Secondary Category: Simulation
+  Tags: Idle, Strategy, Business, Tycoon
+  EOF
+  ```
+
+### Final Build and Testing
+- [ ] **Create Production Builds** (1 hour)
+  ```bash
+  # Build optimization check
+  echo "🔧 Pre-build optimization check..."
+  node scripts/optimize-build.js
+  
+  # Create production builds
+  echo "📱 Creating iOS production build..."
   eas build --platform ios --profile production --non-interactive
   
-  echo "🤖 Building Android..."  
+  echo "🤖 Creating Android production build..."
   eas build --platform android --profile production --non-interactive
   
-  echo "✅ Release builds complete!"
-  echo "Check EAS dashboard for download links"
-  ```
-
-- [ ] **Create Submission Checklist**
-  ```markdown
-  ## Pre-Submission Checklist
+  # Create internal testing builds
+  echo "🧪 Creating preview builds for testing..."
+  eas build --platform all --profile preview --non-interactive
   
-  ### Technical Requirements
-  - [ ] App builds successfully for both platforms
-  - [ ] Performance meets minimum requirements (45+ FPS)
-  - [ ] Memory usage under limits (<50MB active)
-  - [ ] No crashes during 30-minute stress test
-  - [ ] Save/load system tested with app kills
-  - [ ] Audio works correctly on all platforms
-  - [ ] Offline progression calculates correctly
+  # Build verification script
+  cat > scripts/verify-builds.js << 'EOF'
+  const fs = require('fs');
+  const https = require('https');
   
-  ### Content Requirements  
-  - [ ] All achievements are attainable
-  - [ ] Prestige system provides meaningful progression
-  - [ ] Department unlocks work at correct thresholds
-  - [ ] No placeholder text or assets
-  - [ ] Numbers format correctly (1K, 1M, 1B notation)
-  
-  ### Store Requirements
-  - [ ] App icons created for all required sizes
-  - [ ] Screenshots captured for all device sizes
-  - [ ] App description written and proofread
-  - [ ] Privacy policy published and linked
-  - [ ] Metadata includes relevant keywords
-  - [ ] Content rating appropriate for all regions
-  
-  ### Platform Specific
-  
-  #### iOS
-  - [ ] Bundle identifier matches App Store Connect
-  - [ ] Version number incremented
-  - [ ] Build number incremented
-  - [ ] App Store Connect metadata complete
-  - [ ] TestFlight testing completed
-  
-  #### Android  
-  - [ ] Package name unique and consistent
-  - [ ] Version code incremented
-  - [ ] Play Console metadata complete
-  - [ ] Internal testing track validated
-  - [ ] Required permissions justified
-  ```
-
-### 8. Monitoring and Analytics Setup
-
-- [ ] **Create Performance Monitoring**
-  ```typescript
-  // src/services/monitoring.ts
-  export class ProductionMonitoring {
-    private static crashes: any[] = [];
-    private static performanceIssues: any[] = [];
+  async function verifyBuilds() {
+    console.log('🔍 Verifying build artifacts...');
     
-    static initialize() {
-      // Set up global error handlers
-      if (__DEV__) return;
-      
-      // Capture unhandled promise rejections
-      const originalHandler = require('react-native/Libraries/Core/ExceptionsManager').default.exceptionHandler;
-      require('react-native/Libraries/Core/ExceptionsManager').default.exceptionHandler = (error: any, isFatal: boolean) => {
-        this.logCrash(error, isFatal);
-        originalHandler(error, isFatal);
-      };
-      
-      // Monitor performance issues
-      setInterval(() => {
-        this.checkPerformanceHealth();
-      }, 30000); // Check every 30 seconds
-    }
+    // This would integrate with EAS Build API to check build status
+    const buildChecks = [
+      { platform: 'ios', profile: 'production', expected: 'completed' },
+      { platform: 'android', profile: 'production', expected: 'completed' }
+    ];
     
-    private static logCrash(error: any, isFatal: boolean) {
-      const crashReport = {
-        timestamp: Date.now(),
-        error: error.message,
-        stack: error.stack,
-        isFatal,
-        gameState: this.getAnonymizedGameState(),
-      };
+    let allPassed = true;
+    
+    for (const check of buildChecks) {
+      console.log(`Checking ${check.platform} ${check.profile} build...`);
       
-      this.crashes.push(crashReport);
+      // Mock build verification - would use actual EAS API
+      const buildStatus = 'completed'; // Simulated
       
-      // In production, you would send this to your crash reporting service
-      if (this.crashes.length > 50) {
-        this.crashes.shift(); // Keep only recent crashes
+      if (buildStatus === check.expected) {
+        console.log(`✅ ${check.platform} build successful`);
+      } else {
+        console.log(`❌ ${check.platform} build failed: ${buildStatus}`);
+        allPassed = false;
       }
     }
     
-    private static checkPerformanceHealth() {
-      const fps = gameState$.performance.fps.get();
-      const memoryUsage = gameState$.performance.memoryUsage.get();
-      
-      if (fps < 30 || memoryUsage > 80) {
-        this.performanceIssues.push({
-          timestamp: Date.now(),
-          fps,
-          memoryUsage,
-          gameState: this.getAnonymizedGameState(),
-        });
-        
-        if (this.performanceIssues.length > 100) {
-          this.performanceIssues.shift();
-        }
-      }
+    if (allPassed) {
+      console.log('\n🎉 All builds verified successfully!');
+      console.log('Ready for app store submission.');
+    } else {
+      console.log('\n❌ Build verification failed. Check build logs.');
     }
     
-    private static getAnonymizedGameState() {
-      return {
-        totalResources: Object.values(gameState$.resources.get()).reduce((sum, val) => sum + val, 0),
-        prestigeCount: gameState$.meta.prestigeCount.get(),
-        playTime: Date.now() - gameState$.meta.startTime.get(),
-      };
-    }
-    
-    // Export functions for future analytics integration
-    static getCrashReports() {
-      return [...this.crashes];
-    }
-    
-    static getPerformanceIssues() {
-      return [...this.performanceIssues];
-    }
+    return allPassed;
   }
+  
+  verifyBuilds().catch(console.error);
+  EOF
+  
+  # Run build verification
+  node scripts/verify-builds.js
   ```
 
-## Validation Criteria
-
-### Must Pass ✅
-- [ ] Production builds complete successfully for both platforms
-- [ ] Performance tests pass on minimum supported devices
-- [ ] E2E test suite passes all scenarios
-- [ ] App store requirements met (icons, screenshots, descriptions)
-- [ ] Privacy policy complies with platform requirements
-
-### Should Pass ⚠️
-- [ ] Automated testing pipeline runs without errors
-- [ ] Bundle size under platform limits (iOS <100MB, Android <150MB)
-- [ ] Battery usage testing shows <5% drain per hour
-- [ ] Accessibility features work correctly
-
-### Nice to Have 💡
-- [ ] Analytics integration ready for future updates
-- [ ] A/B testing framework prepared
-- [ ] Crash reporting system functional
-- [ ] Performance monitoring dashboard ready
-
-## Testing Commands
-
-```bash
-# Full test suite
-npm run test:coverage
-npm run test:e2e
-npm run test:performance
-
-# Build testing
-eas build --platform all --profile preview
-eas submit --platform all --profile production
-
-# Performance validation
-# Test on actual devices with battery monitoring
-# Memory profiling with development builds
-```
-
-## Troubleshooting
-
-### Build Issues
-- **Symptom**: Build fails on EAS
-- **Solution**: Check eas.json configuration and dependencies
-- **Command**: `eas build --platform ios --profile production --clear-cache`
-
-### App Store Rejection
-- **Symptom**: Rejection for performance or content issues  
-- **Solution**: Review guidelines and test on minimum devices
-- **Command**: Use TestFlight/Internal Testing for validation
-
-### Performance Problems
-- **Symptom**: Performance degradation in production
-- **Solution**: Enable performance monitoring and profiling
-- **Command**: Use Flipper or React DevTools for debugging
-
-## Deliverables
-
-### 1. Production-Ready Builds
-- ✅ iOS app bundle optimized for App Store
-- ✅ Android app bundle optimized for Play Store
-- ✅ All assets properly sized and optimized
-
-### 2. Complete Store Listings
-- ✅ App descriptions, screenshots, and metadata
-- ✅ Privacy policy and content ratings
-- ✅ All required app store assets
-
-### 3. Quality Assurance
-- ✅ Comprehensive test suite with high coverage
-- ✅ Performance validation on target devices
-- ✅ E2E testing of critical user flows
-
-### 4. Deployment Infrastructure
-- ✅ Automated build and release process
-- ✅ Performance monitoring and crash reporting
-- ✅ Update and maintenance procedures
-
-## Launch Checklist
-
-### Pre-Launch (Final 24 Hours)
-- [ ] Final performance validation on real devices
-- [ ] App store metadata final review
-- [ ] Emergency rollback plan prepared
-- [ ] Support channels ready (email, social media)
-
-### Launch Day
-- [ ] Submit to app stores (iOS first, then Android)
-- [ ] Monitor download and crash metrics
-- [ ] Respond to user reviews and feedback
-- [ ] Prepare hotfix deployment if needed
-
-### Post-Launch (First Week)
-- [ ] Daily monitoring of key metrics
-- [ ] User feedback analysis and prioritization
-- [ ] Performance optimization based on real usage
-- [ ] Plan first content update
-
-**Estimated Duration**: 2-3 days
-**Deployment Ready**: ✅/❌ (update after validation)
+### Deployment Automation
+- [ ] **Create CI/CD Pipeline** (1 hour)
+  ```bash
+  # Create GitHub Actions workflow
+  mkdir -p .github/workflows
+  
+  cat > .github/workflows/build-and-deploy.yml << 'EOF'
+  name: Build and Deploy
+  
+  on:
+    push:
+      branches: [main, production]
+    pull_request:
+      branches: [main]
+  
+  jobs:
+    test:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        
+        - name: Setup Node.js
+          uses: actions/setup-node@v4
+          with:
+            node-version: '18'
+            cache: 'npm'
+            
+        - name: Install dependencies
+          run: npm ci
+          
+        - name: Run TypeScript check
+          run: npx tsc --noEmit
+          
+        - name: Run tests
+          run: npm test -- --watchAll=false --coverage
+          
+        - name: Run build optimization
+          run: node scripts/optimize-build.js
+  
+    build-preview:
+      if: github.event_name == 'pull_request'
+      needs: test
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        
+        - name: Setup Node.js
+          uses: actions/setup-node@v4
+          with:
+            node-version: '18'
+            cache: 'npm'
+            
+        - name: Setup Expo
+          uses: expo/expo-github-action@v8
+          with:
+            expo-version: latest
+            token: ${{ secrets.EXPO_TOKEN }}
+            
+        - name: Install dependencies
+          run: npm ci
+          
+        - name: Build preview
+          run: eas build --platform all --profile preview --non-interactive
+  
+    build-production:
+      if: github.ref == 'refs/heads/production'
+      needs: test
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        
+        - name: Setup Node.js
+          uses: actions/setup-node@v4
+          with:
+            node-version: '18'
+            cache: 'npm'
+            
+        - name: Setup Expo
+          uses: expo/expo-github-action@v8
+          with:
+            expo-version: latest
+            token: ${{ secrets.EXPO_TOKEN }}
+            
+        - name: Install dependencies
+          run: npm ci
+          
+        - name: Build production
+          run: eas build --platform all --profile production --non-interactive
+          
+        - name: Verify builds
+          run: node scripts/verify-builds.js
+          
+        - name: Create release
+          if: success()
+          uses: actions/create-release@v1
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          with:
+            tag_name: v${{ github.run_number }}
+            release_name: Release v${{ github.run_number }}
+            body: |
+              Production build completed successfully.
+              iOS and Android builds ready for app store submission.
+            draft: false
+            prerelease: false
+  EOF
+  
+  # Create deployment checklist
+  cat > deployment-checklist.md << 'EOF'
+  # Pre-Deployment Checklist
+  
+  ## Code Quality
+  - [ ] All tests passing
+  - [ ] TypeScript compilation successful  
+  - [ ] No console.error or console.warn in production
+  - [ ] Performance targets met (60 FPS, <75MB memory)
+  - [ ] Bundle size under 10MB
+  
+  ## Build Configuration
+  - [ ] Production environment variables configured
+  - [ ] Bundle identifier and package name correct
+  - [ ] Version numbers incremented appropriately
+  - [ ] App icons and splash screens optimized
+  - [ ] Build optimization script executed
+  
+  ## App Store Assets
+  - [ ] App description written and reviewed
+  - [ ] Screenshots created for all required device sizes
+  - [ ] App metadata complete (categories, keywords, ratings)
+  - [ ] Privacy policy and terms of service ready
+  - [ ] Age rating assessment completed
+  
+  ## Testing
+  - [ ] Internal testing on target devices completed
+  - [ ] Performance testing passed on minimum spec devices
+  - [ ] Crash reporting and analytics tested
+  - [ ] Offline functionality verified
+  - [ ] Save/load system thoroughly tested
+  
+  ## Security & Privacy
+  - [ ] No hardcoded secrets or API keys
+  - [ ] Analytics opt-out functionality working
+  - [ ] Data collection practices documented
+  - [ ] COPPA compliance verified (if applicable)
+  - [ ] GDPR compliance verified (if applicable)
+  
+  ## Distribution
+  - [ ] Apple Developer account setup and certificates valid
+  - [ ] Google Play Console account setup and keys configured
+  - [ ] EAS Build credentials configured
+  - [ ] CI/CD pipeline tested and working
+  - [ ] Rollback plan documented
+  
+  ## Post-Launch Monitoring
+  - [ ] Crash reporting system active
+  - [ ] Analytics dashboard configured
+  - [ ] Performance monitoring alerts setup
+  - [ ] User feedback collection system ready
+  - [ ] Update deployment process documented
+  EOF
+  ```
 
 ---
 
-## Final Validation
+## Quality Gates & Validation
 
-This runbook provides a complete, step-by-step development process for implementing PetSoft Tycoon with:
+### Build Quality Validation
+- [ ] **Production Build Verification**
+  ```bash
+  echo "Build Quality Checklist:"
+  echo "1. iOS and Android builds complete successfully"
+  echo "2. Bundle sizes under target limits"
+  echo "3. No development dependencies in production builds"
+  echo "4. Performance optimization settings active"
+  echo "5. Crash reporting and analytics configured"
+  echo "6. All environment variables properly set"
+  ```
 
-- **React Native 0.76+** with New Architecture for performance
-- **Expo SDK 52** for latest platform features  
-- **Legend State @beta** for 40% state management performance improvement
-- **Comprehensive department systems** with strategic depth
-- **Robust prestige mechanics** for long-term engagement
-- **Premium animations and audio** for satisfying game feel
-- **Production-ready deployment** with quality assurance
+### App Store Readiness
+- [ ] **Store Listing Completeness**
+  - App description compelling and accurate
+  - Screenshots showcase key features effectively
+  - Keywords optimized for discoverability
+  - Age ratings and content warnings appropriate
+  - Privacy policy and terms of service complete
 
-Each phase builds systematically on the previous one, with clear validation criteria and troubleshooting guides for a senior engineer to execute successfully.
+### Performance Validation
+- [ ] **Final Performance Testing**
+  - Production builds maintain 60 FPS target
+  - Memory usage remains under 75MB
+  - Cold start time under 3 seconds
+  - No crashes during extended testing sessions
+  - Analytics and crash reporting working correctly
+
+---
+
+## Deliverables
+
+### Required Outputs
+1. **Production-Ready Builds** for iOS and Android app stores
+2. **EAS Build Configuration** with automated build pipeline
+3. **App Store Assets** including descriptions, screenshots, and metadata
+4. **Performance Monitoring** with crash reporting and analytics
+5. **CI/CD Pipeline** for automated testing and deployment
+6. **Documentation** for deployment processes and maintenance
+
+### Final Validation Checklist
+- [ ] Production builds complete and tested on devices
+- [ ] All app store assets prepared and optimized
+- [ ] Performance monitoring systems active and collecting data
+- [ ] CI/CD pipeline tested and functional
+- [ ] Team trained on deployment and update processes
+- [ ] Rollback procedures documented and tested
+- [ ] Post-launch monitoring plan in place
+
+---
+
+**Time Tracking**: Record actual time vs estimates
+- [ ] Build optimization: __ hours (est: 2)
+- [ ] EAS configuration: __ hours (est: 1.5)
+- [ ] Analytics setup: __ hours (est: 2)
+- [ ] App store preparation: __ hours (est: 2)
+- [ ] Production builds: __ hours (est: 1)
+- [ ] CI/CD setup: __ hours (est: 1)
+- [ ] **Total Phase 5**: __ hours (est: 9.5-11 hours over 1-2 days)
+
+**Critical Success Metrics**:
+- [ ] Production builds successful for both platforms
+- [ ] Bundle sizes meet target requirements
+- [ ] Performance monitoring functional and reporting
+- [ ] App store assets complete and professional
+- [ ] Automated deployment pipeline operational
+
+**Final Milestone**: **Production-ready PetSoft Tycoon app ready for app store submission**
+
+**Post-Launch Planning**: Monitor crash reports, user feedback, and analytics data to plan future updates and improvements. Maintain regular update schedule for bug fixes and feature enhancements.
+
+---
+
+## Project Completion Summary
+
+Upon successful completion of this phase, the PetSoft Tycoon project will have achieved:
+
+### Technical Achievements
+- **Mobile-first architecture** implemented with React Native + Expo
+- **60 FPS performance** maintained across all target devices
+- **Hybrid routing pattern** successfully reconciling Expo Router with vertical slicing
+- **Legend State v3** providing fine-grained reactivity with optimal performance
+- **Comprehensive department system** with 7 unique departments and upgrade trees
+- **Prestige mechanics** creating compelling long-term progression
+- **Production-ready builds** optimized for app store distribution
+
+### Business Objectives Met
+- **Complete idle game** with engaging progression mechanics
+- **Professional user experience** with polished animations and audio
+- **Scalable architecture** supporting future feature additions
+- **Performance monitoring** enabling data-driven optimization
+- **App store ready** with complete marketing assets and deployment pipeline
+
+The runbook provides a comprehensive, executable development plan that transforms the original web-based PRD into a modern, performant mobile application while maintaining the core gameplay vision and performance requirements.

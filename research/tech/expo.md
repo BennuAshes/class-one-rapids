@@ -222,8 +222,13 @@ npx expo start --ios    # iOS Simulator
 npx expo start --android    # Android Emulator
 npx expo start --web    # Web browser
 
-# Install dependencies
+# Install dependencies (IMPORTANT: resolves version conflicts)
 npx expo install package-name
+# Why use expo install instead of npm install:
+# - Automatically resolves to Expo SDK-compatible versions
+# - Prevents peer dependency conflicts
+# - Ensures all packages work together
+# - NEVER use npm install --legacy-peer-deps!
 
 # Run doctor for health checks
 npx expo-doctor
@@ -682,6 +687,70 @@ export function useDeviceInfo() {
 
   return deviceInfo;
 }
+```
+
+---
+
+## Dependency Management Best Practices
+
+### Critical: Always Use Expo Install
+
+**🚨 NEVER use `npm install --legacy-peer-deps` with Expo projects!**
+
+```bash
+# ❌ WRONG - Will cause version conflicts
+npm install some-package
+npm install --legacy-peer-deps  # NEVER do this!
+
+# ✅ CORRECT - Expo resolves compatible versions
+npx expo install some-package
+```
+
+### Why Expo Install is Essential
+
+1. **Automatic Version Resolution**: Expo install automatically selects package versions compatible with your Expo SDK
+2. **Peer Dependency Management**: Prevents React Native version mismatches
+3. **Platform Compatibility**: Ensures packages work on iOS, Android, and Web
+4. **SDK Alignment**: Keeps all packages aligned with your Expo SDK version
+
+### Common Dependency Issues and Solutions
+
+| Problem | Wrong Solution | Right Solution |
+|---------|---------------|----------------|
+| React version mismatch | `--legacy-peer-deps` | `npx expo install react react-native` |
+| Navigation conflicts | Force install | `npx expo install @react-navigation/native` |
+| Reanimated errors | Skip peer deps | `npx expo install react-native-reanimated` |
+| Gesture handler issues | Manual version | `npx expo install react-native-gesture-handler` |
+
+### Debugging Dependency Conflicts
+
+```bash
+# Check your Expo SDK version
+expo --version
+
+# See what versions Expo would install
+npx expo install --check
+
+# Fix all dependency issues
+npx expo doctor --fix-dependencies
+
+# View dependency tree
+npm ls react-native
+```
+
+### Migration from npm to expo install
+
+If you have an existing project with dependency issues:
+
+```bash
+# 1. Remove node_modules and lock file
+rm -rf node_modules package-lock.json
+
+# 2. Reinstall with Expo
+npx expo install
+
+# 3. Install additional packages with expo
+npx expo install <package-name>
 ```
 
 ---
