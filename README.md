@@ -12,7 +12,7 @@
 ```
 # Create PRD
 /generate-advanced-prd design-doc.md
-/analyze-prd-technical-requirements prd.md
+/prd-to-technical-requirements prd.md
 (optional)
 /validate-architecture-alignment prd-technical.md
 /follow-runbook-with-senior-engineer /runbook/
@@ -27,3 +27,11 @@
 # for a more manual check
 /guided-workflow 
 ```
+
+# Thoughts
+Research is good but also are observations about past behavior. It seems like it can integrate 
+Not sure what to call these observations. Conflicts? Mistakes? Omissions/Errors?
+
+Maybe "lessons"
+
+So we have "knowledge" and "lessons". There is the information, and corrections to the application of that information.

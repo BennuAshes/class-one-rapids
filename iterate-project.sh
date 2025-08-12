@@ -183,9 +183,9 @@ Run these commands as needed:
    /prp:generate-advanced-prd design-doc.md
    \`\`\`
 
-2. **Analyze Technical Requirements** (after PRD is generated):
+2. **Add Technical Requirements** (after PRD is generated):
    \`\`\`
-   /prp:analyze-prd-technical-requirements [prd-file]
+   /prp:prd-to-technical-requirements [prd-file]
    \`\`\`
 
 3. **Create Development Runbook** (after technical requirements):
@@ -253,7 +253,7 @@ fi
 echo ""
 echo -e "${BLUE}🚀 Next Steps - Run these commands as needed:${NC}"
 echo "  1. Generate PRD: /prp:generate-advanced-prd design-doc.md"
-echo "  2. Analyze requirements: /prp:analyze-prd-technical-requirements [prd-file]"
+echo "  2. Add technical requirements: /prp:prd-to-technical-requirements [prd-file]"
 echo "  3. Create runbook: /prp:create-development-runbook-v2 [tech-file]"
 echo "  4. Follow runbook: /prp:follow-runbook-with-senior-engineer ./runbook/"
 echo ""

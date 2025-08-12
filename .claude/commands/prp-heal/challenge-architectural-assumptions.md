@@ -192,7 +192,7 @@ TO: Isolated unit tests per feature
 ## Integration with Workflow
 
 This command should be run:
-1. **Before** `analyze-prd-technical-requirements`
+1. **Before** `prd-to-technical-requirements`
 2. **After** any PRD or design doc is created
 3. **During** architecture reviews
 
@@ -216,7 +216,7 @@ It acts as an architectural conscience, preventing anti-patterns from propagatin
 cat ARCHITECTURAL-ASSUMPTIONS-CHALLENGE.md
 
 # Then proceed with corrected architecture
-/analyze-prd-technical-requirements prd.md --with-corrections
+/prd-to-technical-requirements prd.md
 
 # Validate the architecture matches corrections
 /validate-architecture-alignment runbook/
