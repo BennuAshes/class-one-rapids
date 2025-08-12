@@ -49,7 +49,11 @@
       "Bash(CURRENT_VERSION=7)",
       "Bash(NEXT_VERSION=8)",
       "Bash(echo:*)",
-      "Bash(ESLINT_USE_FLAT_CONFIG=false npx eslint . --ext .ts,.tsx)"
+      "Bash(ESLINT_USE_FLAT_CONFIG=false npx eslint . --ext .ts,.tsx)",
+      "Bash(timeout 10s npx expo start --web)",
+      "Bash(true)",
+      "Bash(timeout 5s npx expo start --no-dev --clear)",
+      "Bash(test:*)"
     ],
     "deny": []
   }

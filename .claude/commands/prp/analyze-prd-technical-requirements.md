@@ -13,7 +13,7 @@ EXECUTE comprehensive PRD technical requirements analysis with ULTRATHINK proces
     - Product Requirements Document (PRD) parsing and feature extraction
     - Technical architecture pattern recognition and recommendation
     - Cross-platform mobile development with React Native and Expo
-    - Modern state management (Legend State, TanStack Query, Zustand)
+    - Modern state management (Legend State, TanStack Query)
     - Vertical slicing methodology and INVEST principles
     - TypeScript integration and type-safe development
     - Performance optimization and testing strategies
@@ -233,16 +233,6 @@ const { data: leaderboard } = useQuery(leaderboardOptions);
 const { theme } = useTheme();
 ```
 
-## Version Lock Decisions
-
-| Package | Version | Rationale | Risk Assessment |
-|---------|---------|-----------|-----------------|
-| expo | ~53.0.0 | Latest stable, not experimental | Low risk |
-| @legendapp/state | 3.0.0-beta.20 | Beta but production-ready per maintainer | Medium risk - have fallback to v2 |
-| react-native | 0.76.x | New Architecture default | Low risk with Expo |
-| @tanstack/react-query | ^5.0.0 | Stable v5 with improved TypeScript | Low risk |
-| react-native-mmkv | ^3.0.2 | 30x faster than AsyncStorage | Low risk, well-tested |
-
 ## Architecture Decision Records (ADRs)
 
 ### ADR-001: Hybrid Directory Structure
@@ -272,102 +262,7 @@ const { theme } = useTheme();
 - Platform-specific setup required
 - 30x performance improvement
 
-## Integration Points and Boundaries
 
-### Feature Module Boundaries
-```
-features/
-├── game/
-│   ├── screens/          # Exported to app/
-│   ├── components/        # Internal only
-│   ├── hooks/            # Internal + exported
-│   ├── state/            # Internal only
-│   └── index.ts          # Public API
-```
-
-### Cross-Feature Communication
-- **Events**: Use EventEmitter for loose coupling
-- **Shared State**: Explicit imports from shared/state
-- **Navigation**: Through app/ routing layer only
-
-## Risk Mitigation Strategies
-
-### High-Risk Patterns
-1. **Beta Dependencies (Legend State v3)**
-   - Mitigation: Abstract behind interface
-   - Fallback: Can downgrade to v2 if critical issues
-   - Monitoring: Track GitHub issues weekly
-
-2. **New Architecture (RN 0.76)**
-   - Mitigation: Expo handles most complexity
-   - Testing: Extensive device testing required
-   - Fallback: Can disable if performance issues
-
-### Medium-Risk Patterns
-1. **Hybrid Directory Structure**
-   - Mitigation: Clear documentation and examples
-   - Testing: Architecture validation scripts
-   - Review: Weekly architecture review meetings
-
-## Unresolved Tensions
-
-### Requires Testing
-1. **Performance on Low-End Devices**
-   - Legend State with large observable trees
-   - MMKV with frequent writes
-   - New Architecture on Android
-
-2. **Bundle Size Impact**
-   - Multiple state management libraries
-   - MMKV native code
-   - Monitoring required post-build
-
-### Requires Research
-1. **Background Task Handling**
-   - Game timers when app backgrounded
-   - State persistence timing
-   - Push notification integration
-
-## Testing Strategy Alignment
-
-### Unit Testing
-- Jest for Legend State observables
-- React Testing Library for components
-- Mock MMKV for persistence tests
-
-### Integration Testing
-- Test feature module boundaries
-- Validate state synchronization
-- API integration with MSW
-
-### E2E Testing
-- Maestro for critical user flows
-- Focus on game progression paths
-- Save/load game scenarios
-
-## Performance Benchmarks
-
-### Target Metrics
-| Metric | Target | Measurement Method |
-|--------|--------|-------------------|
-| Initial Load | < 2s | Performance.now() |
-| Game Loop FPS | 60fps | React DevTools Profiler |
-| State Update | < 16ms | Legend State metrics |
-| Save Game | < 100ms | MMKV write time |
-
-## Migration and Upgrade Paths
-
-### From Current to Target Architecture
-1. **Phase 1**: Setup hybrid directory structure
-2. **Phase 2**: Migrate to Legend State v3
-3. **Phase 3**: Implement MMKV persistence
-4. **Phase 4**: Optimize with New Architecture
-
-### Version Upgrade Strategy
-- Quarterly dependency review
-- Staged rollout for major versions
-- Feature flags for architecture changes
-```
 
 **PHASE 6: DEEP REFLECTION AND VALIDATION**
 Perform comprehensive reflection on architectural decisions:
@@ -471,21 +366,6 @@ Ensure technical requirements meet the following criteria:
 - **Maintainability**: Follow SOLID principles and clean architecture patterns
 - **Scalability**: Support future growth and feature additions
 - **Traceability**: Clear connections between business and technical requirements
-
-## MANDATORY IMPLEMENTATION CONSTRAINTS
-Based on research synthesis, implementations MUST:
-- Use feature-based folder structure (research/planning/vertical-slicing.md:83-84)
-- Implement custom hooks over utilities (research/tech/react-native.md:1589-1614)
-- Use modular Legend State patterns (research/tech/legend-state.md:388-417)
-- Follow React Native component organization (research/tech/react-native.md:1656-1673)
-
-## RESEARCH-VALIDATED PACKAGE REQUIREMENTS
-**ALL package installations MUST use versions extracted from research:**
-- **@legendapp/state**: @beta (from research/tech/legend-state.md)
-- **React Native**: 0.76+ with New Architecture (from research/tech/react-native.md)
-- **Expo SDK**: Latest stable version from research
-- **Testing Libraries**: Specific versions from research files
-- [Complete list auto-generated from research scan]
 
 **If a package is NOT in research**: Flag as "NEEDS RESEARCH VALIDATION"
 

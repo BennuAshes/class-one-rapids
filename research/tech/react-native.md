@@ -290,110 +290,14 @@ const App = () => (
 
 ### State Management Solutions (2024-2025)
 
-#### For Small to Medium Apps:
-- **Built-in hooks** (useState, useContext)
-- **Zustand** - Lightweight and simple
-```jsx
-import { create } from 'zustand';
-
-const useStore = create((set) => ({
-  count: 0,
-  increment: () => set((state) => ({ count: state.count + 1 })),
-  decrement: () => set((state) => ({ count: state.count - 1 })),
-}));
-```
-
-#### For Large/Complex Apps:
-- **Redux Toolkit** - Industry standard for complex state
-- **Recoil** - Atom-based state management
+#### For Large/Complex Apps (not POC/MVP):
+- **Legend State** - Best performance and less boilerplate
 - **TanStack Query** - For server state management
 
 ---
 
 ## 4. Navigation Solutions
-
-### React Navigation 7.0 (Latest - November 2024)
-
-React Navigation 7.0 introduces significant improvements including a new static API, preloading screens, and better web integration.
-
-#### Installation
-```bash
-npm install @react-navigation/native @react-navigation/native-stack
-npm install react-native-screens react-native-safe-area-context
-```
-
-#### Basic Stack Navigation
-```jsx
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-
-const Stack = createNativeStackNavigator();
-
-const HomeScreen = ({ navigation }) => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text>Home Screen</Text>
-    <TouchableOpacity
-      onPress={() => navigation.navigate('Details', { itemId: 86 })}
-    >
-      <Text>Go to Details</Text>
-    </TouchableOpacity>
-  </View>
-);
-
-const DetailsScreen = ({ route }) => {
-  const { itemId } = route.params;
-  
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Details Screen</Text>
-      <Text>Item ID: {itemId}</Text>
-    </View>
-  );
-};
-
-const App = () => (
-  <NavigationContainer>
-    <Stack.Navigator initialRouteName="Home">
-      <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="Details" component={DetailsScreen} />
-    </Stack.Navigator>
-  </NavigationContainer>
-);
-```
-
-#### Tab Navigation
-```jsx
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-
-const Tab = createBottomTabNavigator();
-
-const App = () => (
-  <NavigationContainer>
-    <Tab.Navigator>
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
-      <Tab.Screen name="Settings" component={SettingsScreen} />
-    </Tab.Navigator>
-  </NavigationContainer>
-);
-```
-
-#### Drawer Navigation
-```jsx
-import { createDrawerNavigator } from '@react-navigation/drawer';
-
-const Drawer = createDrawerNavigator();
-
-const App = () => (
-  <NavigationContainer>
-    <Drawer.Navigator>
-      <Drawer.Screen name="Home" component={HomeScreen} />
-      <Drawer.Screen name="Profile" component={ProfileScreen} />
-    </Drawer.Navigator>
-  </NavigationContainer>
-);
-```
+See expo.md
 
 #### New Features in React Navigation 7:
 
@@ -1657,12 +1561,20 @@ const App = () => {
 
 ```
 src/
-├── components/           # Reusable UI components
+├── app/                 # Expo Router app directory (file-based routing)
+│   ├── (tabs)/          # Tab-based navigation
+│   ├── (stack)/         # Stack navigation
+│   └── _layout.tsx      # Root layout
+├── components/          # Reusable UI components
 │   ├── common/          # Shared components
 │   ├── forms/           # Form-specific components
 │   └── ui/              # Basic UI elements
-├── screens/             # Screen components
-├── navigation/          # Navigation configuration
+├── features/            # Feature-based modules (vertical slicing)
+│   ├── auth/            # Authentication feature
+│   ├── profile/         # User profile feature
+│   └── settings/        # Settings feature
+├── screens/             # Screen components (when not using Expo Router)
+├── navigation/          # Navigation configuration (when not using Expo Router)
 ├── services/            # API calls and business logic
 ├── hooks/               # Custom hooks
 ├── context/             # Context providers
@@ -1671,6 +1583,12 @@ src/
 ├── assets/              # Images, fonts, etc.
 └── types/               # TypeScript type definitions
 ```
+
+**Important Notes:**
+- When using **Expo Router**, place the `app/` directory under `src/` for better organization
+- Use **feature-based organization** (vertical slicing) for scalable applications
+- Keep screens in `screens/` only when not using file-based routing
+- Navigation configuration is only needed when not using Expo Router
 
 ### Performance Patterns
 

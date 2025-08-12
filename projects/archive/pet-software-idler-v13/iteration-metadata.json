@@ -1,0 +1,17 @@
+{
+  "version": "12",
+  "created": "2025-08-11T16:59:14Z",
+  "previous_version": "11",
+  "workflow_stage": "initialized",
+  "artifacts": {
+    "design_doc": true,
+    "prd": false,
+    "technical_requirements": false,
+    "runbook": false
+  },
+  "flags": {
+    "from_design_doc": true,
+    "skip_archive": false,
+    "clean_start": false
+  }
+}

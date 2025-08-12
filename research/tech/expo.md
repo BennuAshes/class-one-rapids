@@ -26,9 +26,6 @@ Expo is a comprehensive platform and framework for React Native development that
 - **Cloud-Based Infrastructure**: Provides cloud services for building, updating, and deploying apps
 - **Developer Experience**: Streamlines the entire mobile development lifecycle
 
-### Official Status (2024-2025)
-As of 2024-2025, Expo has become the **official framework** recommended by the React Native team for building React Native projects, with over 50% market share of React Native projects now using Expo.
-
 ### Key Benefits
 - Zero native configuration required to get started
 - Hot reloading and fast refresh for rapid development
@@ -45,6 +42,76 @@ As of 2024-2025, Expo has become the **official framework** recommended by the R
 - **Android**: Native Android applications  
 - **Web**: Progressive Web Apps (PWA)
 - **Desktop**: Experimental support for desktop platforms
+
+#### Adding Web Support to Expo Projects
+
+To add web support to an existing Expo project:
+
+```bash
+# Install web dependencies
+npx expo install react-native-web react-dom
+
+# Install web-specific optimizations (optional)
+npx expo install @expo/webpack-config
+
+# Start the web server
+npx expo start --web
+
+# Or start on a specific port
+npx expo start --web --port 3000
+
+# Build for web production
+npx expo export --platform web
+```
+
+**Web-specific Configuration (app.json):**
+```json
+{
+  "expo": {
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "name": "Your App Name",
+      "shortName": "AppName",
+      "description": "Your app description",
+      "backgroundColor": "#ffffff",
+      "themeColor": "#000000",
+      "lang": "en",
+      "scope": "/",
+      "startUrl": "/",
+      "display": "standalone",
+      "orientation": "portrait"
+    }
+  }
+}
+```
+
+**Platform-specific Code:**
+```typescript
+import { Platform } from 'react-native';
+
+// Platform detection
+if (Platform.OS === 'web') {
+  // Web-specific code
+} else if (Platform.OS === 'ios') {
+  // iOS-specific code
+} else if (Platform.OS === 'android') {
+  // Android-specific code
+}
+
+// Platform-specific file extensions
+// Create files with platform extensions:
+// - Component.web.tsx (web-specific)
+// - Component.native.tsx (iOS and Android)
+// - Component.ios.tsx (iOS-specific)
+// - Component.android.tsx (Android-specific)
+```
+
+**Web Performance Considerations:**
+- Use `react-native-web` compatible libraries
+- Optimize bundle size with code splitting
+- Consider SSR with Next.js for better SEO
+- Test responsive design across screen sizes
+- Ensure touch and mouse interactions work
 
 ### Comprehensive SDK
 The Expo SDK provides access to nearly all device and system functionality:
@@ -761,10 +828,12 @@ npx expo install <package-name>
 
 ```
 src/
-├── components/           # Reusable UI components
+├── app/                 # Expo Router app directory (when using file-based routing)
+├── components/          # Reusable UI components
 │   ├── common/          # Generic components
 │   └── forms/           # Form-specific components
-├── screens/             # Screen components
+├── screens/             # Screen components (when not using Expo Router)
+├── features/            # Feature-based modules (vertical slicing)
 ├── hooks/               # Custom hooks
 ├── services/            # API and external services
 ├── utils/               # Utility functions
@@ -772,6 +841,11 @@ src/
 ├── types/               # TypeScript type definitions
 └── assets/              # Images, fonts, etc.
 ```
+
+**Important Note**: When using Expo Router, the `app/` directory should be placed under `src/` for better organization:
+- `src/app/` - Contains all route files
+- This keeps routing separate from other source code
+- Maintains cleaner project root
 
 ### 2. Component Development Patterns
 
@@ -903,123 +977,6 @@ const OptimizedImage = ({ source, ...props }) => (
 );
 ```
 
-### 5. State Management Patterns
-
-#### Context + Reducer Pattern
-```typescript
-// UserContext.tsx
-import React, { createContext, useContext, useReducer } from 'react';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
-interface UserState {
-  user: User | null;
-  loading: boolean;
-  error: string | null;
-}
-
-type UserAction = 
-  | { type: 'SET_USER'; payload: User }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string };
-
-const userReducer = (state: UserState, action: UserAction): UserState => {
-  switch (action.type) {
-    case 'SET_USER':
-      return { ...state, user: action.payload, loading: false, error: null };
-    case 'SET_LOADING':
-      return { ...state, loading: action.payload };
-    case 'SET_ERROR':
-      return { ...state, error: action.payload, loading: false };
-    default:
-      return state;
-  }
-};
-
-const UserContext = createContext<{
-  state: UserState;
-  dispatch: React.Dispatch<UserAction>;
-} | null>(null);
-
-export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(userReducer, {
-    user: null,
-    loading: false,
-    error: null,
-  });
-
-  return (
-    <UserContext.Provider value={{ state, dispatch }}>
-      {children}
-    </UserContext.Provider>
-  );
-};
-
-export const useUser = () => {
-  const context = useContext(UserContext);
-  if (!context) {
-    throw new Error('useUser must be used within UserProvider');
-  }
-  return context;
-};
-```
-
-### 6. Error Handling Patterns
-
-#### Error Boundaries
-```typescript
-import React from 'react';
-import { View, Text } from 'react-native';
-
-interface Props {
-  children: React.ReactNode;
-  fallback?: React.ComponentType<{ error: Error }>;
-}
-
-interface State {
-  hasError: boolean;
-  error: Error | null;
-}
-
-class ErrorBoundary extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      const FallbackComponent = this.props.fallback;
-      if (FallbackComponent && this.state.error) {
-        return <FallbackComponent error={this.state.error} />;
-      }
-      
-      return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text>Something went wrong</Text>
-        </View>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
-export default ErrorBoundary;
-```
-
 ### 7. Testing Patterns
 
 #### Jest + Testing Library
@@ -1051,121 +1008,3 @@ describe('CustomButton', () => {
 ```
 
 ---
-
-## Recent Updates and Future Direction
-
-### 2024-2025 Major Updates
-
-#### Expo SDK 53 (Current Stable - Mid 2025)
-- **React Native 0.79 Support**: Latest stable React Native version
-- **New Architecture by Default**: All new projects use React Native's new architecture
-- **Platform Support**: Android 7+ and iOS 15.1+
-- **Enhanced Performance**: Continued JSI and TurboModule optimizations
-- **Build Infrastructure**: M4 Pro workers for faster EAS Build times
-
-#### Platform Requirements Updates
-- **iOS**: Minimum deployment target 15.1, requires Xcode 16.0+
-- **Android**: Minimum SDK 24 (Android 7.0)
-- **React Native 0.79**: Current stable version in SDK 53
-- **React Native 0.80 Preview**: Available in canary releases
-
-#### New Libraries and APIs
-- **expo/fetch**: WinterCG-compliant Fetch API with streaming support
-- **expo-router/ui**: Headless tabs component with Radix-like API
-- **expo-image v2**: useImage hook for preloading and metadata
-- **React Native DevTools**: Replaces JavaScript debugger
-
-### 2025 Roadmap
-
-#### Current Status (Mid 2025)
-- **SDK 53**: Current stable release with React Native 0.79
-- **SDK 54 Development**: React Native 0.80 support in canary releases
-- **Release Cadence**: Three releases per year, following React Native major versions
-
-#### Development Tools Evolution
-- **EAS Build Improvements**: M4 Pro workers for faster builds
-- **Enhanced Dashboard**: New project sidebar, custom avatars, project icons
-- **Build Comparison Tools**: Improved analysis and debugging capabilities
-
-#### React Server Components
-- **Full Implementation**: Complete React Server Components support
-- **Server Actions**: Backend integration patterns
-- **New Development Patterns**: Revolutionary app architecture possibilities
-
-#### Performance Improvements
-- **JSI Migration**: More modules moving to JavaScript Interface
-- **Bundle Optimization**: Continued work on reducing app size
-- **Build Performance**: Faster cloud builds and local development
-
-### Industry Trends and Adoption
-
-#### Growing Adoption
-- **50%+ Market Share**: Over half of React Native projects now use Expo
-- **Enterprise Adoption**: Increasing use in large-scale applications
-- **Developer Preference**: Recommended by React Native team as the default approach
-
-#### Ecosystem Evolution
-- **Blurred Workflow Lines**: Managed and bare workflows becoming more similar
-- **Config Plugin Ecosystem**: Growing library of community plugins
-- **Third-Party Integration**: Better support for React Native libraries
-
-### Future Technology Integration
-
-#### AI and Machine Learning
-- **Edge AI**: Local model execution capabilities
-- **ML Kit Integration**: Enhanced machine learning APIs
-- **Computer Vision**: Advanced camera and image processing
-
-#### Web Technologies
-- **Web Standards**: Closer alignment with web APIs
-- **PWA Features**: Enhanced progressive web app capabilities
-- **Cross-Platform APIs**: Unified APIs across mobile and web
-
-#### Developer Experience
-- **Hot Reload Improvements**: Faster development iteration
-- **Error Reporting**: Better debugging and error tracking
-- **IDE Integration**: Enhanced VS Code and development tool support
-
-### Strategic Direction
-
-#### Focus Areas
-1. **Performance**: Continued optimization of app performance and developer experience
-2. **Universality**: Better cross-platform API consistency
-3. **Developer Tools**: Enhanced debugging, profiling, and development tools
-4. **Cloud Services**: Expanded EAS capabilities and global infrastructure
-5. **Community**: Growing ecosystem of plugins, libraries, and resources
-
-#### Long-term Vision
-Expo aims to become the complete solution for universal app development, providing:
-- **Zero Configuration**: Apps that work everywhere without platform-specific code
-- **Cloud-First Development**: Complete development lifecycle in the cloud
-- **AI-Enhanced Development**: Intelligent code generation and optimization
-- **Seamless Updates**: Instant app updates without app store dependencies
-
----
-
-## Conclusion
-
-Expo has evolved from a simple React Native wrapper to a comprehensive platform that addresses the entire mobile app development lifecycle. In 2024-2025, it represents the recommended approach for React Native development, offering:
-
-### Key Strengths
-- **Rapid Development**: Fastest way to build cross-platform apps
-- **Comprehensive Tooling**: Complete development, build, and deployment pipeline
-- **Cloud Services**: Eliminates local environment complexity
-- **Active Development**: Regular updates and feature additions
-- **Strong Community**: Growing ecosystem and support
-
-### Best Use Cases
-- **Startup MVPs**: Quick prototyping and market validation
-- **Cross-Platform Apps**: Consistent experience across platforms
-- **Teams Without Native Expertise**: Focus on business logic over native complexity
-- **Regular Updates**: Apps requiring frequent feature updates
-
-### Future Outlook
-Expo is positioned to lead the next generation of mobile development with React Server Components, enhanced performance through the New Architecture, and continued expansion of cloud services. The platform's trajectory suggests it will continue to simplify mobile development while providing the power and flexibility needed for production applications.
-
-For AI agents and development teams, Expo provides a structured, well-documented approach to building mobile applications with minimal configuration overhead and maximum development velocity. The comprehensive SDK, cloud services, and active community make it an excellent choice for most React Native projects in 2024 and beyond.
-
----
-
-*This report represents the current state of Expo as of late 2024/early 2025 and reflects the platform's rapid evolution and increasing industry adoption.*

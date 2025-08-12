@@ -17,3 +17,18 @@
   - No `git checkout`, `git branch`, `git tag`
   - Read-only commands are OK: `git status`, `git log`, `git diff`, `git show`
 - Version control modifications are managed at a higher level
+
+# Project Directory Management
+- **NEVER create project artifacts in the root directory** (/mnt/c/dev/class-one-rapids/)
+- All project artifacts MUST be created within `/projects/[project-name]/` or `/projects/[project-name]-v[N]/`
+- Before creating any files or folders:
+  1. Check current directory with `pwd`
+  2. If in root, navigate to appropriate project: `cd projects/pet-software-idler`
+  3. Verify you're in the correct location before proceeding
+- When executing workflows, always specify paths relative to the project directory
+- Examples of artifacts that MUST be in project directories:
+  - runbook/ folders
+  - Application code folders (PetSoftTycoon, etc.)
+  - PRD files (*.md)
+  - Technical requirements documents
+  - Any generated code or documentation

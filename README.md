@@ -4,10 +4,9 @@
 # archive any current versions and set up folder for new run
 /iterate-project-version
 
-# Start a new flow or continue from previous run
+# Start a new fully automated flow or continue from previous run
 /execute-full-workflow
 ```
-
 
 ## Manual Process
 ```
@@ -19,11 +18,12 @@
 /follow-runbook-with-senior-engineer /runbook/
 ```
 
-## Research
+## Research Commands
 - use /research to create research files for new topics
-- run the bash script ./update-research-quick-ref to create a quick reference for the research that is more token-friendly
+- use /extract-implementation-research to create the quick-ref.md used by most commands/tasks.
 
 ## Other
 ```
 # for a more manual check
 /guided-workflow 
+```
