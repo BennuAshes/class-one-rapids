@@ -1,122 +1,48 @@
-# PetSoft Tycoon: Design Document v2.0
-## Building the Ultimate Pet Business Software Company
-
-### Table of Contents
-1. [Research Findings & Design Justification](#research-findings--design-justification)
-2. [Game Overview](#game-overview)
-3. [Core Loop & First 5 Minutes](#core-loop--first-5-minutes)
-4. [Department Systems](#department-systems)
-5. [Progression & Balance](#progression--balance)
-6. [Polish & Feedback Systems](#polish--feedback-systems)
-7. [MVP Feature Set](#mvp-feature-set)
-8. [Future Features](#future-features)
-
----
-
-## Research Findings & Design Justification
-
-### Key Learnings from Successful Idle Games
-
-**From Cookie Clicker:**
-- Start incredibly simple (single click = single resource)
-- Buildings that automate production create satisfying progression
-- Prestige systems with permanent bonuses drive long-term retention
-- Golden Cookie random events add active play elements
-- 20+ building types create depth without complexity
-
-**From Adventure Capitalist:**
-- Manager automation removes tedium
-- x2 multipliers at 25/50 units create purchase spikes
-- Multiple business types with interconnected bonuses
-- Angel Investors as prestige currency works perfectly
-- Time warps monetize impatience effectively
-
-**From Egg Inc & Factory Games:**
-- Visual feedback of production (chickens running, eggs flowing)
-- Multiple interconnected departments create strategic depth
-- Transport/logistics bottlenecks add management elements
-- Research trees provide long-term goals
-- Offline progression with limits drives daily returns
-
-**Critical First 5 Minutes:**
-- NO tutorials - learn by doing
-- First upgrade within 10 seconds
-- 3-5 upgrades in first minute
-- Visible automation by minute 2
-- Department unlock teaser by minute 3
-- First prestige hint by minute 5
-
----
+# PetSoft Tycoon: Design Document
 
 ## Game Overview
 
-### Theme & Story
-You're a developer who just quit their corporate job to build software for pet businesses. Starting from your garage with a single laptop, you'll grow into a tech empire helping pet stores, vets, groomers, and sitters manage their operations better.
-
-### Core Fantasy
-"From garage coder to pet tech mogul" - Watch your ideas transform into products that make pet businesses thrive while building a company culture that developers dream about.
-
-### Victory Condition (MVP)
-Successfully launch your IPO after reaching $1B valuation (approximately 2-4 weeks of engaged play).
+### Victory Condition
+Reach $1B valuation to launch IPO (2-4 weeks of engaged play).
 
 ---
 
 ## Core Loop & First 5 Minutes
 
 ### Second 0-10: Immediate Action
-```
-SCREEN: Simple garage office with single desk
-ACTION: Big pulsing "WRITE CODE" button center screen
-RESULT: 
-- Click button → +1 Line of Code
+- "WRITE CODE" button center screen (pulsing animation)
+- Click → +1 Line of Code
 - Code counter animates with typewriter sound
 - After 5 clicks → "Hire Junior Dev $10" button appears
-```
 
 ### Second 10-30: First Automation
-```
-Junior Dev automating:
-- Produces 0.1 lines/second
-- Visual: Dev sprite typing at desk
-- After hiring → "Ship Feature" button appears
+- Junior Dev: 0.1 lines/second (auto-production)
+- Visual: Dev sprite typing animation
+- "Ship Feature" button appears after first hire
 - Ship Feature: Convert 10 lines → $15
-- Money counter appears with cash register sound
-```
+- Money counter with cash register sound
 
-### Second 30-60: Growth Loop Established
-```
-Feedback loop emerges:
-Code → Features → Money → More Devs → More Code
-- Second dev costs $25
-- Third dev costs $50
-- "Upgrade Laptop" appears at $100 (2x code speed)
-```
+### Second 30-60: Growth Loop
+- Code → Features → Money → More Devs
+- Second dev: $25
+- Third dev: $50
+- "Upgrade Laptop" at $100 (2x code speed)
 
 ### Minute 1-2: Department Tease
-```
-At $200 total earned:
-- Office expands (camera zooms out)
-- Empty desks appear labeled "SALES COMING SOON"
-- Excitement building for what's next
-```
+- At $200: Office expands (camera zoom out)
+- Empty desks labeled "SALES COMING SOON"
 
 ### Minute 2-3: Sales Department Unlock
-```
-At $500:
-- Sales department unlocks
-- First sales rep costs $100
+- At $500: Sales department unlocks
+- First sales rep: $100
 - Sales reps generate Customer Leads
-- Leads + Features = Product Sales (higher $ than raw features)
-```
+- Leads + Features = Product Sales
 
-### Minute 3-5: Full Loop Revealed
-```
-Complete business cycle visible:
-Development → Features → Sales → Customers → Revenue → Growth
+### Minute 3-5: Full Loop
+- Development → Features → Sales → Customers → Revenue
 - Multiple upgrade paths available
-- Department synergies becoming clear
-- First "Big Number" threshold approaching ($10K)
-```
+- Department synergies active
+- $10K milestone approaching
 
 ---
 
@@ -240,56 +166,35 @@ Development → Features → Sales → Customers → Revenue → Growth
 ## Progression & Balance
 
 ### Early Game (0-30 minutes)
-```
-Focus: Learn departments, establish rhythms
-- $0 → $10K: Single department focus
-- $10K → $100K: Two departments synergy
-- $100K → $1M: Three departments complexity
-Key unlock: Manager automation at $50K
-```
+- $0 → $10K: Single department
+- $10K → $100K: Two departments
+- $100K → $1M: Three departments
+- Manager automation unlocks at $50K
 
 ### Mid Game (30 min - 4 hours)
-```
-Focus: Optimization and strategic choices
-- $1M → $100M: Full department integration
-- Prestige system unlocks at $10M
-- Strategic reset decisions
-- Upgrade path specialization
-```
+- $1M → $100M: All departments active
+- Prestige unlocks at $10M
+- Multiple upgrade paths
+- Reset optimization
 
 ### Late Game (4+ hours)
-```
-Focus: Prestige cycling and big numbers
-- $100M → $1B: Prestige optimization
-- Multiple prestige layers
-- Investor meetings mini-game
-- IPO preparation
-```
+- $100M → $1B: Prestige cycling
+- Multiple prestige tiers
+- IPO at $1B
 
-### Prestige System: "Investor Rounds"
-```
-Reset at strategic points for Investor Points (IP):
-- Seed Round: 1 IP per $1M valuation
-- Series A: Enhanced at $10M+
-- Series B: Major bonuses at $100M+
+### Prestige System: Investor Rounds
+**Formula:** 1 IP per $1M valuation at reset
 
-IP Bonuses:
+**IP Bonuses:**
 - Starting Capital: +10% per IP
 - Global Speed: +1% per IP
 - Department Synergy: +2% per 10 IP
-- Unlock Super Units: At 100, 1K, 10K IP
-```
+- Super Units unlock: 100, 1K, 10K IP
 
 ### Mathematical Progression
-```
-Cost Formula: Base * 1.15^owned
-Production: Linear growth with multiplier jumps
-Key ratios:
-- 10 seconds to afford first purchase
-- 30 seconds between early purchases
-- 2-minute cycles in mid-game
-- 10-minute strategic decisions late game
-```
+- **Cost Formula:** `Base * 1.15^owned`
+- **Production:** Linear with multiplier jumps at 25/50/100 units
+- **Timing:** 10s first purchase, 30s early game, 2min mid-game, 10min late game
 
 ---
 
@@ -330,22 +235,18 @@ Key ratios:
 - Milestone sounds override normal sounds
 - Music adapts to game pace
 
-### Animation Polish
+### Animations
 
 **Number Animations:**
-```
-Small numbers: Fade up and out (0.3s)
-Big numbers: Scale bounce + trail (0.5s)
-Milestones: Spiral up + fireworks (1s)
-```
+- Small: Fade up 0.3s
+- Large: Scale bounce 0.5s
+- Milestone: Spiral + particles 1s
 
-**UI Transitions:**
-```
-Button hover: Scale 1.05 + glow
-Button click: Scale 0.95 → 1.1 → 1.0
-Panel slides: EaseOutBack curve
-Department unlock: Unfold animation (1.5s)
-```
+**UI Interactions:**
+- Button hover: scale(1.05) + glow
+- Button click: scale(0.95) → scale(1.1) → scale(1.0)
+- Panel transitions: easeOutBack
+- Department unlock: unfold 1.5s
 
 **Particle Systems:**
 - Code particles: Matrix-style text
@@ -353,141 +254,68 @@ Department unlock: Unfold animation (1.5s)
 - Customer particles: Heart emojis
 - Bug particles: Red error symbols
 
-### Game Feel Details
+### Performance Requirements
 
-**Responsive Controls:**
-- All buttons respond in <50ms
-- Visual feedback before calculation
-- Queue system for rapid clicks
-- No action ever "lost"
+**Input Response:**
+- <50ms button response
+- Visual feedback before computation
+- Click queue for rapid input
+- No dropped inputs
 
-**Progress Indicators:**
-- Progress bars fill smoothly
+**UI Updates:**
+- 60fps progress bars
 - Next unlock always visible
-- Milestone progress tracker
-- Department efficiency meters
+- Real-time efficiency meters
 
-**Celebration Moments:**
-- First of each unit type
-- Power of 10 milestones
-- Department connections
-- Prestige activation
+**Milestone Triggers:**
+- First unit purchase
+- 10^n resource thresholds
+- Department synergy activation
+- Prestige reset
 
 ---
 
 ## MVP Feature Set
 
-### Core Systems (Week 1)
+### Core Systems (Phase 1)
 - [x] Seven departments with unique mechanics
 - [x] Basic automation (managers)
 - [x] Save system (local storage)
-- [x] Offline progression (12-hour cap)
+- [x] Offline progression
 - [x] Core audio/visual feedback
 
-### Progression Systems (Week 2)
+### Progression Systems (Phase 2)
 - [x] Cost/production balance
 - [x] Prestige system (Investor Rounds)
 - [x] Achievement system (50 achievements)
 - [x] Statistics tracking
 - [x] Reset confirmation
 
-### Polish Phase (Week 3)
+### Polish Phase (Phase 3)
 - [x] All animations smooth
 - [x] Audio mixing balanced
 - [x] Tutorial-free onboarding
 - [x] Performance optimization
-- [x] Cross-browser testing
+- [x] Cross-platform testing
 
 ### MVP Deliverables
-- Web-based (HTML5/JS)
-- Runs at 60fps on 5-year-old devices
-- Saves every 30 seconds
+- Mobile and Web
 - Works offline
-- No monetization in MVP
+- No monetization
 
 ---
 
-## Future Features
+## Post-MVP Considerations
 
-### Version 1.1: "The Conference Update"
-- Industry conferences for temporary boosts
-- Competitor companies as rivals
-- Talent recruitment mini-game
-- Office customization
-
-### Version 1.2: "Going Global"
+### Potential Features
+- Industry conferences (temporary boosts)
+- Competitor mechanics
 - Multiple office locations
-- Localization challenges
-- Time zone management
-- Cultural adaptation bonuses
+- Platform marketplace
 
-### Version 1.3: "The Platform Play"
-- Build app marketplace
-- Third-party developers
-- API economy
-- Platform fees as new revenue
-
-### Monetization (Post-MVP)
+### Monetization Options
 - Time Warps: $0.99 - $4.99
 - Starter Packs: $2.99 - $9.99
-- Ad Boost: Watch for 2x production (30 min)
-- Premium: $9.99 removes all friction
+- Ad Boost: 2x production (30 min)
+- Premium: $9.99
 
----
-
-## Technical Requirements
-
-### Performance Targets
-- 60 FPS on Intel HD Graphics 4000
-- <3MB initial download
-- <50MB RAM usage
-- Instant response to all inputs
-
-### Platform Support
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
-- Mobile responsive (tablet+)
-
-### Architecture
-- Vanilla JS for performance
-- Canvas for particle systems
-- Web Audio API for sound
-- LocalStorage for saves
-- RequestAnimationFrame for game loop
-
----
-
-## Success Metrics
-
-### Engagement
-- D1 Retention: >40%
-- D7 Retention: >20%
-- D30 Retention: >10%
-- Session Length: 8+ minutes
-- Sessions/Day: 5+
-
-### Progression
-- Tutorial Completion: >90%
-- First Prestige: >60%
-- Second Prestige: >40%
-- IPO Achievement: >10%
-
-### Polish
-- No tutorial needed: 100%
-- Audio on: >70%
-- Shared/Recommended: >30%
-- Bug reports: <1%
-
----
-
-## Conclusion
-
-PetSoft Tycoon takes proven idle game mechanics and executes them with exceptional polish. By focusing on traditional design excellence rather than innovation, we create an experience that feels immediately familiar yet endlessly satisfying. Every click matters, every number feels good, and every department adds meaningful depth without overwhelming complexity.
-
-The pet software theme provides narrative justification for our mechanics while the business simulation adds strategic depth to the classic idle formula. With careful attention to pacing, progression, and polish, PetSoft Tycoon will be the idle game players return to again and again - not because it's new, but because it's crafted with such care that the simple joy of watching numbers go up never gets old.
-
-**Development Time:** 3 weeks with a small team
-**Polish Time:** 1 week (critical - this is where magic happens)
-**Total MVP:** 4 weeks to excellence
