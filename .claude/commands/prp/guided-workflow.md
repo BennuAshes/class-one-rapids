@@ -137,7 +137,7 @@ case $CURRENT_PHASE in
       echo ""
       echo "Run this command:"
       echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-      echo "/analyze-prd-technical-requirements $PRD_FILE"
+      echo "/prd-to-technical-requirements $PRD_FILE"
       echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
       echo ""
       echo "After running, continue with: /guided-workflow"
@@ -181,7 +181,7 @@ case $CURRENT_PHASE in
       echo ""
       PRD_FILE=$(jq -r '.artifacts.prd' $WORKFLOW_STATE)
       echo "You should have run:"
-      echo "/analyze-prd-technical-requirements $PRD_FILE"
+      echo "/prd-to-technical-requirements $PRD_FILE"
       echo ""
       echo "If it failed, check for errors and try again."
       echo "If successful, run: /guided-workflow"
@@ -316,7 +316,7 @@ cat > $WORKFLOW_CHECKLIST << 'EOF'
 - [ ] Verify PRD file created
 
 ## Phase 3: Technical Analysis  
-- [ ] Run: `/analyze-prd-technical-requirements [prd-file]`
+- [ ] Run: `/prd-to-technical-requirements [prd-file]`
 - [ ] Verify technical PRD created
 
 ## Phase 4: Runbook Creation

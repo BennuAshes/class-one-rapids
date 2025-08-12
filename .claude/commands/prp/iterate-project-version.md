@@ -153,7 +153,7 @@ Generate final summary report for the project iteration:
    
    🚀 Next Steps - Run these commands as needed:
    1. Generate PRD: /prp:generate-advanced-prd design-doc.md
-   2. Analyze requirements: /prp:analyze-prd-technical-requirements [prd-file]
+   2. Add technical requirements: /prp:prd-to-technical-requirements [prd-file]
    3. Create runbook: /prp:create-development-runbook-v2 [tech-file]
    4. Follow runbook: /prp:follow-runbook-with-senior-engineer ./runbook/
 

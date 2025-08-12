@@ -350,7 +350,7 @@ This command should be run:
 3. As part of CI/CD to keep references current
 
 The output directly feeds into:
-- `/analyze-prd-technical-requirements`
+- `/prd-to-technical-requirements`
 - `/create-development-runbook-v2`
 - `/validate-architecture-alignment`
 

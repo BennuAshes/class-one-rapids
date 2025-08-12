@@ -21,9 +21,9 @@ Run these commands as needed:
    /prp:generate-advanced-prd design-doc.md
    ```
 
-2. **Analyze Technical Requirements** (after PRD is generated):
+2. **Add Technical Requirements** (after PRD is generated):
    ```
-   /prp:analyze-prd-technical-requirements [prd-file]
+   /prp:prd-to-technical-requirements [prd-file]
    ```
 
 3. **Create Development Runbook** (after technical requirements):

@@ -16,7 +16,7 @@ allowed-tools: ["Read", "Write", "Edit", "MultiEdit", "Grep", "Glob", "LS", "Bas
       - Token-efficient prompt compression techniques
       - Self-improving command patterns with feedback loops
     </advanced_expertise>
-    <research_foundation>Deep understanding of prompt-context-engineering-claude-code.md principles</research_foundation>
+    <research_foundation>Deep understanding of /research/agentic/ principles</research_foundation>
   </context>
 
   <intelligent_analysis>
