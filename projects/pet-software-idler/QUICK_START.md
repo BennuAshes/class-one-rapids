@@ -1,9 +1,9 @@
-# Project Quick Start - v16
+# Project Quick Start - v18
 
 ## 📊 Project Information
-- **Version**: v16
-- **Previous Version**: v15
-- **Created**: 2025-08-12T00:25:53Z
+- **Version**: v18
+- **Previous Version**: v17
+- **Created**: 2025-08-14T16:46:40Z
 - **Location**: /mnt/c/dev/class-one-rapids/projects/pet-software-idler
 
 ## 📄 Available Artifacts
@@ -39,14 +39,14 @@ Run these commands as needed:
 ## 📁 Project Structure
 ```
 pet-software-idler/
-├── .version (v16)
+├── .version (v18)
 ├── iteration-metadata.json
 ├── QUICK_START.md
 └── design-doc.md
 ```
 
 ## 🔄 Archive Location
-Previous version archived at: `projects/archive/pet-software-idler-v16`
+Previous version archived at: `projects/archive/pet-software-idler-v18`
 
 ---
 *This project structure was created by the iteration script. No PRDs, technical requirements, or runbooks were generated automatically.*

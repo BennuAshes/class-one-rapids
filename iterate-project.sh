@@ -90,7 +90,11 @@ if [ -d "projects/${PROJECT_NAME}" ] && [ "$SKIP_ARCHIVE" = false ]; then
     
     # Move current project to archive
     echo "  Moving projects/${PROJECT_NAME} → projects/archive/${ARCHIVE_NAME}"
-    mv "projects/${PROJECT_NAME}" "projects/archive/${ARCHIVE_NAME}"
+    if ! mv "projects/${PROJECT_NAME}" "projects/archive/${ARCHIVE_NAME}" 2>/dev/null; then
+        echo -e "${RED}❌ Permission denied moving project directory${NC}"
+        echo "You may need to close your IDE, it looks like the files are in use."
+        exit 1
+    fi
     
     if [ -d "projects/archive/${ARCHIVE_NAME}" ]; then
         echo -e "${GREEN}  ✅ Successfully archived as: archive/${ARCHIVE_NAME}${NC}"
