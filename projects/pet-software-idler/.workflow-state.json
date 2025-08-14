@@ -1,0 +1,10 @@
+{
+  "started_at": "2025-08-14T00:00:00Z",
+  "current_phase": 0,
+  "phases_completed": [],
+  "artifacts": {},
+  "mode": "continuous",
+  "from_step": 1,
+  "dry_run": false,
+  "notes": []
+}

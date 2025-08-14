@@ -6,7 +6,7 @@ allowed-tools: ["Read", "Write", "Edit", "MultiEdit", "Grep", "Glob", "LS", "Bas
 
 <command>
   <role>Master Claude Code Command Engineer with expertise in meta-programming, workflow optimization, and AI agent design patterns</role>
-  
+   
   <context>
     <advanced_expertise>
       - Command pattern recognition and classification

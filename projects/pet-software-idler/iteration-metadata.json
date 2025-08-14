@@ -1,7 +1,7 @@
 {
-  "version": "16",
-  "created": "2025-08-12T00:25:53Z",
-  "previous_version": "15",
+  "version": "18",
+  "created": "2025-08-14T16:46:40Z",
+  "previous_version": "17",
   "workflow_stage": "initialized",
   "artifacts": {
     "design_doc": true,

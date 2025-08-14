@@ -9,11 +9,11 @@ The current quick-ref.md generation loses critical architectural context by extr
 ## The Core Problem
 
 ### Current State
-```javascript
-// Current extraction (line 56-57 of update-research-quick-ref.js)
-if (content.includes('vertical slicing')) {
-  data.patterns.add('vertical slicing');  // Just the name!
-}
+```markdown
+# Current extraction result
+Patterns: vertical slicing, horizontal layers
+
+# Problem: Just the names, no context!
 ```
 
 ### Result
@@ -40,47 +40,48 @@ The structure I proposed (term/implementation/principle/anti-pattern) is formall
 ### Phase 1: Enhanced Extraction Algorithm
 
 #### 1.1 Context-Aware Pattern Extraction
-```javascript
-// Instead of just finding the term, extract surrounding context
-function extractPatternWithContext(content, patternName) {
-  const pattern = {
-    name: patternName,
-    intent: null,
-    solution: null,
-    antiPattern: null,
-    forces: null
-  };
-  
-  // Extract intent (look for "to", "for", "enables", "allows")
-  const intentPattern = new RegExp(
-    `${patternName}[^.]*(?:to |for |enables |allows )([^.]+)`, 
-    'i'
-  );
-  
-  // Extract solution (look for implementation details)
-  const solutionPattern = new RegExp(
-    `${patternName}[^.]*(?:by |using |with |through )([^.]+)`, 
-    'i'
-  );
-  
-  // Extract anti-patterns (look for "not", "avoid", "instead of")
-  const antiPattern = new RegExp(
-    `(?:not |avoid |instead of )[^.]*${patternName}|${patternName}[^.]*(?:not |avoid )([^.]+)`,
-    'i'
-  );
-  
-  return pattern;
-}
+```markdown
+# Pattern Extraction Template
+
+## From research text:
+"Vertical slicing enables independent development by ensuring each feature owns its complete stack, avoiding centralized stores."
+
+## Extract into structured format:
+**Pattern**: vertical-slicing
+**Intent**: enables independent development
+**Solution**: each feature owns complete stack
+**Anti-pattern**: centralized stores
+**Forces**: team size > 1, need parallel development
+
+## Compression markers to look for:
+- Intent markers: "to", "for", "enables", "allows"
+- Solution markers: "by", "using", "with", "through"
+- Anti-pattern markers: "not", "avoid", "instead of", "don't"
 ```
 
 #### 1.2 Semantic Clustering
 Group related concepts together:
-```javascript
-const patternClusters = {
-  'state-management': ['observable', 'store', 'state', 'reactive'],
-  'architecture': ['vertical slicing', 'feature-based', 'modular'],
-  'testing': ['jest', 'testing-library', 'unit', 'integration']
-};
+```markdown
+# Pattern Clusters
+
+## State Management
+- observable
+- store
+- state
+- reactive
+- @legendapp/state
+
+## Architecture
+- vertical slicing
+- feature-based
+- modular
+- bounded contexts
+
+## Testing
+- jest
+- testing-library
+- unit tests
+- integration tests
 ```
 
 ### Phase 2: Multi-Level Pattern Documentation
@@ -132,72 +133,98 @@ core/state/gameStore.ts  # ❌ Central store for all features
 Based on LLM Context Optimization Research findings:
 
 #### 3.1 Importance Scoring
-```javascript
-function scorePatternImportance(pattern, projectContext) {
-  let score = 0;
-  
-  // Frequency in research files
-  score += pattern.mentionCount * 10;
-  
-  // Explicit "critical" or "important" markers
-  if (pattern.context.match(/critical|essential|must|required/i)) {
-    score += 50;
-  }
-  
-  // Mentioned in multiple files (cross-validation)
-  score += pattern.sourceFiles.length * 5;
-  
-  // Has implementation examples
-  if (pattern.hasCodeExample) score += 20;
-  
-  return score;
-}
+```markdown
+# Pattern Importance Scoring
+
+## Scoring Criteria
+| Factor | Points | Example |
+|--------|--------|----------|
+| Mention frequency | ×10 | "vertical slicing" (47 mentions) = 470 |
+| Critical markers | +50 | Contains "critical", "must", "required" |
+| Multi-file validation | ×5 | Appears in 3 files = +15 |
+| Has examples | +20 | Includes implementation example |
+
+## Example Score Calculation
+Pattern: vertical-slicing
+- Mentions: 47 × 10 = 470
+- Critical marker: "required pattern" = +50
+- Files: 3 × 5 = 15
+- Has example: Yes = +20
+**Total Score: 555 (Critical Priority)**
 ```
 
 #### 3.2 Dynamic Context Pruning
-```javascript
-function pruneForContext(patterns, queryContext) {
-  // If query is about "state management", prioritize those patterns
-  if (queryContext.includes('state')) {
-    return patterns.filter(p => 
-      p.cluster === 'state-management' || p.score > 80
-    );
-  }
-  
-  // Always include high-score patterns
-  return patterns.filter(p => p.score > 60);
-}
+```markdown
+# Context-Based Pattern Selection
+
+## Query: "Help with state management"
+### Load these patterns:
+- observable-state (cluster: state-management)
+- @legendapp/state (cluster: state-management)
+- per-feature-stores (cluster: state-management)
+- vertical-slicing (score > 80, always include)
+
+## Query: "Architecture review"
+### Load these patterns:
+- vertical-slicing (cluster: architecture)
+- feature-folders (cluster: architecture)
+- bounded-contexts (cluster: architecture)
+- All patterns with score > 60
+
+## Default: Load high-priority only
+- Patterns with score > 60
+- Patterns marked "critical"
 ```
 
 ### Phase 4: Validation and Testing
 
 #### 4.1 Pattern Completeness Check
-```javascript
-function validatePattern(pattern) {
-  const required = ['name', 'intent', 'solution'];
-  const missing = required.filter(field => !pattern[field]);
-  
-  if (missing.length > 0) {
-    console.warn(`Pattern ${pattern.name} missing: ${missing.join(', ')}`);
-    return false;
-  }
-  return true;
-}
+```markdown
+# Pattern Validation Checklist
+
+## Required Fields
+- [ ] Pattern name
+- [ ] Intent (why use it)
+- [ ] Solution (how to implement)
+
+## Optional but Recommended
+- [ ] Anti-pattern (what to avoid)
+- [ ] Example (concrete implementation)
+- [ ] Forces (when to use)
+
+## Example Validation
+❌ **Incomplete**:
+```
+Pattern: vertical-slicing
+```
+
+✅ **Complete**:
+```
+Pattern: vertical-slicing
+Intent: Enable independent feature development
+Solution: features/{name}/ owns complete stack
+Anti-pattern: src/store/gameStore.ts
+```
 ```
 
 #### 4.2 Anti-Pattern Detection
-```javascript
-function detectViolations(codebase, patterns) {
-  const violations = [];
-  
-  // Check for centralized state (violates vertical slicing)
-  if (exists('src/core/state/gameStore.ts')) {
-    if (patterns.includes('vertical slicing')) {
-      violations.push({
-        pattern: 'vertical slicing',
-        violation: 'Centralized state store detected',
-        file: 'src/core/state/gameStore.ts',
-        fix: 'Move state to feature folders'
+```markdown
+# Anti-Pattern Detection Rules
+
+## For Pattern: vertical-slicing
+### Check for violations:
+- ❌ src/core/state/gameStore.ts exists
+- ❌ src/store/ directory exists
+- ❌ Cross-feature imports detected
+
+### Violation Report Format:
+```
+VIOLATION: Centralized state store
+Pattern: vertical-slicing
+Location: src/core/state/gameStore.ts
+Severity: ERROR
+Fix: Move to features/*/state/
+Guide: See L2 documentation
       });
     }
   }

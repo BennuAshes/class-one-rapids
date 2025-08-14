@@ -8,7 +8,17 @@
 - research is located at /research/quick-ref.md
 - do not look in archive/ folders unless explicitly told to
 - do not read files in archive/ folders unless explicitly told to
+- use functional programming styles by default - avoid using classes
+- Example:
+```typescript
+// Good
+export function doSomething() {}
 
+// Bad
+class Something {
+  doSomething() {}
+}
+```
 # Critical Anti-Patterns
 - **NEVER use `npm install --legacy-peer-deps`** - This masks version conflicts and indicates deeper problems
 - If npm suggests --legacy-peer-deps, STOP and investigate the real issue

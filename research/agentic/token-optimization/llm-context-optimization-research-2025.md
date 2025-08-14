@@ -32,12 +32,13 @@ After deep analysis of the current quick-ref.md generation system and extensive 
 ### Weaknesses ❌
 
 1. **Token Estimation Accuracy**
-   ```javascript
-   // Current: Rough 4 chars/token
-   return Math.ceil(text.length / 4);
+   ```markdown
+   # Current: Rough estimation
+   Characters / 4 = estimated tokens
+   
+   # Problem: 20-30% miscalculation
+   # Solution: Use proper tokenization (tiktoken/cl100k_base)
    ```
-   - Should use tiktoken or cl100k_base for accurate counting
-   - Can lead to 20-30% miscalculation
 
 2. **Limited Semantic Compression**
    - No sentence-level importance scoring
@@ -103,103 +104,116 @@ After deep analysis of the current quick-ref.md generation system and extensive 
 
 ### 1. Immediate Improvements (Low Effort, High Impact)
 
-```javascript
-// Use proper tokenizer
-const { encoding } = require('tiktoken');
-const enc = encoding.for_model('claude-3-opus');
+```markdown
+# Token Counting Improvement
 
-function accurateTokenCount(text) {
-  return enc.encode(text).length;
-}
+## Current Method
+Rough estimate: text.length / 4
+
+## Improved Method
+Use proper tokenizer for model:
+- Claude: cl100k_base encoding
+- GPT-4: tiktoken encoding
+- Accurate count = encoded tokens length
 ```
 
 ### 2. Implement Semantic Compression
 
-```javascript
-// Sentence importance scoring
-async function semanticCompress(content, targetTokens) {
-  // 1. Split into sentences
-  const sentences = splitIntoSentences(content);
-  
-  // 2. Generate embeddings
-  const embeddings = await generateEmbeddings(sentences);
-  
-  // 3. Score importance based on:
-  //    - Semantic similarity to section header
-  //    - Information density (entities/sentence)
-  //    - Recency (newer info scores higher)
-  const scores = scoreImportance(sentences, embeddings);
-  
-  // 4. Keep top sentences until target reached
-  return selectTopSentences(sentences, scores, targetTokens);
-}
+```markdown
+# Semantic Compression Process
+
+## Step 1: Split into sentences
+Original: "Vertical slicing enables independent development. Each feature owns its stack. This prevents coupling."
+↓
+Sentences: [sentence1, sentence2, sentence3]
+
+## Step 2: Score importance
+| Sentence | Similarity | Density | Recency | Total |
+|----------|------------|---------|---------|-------|
+| "enables independent" | 0.9 | 0.8 | 0.5 | 2.2 |
+| "owns its stack" | 0.8 | 0.9 | 0.5 | 2.2 |
+| "prevents coupling" | 0.7 | 0.6 | 0.5 | 1.8 |
+
+## Step 3: Keep top sentences until target
+Target: 30 tokens
+Result: "Vertical slicing enables independent development. Each feature owns its stack."
 ```
 
 ### 3. Knowledge Graph Layer
 
-```yaml
-# Proposed structure
-entities:
-  "@legendapp/state":
-    aliases: ["Legend State", "legendstate"]
-    version: "@beta"
-    category: "state-management"
-    relations:
-      requires: ["react@18+"]
-      conflicts: ["mobx", "redux"]
-    importance: "critical"
-    
-relationships:
-  - type: "depends_on"
-    from: "@legendapp/state"
-    to: "react-native@0.79+"
-    strength: "required"
+```markdown
+# Knowledge Graph Structure
+
+## Entity: @legendapp/state
+- **Aliases**: Legend State, legendstate
+- **Version**: @beta
+- **Category**: state-management
+- **Importance**: critical
+
+## Relationships
+| From | Relation | To | Strength |
+|------|----------|-----|----------|
+| @legendapp/state | requires | react@18+ | required |
+| @legendapp/state | conflicts | mobx, redux | incompatible |
+| @legendapp/state | depends_on | react-native@0.79+ | required |
+
+## Graph View
+```
+@legendapp/state
+├── requires → react@18+
+├── conflicts → mobx, redux
+└── depends_on → react-native@0.79+
+```
 ```
 
 ### 4. Dynamic Loading Strategy
 
-```javascript
-// Context-aware loading
-function determineRequiredLevels(userQuery) {
-  const keywords = extractKeywords(userQuery);
-  
-  // Always load L1
-  const levels = ['L1'];
-  
-  // Conditional loading based on intent
-  if (keywords.includes('implement', 'build', 'create')) {
-    levels.push('L2'); // Implementation details
-  }
-  if (keywords.includes('optimize', 'performance')) {
-    levels.push('L3'); // Advanced optimization
-  }
-  if (keywords.includes('alternative', 'compare')) {
-    levels.push('L4'); // Framework alternatives
-  }
-  if (keywords.includes('error', 'fix', 'debug')) {
-    levels.push('L5'); // Emergency fixes
-  }
-  
-  return levels;
-}
+```markdown
+# Context-Aware Level Loading
+
+## Query Analysis → Level Selection
+
+| Query Keywords | Load Levels | Token Budget |
+|----------------|-------------|-------------|
+| "implement", "build", "create" | L1 + L2 | 150 + 350 = 500 |
+| "optimize", "performance" | L1 + L3 | 150 + 250 = 400 |
+| "alternative", "compare" | L1 + L4 | 150 + 100 = 250 |
+| "error", "fix", "debug" | L1 + L5 | 150 + 100 = 250 |
+| default | L1 only | 150 |
+
+## Example
+Query: "Help me implement state management"
+- Keywords detected: ["implement", "state"]
+- Load: L1 (essential) + L2 (implementation)
+- Total tokens: 500
 ```
 
 ### 5. Enhanced Merge Algorithm
 
-```javascript
-function intelligentMerge(existing, updates) {
-  // 1. Entity resolution
-  const resolvedEntities = resolveAliases(updates);
-  
-  // 2. Semantic deduplication
-  const uniqueInfo = semanticDedupe(resolvedEntities);
-  
-  // 3. Conflict resolution (newer wins, with logging)
-  const resolved = resolveConflicts(existing, uniqueInfo);
-  
-  // 4. Maintain relational integrity
-  return maintainRelations(resolved);
-}
+```markdown
+# Intelligent Merge Process
+
+## Step 1: Entity Resolution
+Input: "RN", "React Native", "react-native"
+Output: react-native (canonical form)
+
+## Step 2: Semantic Deduplication
+Before:
+- "Use vertical slicing for features"
+- "Features should use vertical slicing"
+- "Vertical slicing enables feature isolation"
+
+After:
+- "vertical-slicing: feature isolation"
+
+## Step 3: Conflict Resolution
+| Existing | Update | Resolution | Reason |
+|----------|--------|------------|--------|
+| v0.75 | v0.76 | v0.76 | Newer wins |
+| "required" | "optional" | "required" | Stricter wins |
+
+## Step 4: Maintain Relations
+Ensure graph consistency after merge
 ```
 
 ### 6. Progressive Enhancement Architecture
@@ -237,35 +251,27 @@ function intelligentMerge(existing, updates) {
 
 ### 7. Intelligent Caching Strategy
 
-```javascript
-class SmartCache {
-  constructor() {
-    this.frequencyMap = new Map(); // Track access patterns
-    this.semanticCache = new Map(); // Cache by intent
-  }
-  
-  async get(query) {
-    const intent = classifyIntent(query);
-    
-    // Check semantic cache first
-    if (this.semanticCache.has(intent)) {
-      this.frequencyMap.set(intent, 
-        (this.frequencyMap.get(intent) || 0) + 1);
-      return this.semanticCache.get(intent);
-    }
-    
-    // Generate and cache
-    const context = await this.generate(query, intent);
-    this.semanticCache.set(intent, context);
-    
-    // Prune least frequently used if over limit
-    if (this.semanticCache.size > MAX_CACHE_SIZE) {
-      this.pruneLFU();
-    }
-    
-    return context;
-  }
-}
+```markdown
+# Smart Cache Design
+
+## Cache Structure
+| Intent | Frequency | Cached Context | Last Access |
+|--------|-----------|----------------|-------------|
+| "implement-state" | 47 | L1+L2 context | 2min ago |
+| "debug-error" | 12 | L1+L5 context | 15min ago |
+| "optimize-perf" | 8 | L1+L3 context | 1hr ago |
+
+## Cache Logic
+1. Query: "Help implement feature state"
+2. Classify intent: "implement-state"
+3. Check cache: HIT (frequency: 47)
+4. Return cached L1+L2 context
+5. Update frequency: 48
+
+## Pruning Strategy
+- Max cache size: 10 intents
+- Prune: Least Frequently Used (LFU)
+- Keep: High frequency + recent access
 ```
 
 ## Implementation Roadmap

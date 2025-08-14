@@ -53,8 +53,15 @@
       "Bash(timeout 10s npx expo start --web)",
       "Bash(true)",
       "Bash(timeout 5s npx expo start --no-dev --clear)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(bash:*)",
+      "Bash(./extract-implementation-research-improved.sh:*)",
+      "Bash(./extract-implementation-research-simple.sh:*)",
+      "WebSearch",
+      "WebFetch(domain:amanhimself.dev)",
+      "WebFetch(domain:www.headway.io)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }
