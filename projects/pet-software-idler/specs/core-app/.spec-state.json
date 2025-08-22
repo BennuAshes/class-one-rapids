@@ -1,0 +1,30 @@
+{
+  "project": "pet-software-idler",
+  "feature": "core-app",
+  "created": "2025-08-17T00:00:00Z",
+  "current_phase": "requirements",
+  "phases": {
+    "requirements": {
+      "status": "draft",
+      "updated": "2025-08-17T00:00:00Z",
+      "validator": null
+    },
+    "design": {
+      "status": "pending",
+      "updated": null,
+      "validator": null
+    },
+    "tasks": {
+      "status": "pending",
+      "updated": null,
+      "validator": null
+    }
+  },
+  "history": [
+    {
+      "action": "new",
+      "timestamp": "2025-08-17T00:00:00Z",
+      "details": "Created specification for Expo app with web enabled using Legend-state for pet-software-idler"
+    }
+  ]
+}
