@@ -1,0 +1,40 @@
+{
+  "project": "pet-software-idler",
+  "feature": "base-setup",
+  "created": "2025-08-16T10:00:00Z",
+  "current_phase": "tasks",
+  "phases": {
+    "requirements": {
+      "status": "approved",
+      "updated": "2025-08-16T10:35:00Z",
+      "validator": "user"
+    },
+    "design": {
+      "status": "approved",
+      "updated": "2025-08-16T10:40:00Z",
+      "validator": "user"
+    },
+    "tasks": {
+      "status": "draft",
+      "updated": "2025-08-16T10:45:00Z",
+      "validator": null
+    }
+  },
+  "history": [
+    {
+      "action": "new",
+      "timestamp": "2025-08-16T10:00:00Z",
+      "details": "Created specification for base project setup with Expo, Legend-State @beta, and Expo Router"
+    },
+    {
+      "action": "approve",
+      "timestamp": "2025-08-16T10:05:00Z",
+      "details": "Requirements phase approved by user"
+    },
+    {
+      "action": "restart",
+      "timestamp": "2025-08-16T10:30:00Z",
+      "details": "Restarted requirements with PetSoft Tycoon game context"
+    }
+  ]
+}

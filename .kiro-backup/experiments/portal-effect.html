@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asheron's Call Portal Space - ASCII</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Courier Prime', monospace;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        
+        #portal-container {
+            position: relative;
+            width: 120ch;
+            height: 60em;
+            font-size: 10px;
+            line-height: 1;
+            text-align: center;
+        }
+        
+        .portal-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            white-space: pre;
+            font-family: 'Courier Prime', monospace;
+        }
+        
+        .tunnel-layer {
+            color: #2a6a8a;
+            text-shadow: 0 0 4px #3a8aaa, 0 0 8px #1a4a6a;
+            opacity: 0.9;
+        }
+        
+        .streak-layer {
+            color: #4a9aba;
+            text-shadow: 0 0 6px #6abadd;
+            opacity: 0.6;
+            mix-blend-mode: screen;
+        }
+        
+        .outer-layer {
+            color: #1a3a5a;
+            opacity: 0.4;
+            text-shadow: 0 0 10px #2a5a7a;
+        }
+        
+        .particles {
+            color: #8addff;
+            opacity: 0.8;
+            text-shadow: 0 0 3px #aaddff;
+        }
+        
+        .depth-layer {
+            color: #1a5a7a;
+            opacity: 0.7;
+            text-shadow: 0 0 2px #2a6a8a;
+            z-index: 1;
+        }
+        
+        #control-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: rgba(26, 58, 74, 0.8);
+            color: #aaddff;
+            border: 1px solid #4a9aba;
+            cursor: pointer;
+            font-family: 'Courier Prime', monospace;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: rgba(58, 122, 154, 0.8);
+            box-shadow: 0 0 10px #6abadd;
+        }
+    </style>
+</head>
+<body>
+    <div id="portal-container">
+        <div class="portal-layer outer-layer" id="outer-layer"></div>
+        <div class="portal-layer depth-layer" id="depth-layer"></div>
+        <div class="portal-layer streak-layer" id="streak-layer"></div>
+        <div class="portal-layer tunnel-layer" id="tunnel-layer"></div>
+        <div class="portal-layer particles" id="particles"></div>
+    </div>
+    
+    <div id="control-panel">
+        <button onclick="toggleAnimation()">Pause/Resume</button>
+        <button onclick="resetPortal()">Reset Portal</button>
+    </div>
+    
+    <script>
+        // Portal state
+        let animationPaused = false;
+        let rotationSpeed = 0;
+        let targetRotationSpeed = 0.002;
+        let rotationAngle = 0;
+        let tunnelOffset = 0;
+        let chaosTimer = 0;
+        let lastDirectionChange = 0;
+        let perspectiveShift = 0;
+        let targetPerspectiveShift = 0;
+        
+        // Characters for different effects
+        const tunnelChars = ['(', ')', '[', ']', '{', '}', '<', '>'];
+        const streakChars = ['-', '=', '~', '─', '━', '═'];
+        const particleChars = ['·', '•', '∙', '°', '˚'];
+        const spaceChars = ['.', ':', '∴', '∵'];
+        
+        // Generate the hollow tunnel with swirling walls and depth
+        function generateTunnel(width, height, time) {
+            let pattern = '';
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const aspectRatio = 2.2;
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const dx = (x - centerX + perspectiveShift * 10) / aspectRatio;
+                    const dy = y - centerY + perspectiveShift * 5;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const angle = Math.atan2(dy, dx) + rotationAngle;
+                    
+                    // Keep center hollow for depth layer to show through
+                    if (distance < 12) {
+                        pattern += ' ';
+                    }
+                    // Tunnel walls - thin ring of characters
+                    else if (distance >= 12 && distance < 22) {
+                        const spiralPhase = angle * 3 + distance * 0.1 + tunnelOffset;
+                        const waveIntensity = Math.sin(spiralPhase) * 0.5 + 0.5;
+                        
+                        if (waveIntensity > 0.3) {
+                            const charIndex = Math.floor(Math.abs(spiralPhase * 2)) % tunnelChars.length;
+                            pattern += tunnelChars[charIndex];
+                        } else {
+                            pattern += ' ';
+                        }
+                    }
+                    // Outer swirling space
+                    else if (distance < 35) {
+                        const swirl = Math.sin(angle * 4 + distance * 0.05 + time * 0.001);
+                        if (swirl > 0.6 && Math.random() > 0.5) {
+                            pattern += spaceChars[Math.floor(Math.random() * spaceChars.length)];
+                        } else {
+                            pattern += ' ';
+                        }
+                    }
+                    else {
+                        pattern += ' ';
+                    }
+                }
+                pattern += '\n';
+            }
+            return pattern;
+        }
+        
+        // Generate motion blur streaks
+        function generateStreaks(width, height, time) {
+            let pattern = '';
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const aspectRatio = 2.2;
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const dx = (x - centerX + perspectiveShift * 10) / aspectRatio;
+                    const dy = y - centerY + perspectiveShift * 5;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const angle = Math.atan2(dy, dx);
+                    
+                    // Radial streaks from the tunnel walls
+                    if (distance > 20 && distance < 40) {
+                        const streakAngle = angle * 8 + rotationAngle * 2;
+                        const streakPhase = Math.sin(streakAngle + time * 0.002);
+                        
+                        if (streakPhase > 0.7) {
+                            const radialChar = distance < 30 ? '═' : '─';
+                            pattern += radialChar;
+                        } else {
+                            pattern += ' ';
+                        }
+                    } else {
+                        pattern += ' ';
+                    }
+                }
+                pattern += '\n';
+            }
+            return pattern;
+        }
+        
+        // Generate outer atmospheric effects
+        function generateOuter(width, height, time) {
+            let pattern = '';
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const aspectRatio = 2.2;
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const dx = (x - centerX) / aspectRatio;
+                    const dy = y - centerY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const angle = Math.atan2(dy, dx) + rotationAngle * 0.5;
+                    
+                    // Outer atmospheric swirls
+                    if (distance > 35 && distance < 50) {
+                        const atmospherePhase = Math.sin(angle * 2 + distance * 0.03 + time * 0.0005);
+                        if (atmospherePhase > 0.8 && Math.random() > 0.7) {
+                            pattern += '~';
+                        } else {
+                            pattern += ' ';
+                        }
+                    } else {
+                        pattern += ' ';
+                    }
+                }
+                pattern += '\n';
+            }
+            return pattern;
+        }
+        
+        // Generate 3D depth perspective inside tunnel
+        function generateDepth(width, height, time) {
+            let pattern = '';
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const aspectRatio = 2.2;
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const dx = (x - centerX + perspectiveShift * 10) / aspectRatio;
+                    const dy = y - centerY + perspectiveShift * 5;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const angle = Math.atan2(dy, dx);
+                    
+                    // Only render inside the tunnel opening
+                    if (distance < 11) {
+                        // Create perspective lines converging to center
+                        const radialLine = Math.floor(angle * 8 / Math.PI) % 16;
+                        const depthLevel = distance / 11; // 0 at center, 1 at edge
+                        
+                        // Radial lines that get denser toward center
+                        if (radialLine % (Math.floor(depthLevel * 4) + 1) === 0) {
+                            if (distance < 3) {
+                                pattern += ':';
+                            } else if (distance < 6) {
+                                pattern += '∙';
+                            } else if (distance < 9) {
+                                pattern += '·';
+                            } else {
+                                pattern += '.';
+                            }
+                        }
+                        // Concentric depth rings
+                        else if (Math.abs(Math.sin(distance - tunnelOffset * 2)) < 0.1) {
+                            if (distance < 4) {
+                                pattern += '˚';
+                            } else if (distance < 7) {
+                                pattern += '°';
+                            } else {
+                                pattern += '∘';
+                            }
+                        } else {
+                            pattern += ' ';
+                        }
+                    } else {
+                        pattern += ' ';
+                    }
+                }
+                pattern += '\n';
+            }
+            return pattern;
+        }
+        
+        // Generate particles
+        function generateParticles(width, height, time) {
+            let pattern = '';
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const aspectRatio = 2.2;
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    if (Math.random() > 0.998) {
+                        const dx = (x - centerX) / aspectRatio;
+                        const dy = y - centerY;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance > 25 && distance < 45) {
+                            pattern += particleChars[Math.floor(Math.random() * particleChars.length)];
+                        } else {
+                            pattern += ' ';
+                        }
+                    } else {
+                        pattern += ' ';
+                    }
+                }
+                pattern += '\n';
+            }
+            return pattern;
+        }
+        
+        // Update chaotic movement
+        function updateChaos(time) {
+            chaosTimer += 0.016; // ~60fps
+            
+            // Change direction randomly
+            if (time - lastDirectionChange > 500 + Math.random() * 2000) {
+                // Randomly pause, reverse, or change speed
+                const choice = Math.random();
+                if (choice < 0.2) {
+                    // Pause briefly
+                    targetRotationSpeed = 0;
+                } else if (choice < 0.5) {
+                    // Reverse direction
+                    targetRotationSpeed = -targetRotationSpeed;
+                } else {
+                    // New random speed
+                    targetRotationSpeed = (Math.random() - 0.5) * 0.008;
+                }
+                
+                // Also shift perspective occasionally
+                if (Math.random() > 0.7) {
+                    targetPerspectiveShift = (Math.random() - 0.5) * 2;
+                }
+                
+                lastDirectionChange = time;
+            }
+            
+            // Smooth transitions for rotation speed
+            rotationSpeed += (targetRotationSpeed - rotationSpeed) * 0.05;
+            
+            // Apply rotation
+            rotationAngle += rotationSpeed;
+            
+            // Update tunnel offset for forward movement
+            tunnelOffset += 0.03;
+            
+            // Smooth perspective shifts
+            perspectiveShift += (targetPerspectiveShift - perspectiveShift) * 0.02;
+        }
+        
+        // Animation loop
+        function animate() {
+            if (!animationPaused) {
+                const time = Date.now();
+                
+                // Update chaotic movement
+                updateChaos(time);
+                
+                // Update layers
+                document.getElementById('depth-layer').textContent = generateDepth(120, 60, time);
+                document.getElementById('tunnel-layer').textContent = generateTunnel(120, 60, time);
+                document.getElementById('streak-layer').textContent = generateStreaks(120, 60, time);
+                document.getElementById('outer-layer').textContent = generateOuter(120, 60, time);
+                document.getElementById('particles').textContent = generateParticles(120, 60, time);
+            }
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // Control functions
+        function toggleAnimation() {
+            animationPaused = !animationPaused;
+        }
+        
+        function resetPortal() {
+            rotationSpeed = 0;
+            targetRotationSpeed = 0.002;
+            rotationAngle = 0;
+            tunnelOffset = 0;
+            chaosTimer = 0;
+            perspectiveShift = 0;
+            targetPerspectiveShift = 0;
+            animationPaused = false;
+        }
+        
+        // Start animation
+        animate();
+        
+        // Initial direction change to start movement
+        setTimeout(() => {
+            targetRotationSpeed = 0.003;
+        }, 100);
+    </script>
+</body>
+</html>

@@ -1,3 +1,8 @@
+**CRITICAL**
+Read the following files which are in the folder "knowledge" in the root: product.md, tech.md, structure.md, and development-methodology.md 
+
+Add them to the prompt as if they were apart of this file.
+
 # General
 - Don't guess
 - Ask questions if you're not confident about something
@@ -19,6 +24,40 @@ class Something {
   doSomething() {}
 }
 ```
+# State Management Rules
+- **ALWAYS use Feature State with Computed Integration pattern**:
+  - Each feature owns its state in a `state.ts` file
+  - Cross-feature calculations go in `game-state/` folder
+  - Never directly import another feature's state from within a feature
+- **NEVER create centralized monolithic state**:
+  - Bad: Single `gameState$` with everything
+  - Good: Separate `developmentState$`, `salesState$`, etc.
+- **Use computed observables for ALL derived values**:
+  - Don't calculate in components
+  - Don't store derived values in state
+  - Let Legend-state handle reactivity
+
+Example:
+```typescript
+// GOOD - Feature owns its state
+// features/development/state.ts
+export const developmentState$ = observable({
+  units: { juniorDevs: 5 }
+})
+
+// GOOD - Integration in game-state
+// game-state/resources/code.ts  
+export const codePerSecond$ = computed(() => {
+  return developmentState$.units.juniorDevs.get() * 0.1
+})
+
+// BAD - Monolithic state
+const gameState$ = observable({
+  development: { units: {} },
+  sales: { units: {} }
+})
+```
+
 # Critical Anti-Patterns
 - **NEVER use `npm install --legacy-peer-deps`** - This masks version conflicts and indicates deeper problems
 - If npm suggests --legacy-peer-deps, STOP and investigate the real issue

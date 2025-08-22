@@ -1,1 +1,0 @@
-Anything in this folder is archived and should not be used for anything unless you were explicitly told to search the archive, and even then, ask again 
