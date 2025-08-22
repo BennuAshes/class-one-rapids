@@ -19,11 +19,11 @@ Think deeply about what you find and present a comprehensive analysis that inclu
    - Find case studies and real-world implementations
    - Review recent developments and trends in the field
 
-3. **Synthesis & Planning Phase**
+3. **Synthesis Phase**
    - Analyze and synthesize all findings
    - Identify patterns and key takeaways
-   - Develop a practical, actionable implementation plan
-   - Create specific recommendations with clear next steps
+   - Develop a practical understanding of the research
+   - Create specific recommendations with examples
 
 4. **Documentation Phase**
    Create a well-structured research document that includes:
@@ -34,4 +34,5 @@ Think deeply about what you find and present a comprehensive analysis that inclu
    - Tools & Resources
    - References & Sources
 
-Ensure the research folder exists, then save this comprehensive research into an appropriately named .md file in the research folder. If no specific filename is provided in the arguments, derive a meaningful filename from the topic.
+Ensure the research folder exists, then save this comprehensive research into an appropriately named .md file in the research folder. If no specific filename is provided in the arguments, derive a meaningful filename from the topic. Do not create a new folder unless explicitly requested. Do not include any information regarding marketing unless explicitly requested. Be concise with a simple introduction.
+

@@ -1,4 +1,4 @@
-# Requirements Document
+# Product Requirements Document
 
 ## Introduction
 
