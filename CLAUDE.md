@@ -1,8 +1,3 @@
-**CRITICAL**
-Read the following files which are in the folder "knowledge" in the root: product.md, tech.md, structure.md, and development-methodology.md 
-
-Add them to the prompt as if they were apart of this file.
-
 # General
 - Don't guess
 - Ask questions if you're not confident about something
@@ -72,7 +67,7 @@ const gameState$ = observable({
 - All project artifacts MUST be created within `/projects/[project-name]/` or `/projects/[project-name]-v[N]/`
 - Before creating any files or folders:
   1. Check current directory with `pwd`
-  2. If in root, navigate to appropriate project: `cd projects/pet-software-idler`
+  2. If in root, navigate to appropriate project: `cd projects/[project-name]`
   3. Verify you're in the correct location before proceeding
 - When executing workflows, always specify paths relative to the project directory
 - Examples of artifacts that MUST be in project directories:

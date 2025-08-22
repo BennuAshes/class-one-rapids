@@ -30,23 +30,11 @@
 
 ## Phase 3: Integration & Testing
 
-- [ ] 5. Write unit tests
+- [ ] 5. Write unit/component tests
   - Test individual components
   - Test business logic
   - Test error scenarios
   - _Requirements: All_
-
-- [ ] 6. Write integration tests
-  - Test component interactions
-  - Test data flow
-  - Test end-to-end scenarios
-  - _Requirements: All_
-
-- [ ] 7. Performance optimization
-  - Profile performance bottlenecks
-  - Implement optimizations
-  - Validate improvements
-  - _Requirements: 1.1, 1.2_
 
 ## Phase 4: Documentation & Deployment
 

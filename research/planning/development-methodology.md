@@ -12,7 +12,7 @@ When creating implementation plans or task lists, ALWAYS follow these vertical s
 - No "setup-only" tasks that don't deliver visible functionality
 - Avoid tasks that only create infrastructure without demonstrating it works
 
-#### 2. End-to-End Feature Slices
+#### 2. Component Testing Feature Slices
 
 - Each task should implement a complete user journey or interaction
 - Example: "Create character creation screen with state management" (good)
@@ -32,7 +32,7 @@ When creating implementation plans or task lists, ALWAYS follow these vertical s
 
 #### 5. Avoid Horizontal Layers
 
-- Don't create tasks like "Set up all data models" or "Create all API endpoints"
+- Don't create tasks like "Set up all data models" or "Create all API endpoints" or "create the app state"
 - Instead: "Implement character creation with data persistence"
 - Focus on complete features rather than technical layers
 

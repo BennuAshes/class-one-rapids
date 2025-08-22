@@ -1,3 +1,0 @@
-/create-command-advanced "Create a full workflow command that runs the entire development process from design-doc to runbook execution, chaining generate-advanced-prd,
-  analyze-prd-technical-requirements, create-development-runbook-v2, and follow-runbook-with-senior-engineer with proper state management and error recovery" --template workflow --style comprehensive
-  --optimize-for reliability
