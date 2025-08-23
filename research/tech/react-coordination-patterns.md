@@ -385,15 +385,3 @@ function usePurchase() {
 // Limited events for achievements
 achievementBus.emit('department.first-hire', { department: 'IT' });
 ```
-
-## Summary
-
-React applications don't need EventBus for most coordination. The combination of:
-- Composed observables (Legend-State)
-- Capability interfaces
-- React Context
-- Custom hooks
-
-...provides more idiomatic, type-safe, and debuggable coordination patterns while still maintaining feature isolation and vertical slicing architecture.
-
-The key insight: **Vertical slicing doesn't mean zero coordination** - it means features own their state and expose controlled interfaces for coordination.

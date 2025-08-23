@@ -1,21 +1,5 @@
 # Comprehensive Expo Research Report (2024-2025)
 
-## Table of Contents
-1. [What is Expo and Its Core Purpose](#what-is-expo-and-its-core-purpose)
-2. [Key Features and Capabilities](#key-features-and-capabilities)
-3. [Expo SDK vs Bare React Native Workflow](#expo-sdk-vs-bare-react-native-workflow)
-4. [Managed vs Bare Workflows](#managed-vs-bare-workflows)
-5. [EAS (Expo Application Services)](#eas-expo-application-services)
-6. [Development Tools](#development-tools)
-7. [Build and Deployment Processes](#build-and-deployment-processes)
-8. [Performance Considerations](#performance-considerations)
-9. [Limitations and When NOT to Use Expo](#limitations-and-when-not-to-use-expo)
-10. [Practical Examples](#practical-examples)
-11. [Best Practices and Common Patterns](#best-practices-and-common-patterns)
-12. [Recent Updates and Future Direction](#recent-updates-and-future-direction)
-
----
-
 ## What is Expo and Its Core Purpose
 
 Expo is a comprehensive platform and framework for React Native development that significantly simplifies the process of building, testing, and deploying mobile applications for iOS, Android, and web platforms.
