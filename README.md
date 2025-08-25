@@ -1,5 +1,8 @@
 # Class One Rapids
-Class one rapids are straight, fast, and a smooth ride. That's what this system aims to be.
+- Class one rapids are straight, fast, and a smooth ride. That's what this system aims to be.
+- Look at other branches for example files
+- This is a live experiment and is overengineered, messy, and unrefined. I would only use it as inspiration for your own ideas for now.
+- The start is unclear, because I'm not really providing prompts to use. Thats to come.
 ## Main flow in the end
 ```
 # outputs: "prd.md"
@@ -12,16 +15,17 @@ Class one rapids are straight, fast, and a smooth ride. That's what this system 
 ## Phase 0 - Setup
 Create a CLAUDE.md, Cursor rule or similar that says,
 ```
-Be concise
-If doing research, make sure you look in the /research folder before searching the web. Do not search the web if there is something that matches in the /research folder
-Do not guess, ask questions if you are not confident about something
+- Be concise
+- If doing research, make sure you look in the /research folder before searching the web. Do not search the web if there is something that matches in the /research folder
+- Do not guess, ask questions if you are not confident about something
 
 ```
 ## Phase 1 - Create the basic commands
 ### A system for self-bootstrapping a context engineering system.
 ```
-/create-command # create a command that creates commands 
-/research # use that to create a command that researches a topic:
+# create a command that creates commands
+/create-command
+# use that to create a command that researches a topic:
 /research best practices for context engineering and prompt engineering and put it in /research/agentic
 /research best practices for [LLM] prompting and context and put it in /research/agentic
 /research best practices creating slash commands in [for your IDE/host, eg Cursor, Claude Code, etc] using the most recent documentation and put it in /research/agentic
@@ -90,3 +94,4 @@ Phase 3 - Generate an app/create features
 - research organized and used via tags
 - hook watching for changes in research folder -> update single files? INDEX.md within each subfolder? "Read each INDEX.md within each subfolder of the /research folder
 - once things are working more consistently, condense into two commands, generate + execute
+
