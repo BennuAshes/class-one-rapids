@@ -1,0 +1,2 @@
+- Wisdom is applied knowledge.
+- This folder represents the knowledge or research directly be used by the LLM.
