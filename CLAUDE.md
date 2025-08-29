@@ -8,6 +8,7 @@
 - do not look in archive/ folders unless explicitly told to
 - do not read files in archive/ folders unless explicitly told to
 - use functional programming styles by default - avoid using classes
+
 - Example:
 ```typescript
 // Good
@@ -63,15 +64,18 @@ const gameState$ = observable({
 
 # Project Directory Management
 - **NEVER create project artifacts in the root directory** (/mnt/c/dev/class-one-rapids/)
-- All project artifacts MUST be created within `/projects/[project-name]/` or `/projects/[project-name]-v[N]/`
+- All project artifacts MUST be created within `/project/`
 - Before creating any files or folders:
   1. Check current directory with `pwd`
-  2. If in root, navigate to appropriate project: `cd projects/[project-name]`
+  2. If in root, navigate to appropriate project: `cd project/`
   3. Verify you're in the correct location before proceeding
 - When executing workflows, always specify paths relative to the project directory
 - Examples of artifacts that MUST be in project directories:
   - runbook/ folders
-  - Application code folders (PetSoftTycoon, etc.)
+  - Application code folders (src, package.json, etc.)
   - PRD files (*.md)
   - Technical requirements documents
   - Any generated code or documentation
+
+# Testing & Validation
+- Some common commands hang the terminal. Be careful using these, as they stop your flow.

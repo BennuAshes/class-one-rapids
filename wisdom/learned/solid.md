@@ -1,6 +1,5 @@
 # SOLID Principles in Software Engineering: Comprehensive Research Report
-
-*Generated: July 28, 2025*
+**NOT related to the JavaScript framework SolidJS**
 
 ## Table of Contents
 
