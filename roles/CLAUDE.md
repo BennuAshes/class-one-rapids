@@ -1,0 +1,2 @@
+- Do not fetch, read, or otherwise use these files in this folder.
+- Use the official Claude Code Agents at .claude/agents/ if you're looking for a role/persona.

@@ -63,7 +63,7 @@ EXECUTE systematic process reflection analysis: $ARGUMENTS
       
       <validation_research>Cross-reference findings with:
         - /research/agentic/ for established patterns and anti-patterns
-        - /research/quick-ref.md for current architectural decisions
+        - /research/
         - Command implementation files for actual vs intended behavior
       </validation_research>
     </research_integration>

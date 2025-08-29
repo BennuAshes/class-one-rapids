@@ -59,9 +59,22 @@
       "Bash(./extract-implementation-research-simple.sh:*)",
       "WebSearch",
       "WebFetch(domain:amanhimself.dev)",
-      "WebFetch(domain:www.headway.io)"
+      "WebFetch(domain:www.headway.io)",
+      "mcp__memory__create_relations",
+      "mcp__memory__search_nodes",
+      "mcp__memory__create_entities",
+      "mcp__memory__read_graph",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "mcp__memory__delete_entities",
+      "mcp__memory__open_nodes"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "memory"
+  ]
 }
