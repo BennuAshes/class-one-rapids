@@ -1,97 +1,83 @@
 # Class One Rapids
-- Class one rapids are straight, fast, and a smooth ride. That's what this system aims to be.
-- Look at other branches for example files
-- This is a live experiment and is overengineered, messy, and unrefined. I would only use it as inspiration for your own ideas for now.
-- The start is unclear, because I'm not really providing prompts to use. Thats to come.
-## Main flow in the end
-```
-# outputs: "prd.md"
-/create-prd
-# outputs: "prd-technical.md"
-/add-tech-prd prd.md
-# outputs: runbook folder
-/create-runbook technical-prd.md
-```
-## Phase 0 - Setup
-Create a CLAUDE.md, Cursor rule or similar that says,
-```
-- Be concise
-- If doing research, make sure you look in the /research folder before searching the web. Do not search the web if there is something that matches in the /research folder
-- Do not guess, ask questions if you are not confident about something
+This repo answers the question, "How do I make my own PRP (Product Document Prompt), or spec-driven style system?" 
 
-```
-## Phase 1 - Create the basic commands
-### A system for self-bootstrapping a context engineering system.
-```
-# create a command that creates commands
-/create-command
-# use that to create a command that researches a topic:
-/research best practices for context engineering and prompt engineering and put it in /research/agentic
-/research best practices for [LLM] prompting and context and put it in /research/agentic
-/research best practices creating slash commands in [for your IDE/host, eg Cursor, Claude Code, etc] using the most recent documentation and put it in /research/agentic
-/create-command-advanced - read all the files in the folder /research to create an advanced create-command 
+## Description
+There are many CLI systems and now IDEs that let you build an app by creating requirements, design, and tasks for an agent
 
-```
-## Phase 2 - Create Research
-```
-/research-advanced - use research and the new advanced command to create an advanced research command
-(optional) /research-advanced [any of the research topics in phase 1]
-/research-advanced product requirements document
-/research-advanced best practices for [each framework used]
-/research-advanced best practices for [language used]
-/research-advanced best practices for state management
-/research-advanced best practices for [specific state management you like] {optional}
-/research-advanced software development cycle
-/research Create a file "roles.md" of the different roles within the software development cycle. Be concise and only list the roles as a bulleted list (using '-')
-/research-advanced each role in roles.md and save a different file for each role. put these in a folder "/research/roles"
-/research-advanced vertical slicing
-/research-advanced SOLID principles
-(optiona) /research-advanced automated testing best practices for [framework or language] including unit, component, integration, e2e, and contract testing
-(optional) /research-advanced [specific framework + testing suite, eg "react-native expo component testing with testing-library"
+## Tools
+- Claude Code
+- Opus4.1
+- Windows 11 WSL 2 (Ubuntu)
 
-```
-Phase 3 - Create Flow Commands
-```
-/create-command-advanced that creates a file for a prd based on a md file or text entered using a name based on the contents of the PRD
-/create-command-advanced that adds a section to each user-story, directly under the user-story. do not change any part of the user story itself, only add technical details
-/create-command-advanced that creates a runbook for an AI Agent to follow using the research in /research/agentic. This runbook should follow the specifications in the technical section of the inputed PRD (which should have a technical section under each story)
-/create-command-advanced that executes a runbook by assuming the role of the /research/roles/
-```
+## How this was created
+### Claude Code Conversation
+There is a convo in the repo that shows exactly how it was created.
 
-Phase 3 - Generate an app/create features
-```
-/research-advanced Idler/clicker games
-/research-advanced design documents for games
-/create-command-advanced Create a command that does the follow, "Use /research/games folder to create a design document by using ULTRATHINK and think deeper and think longer"
-/create-prp design-doc.md
-/add-tech-prd prp.md
-/create-runbook prp-technical.md
-/execute-runbook /path/to/runbook/
-```
-## Paradigm and other commands to create
+### Conversation Summary
+[summary from LLM anaylzing conversation]
 
-### Explanation
-- Research folder organized by topic (planning, tech, etc)
-- Commands reference the research folder and subfolders as needed
-- Runbook created using gates that confirm with research based on a PRD+technical details
-- Runbook is split into files, verstile:
-  - mark progress in the file
-  - physically moved for local kanban system
-- Each step validates itself against the research
-- Role/persona used for each step
+## Future Development Todo List
 
-### Experimental
-```
-# checks the flow by looking at the README.md (which should list the flow, can be created via a prompt) and the commands being used, and traces down what is causing concerns with the results
-/analyze-flow [what went wrong with the flow]
+📋 **Detailed implementation guide**: [docs/improvements-roadmap.md](docs/improvements-roadmap.md)
 
-# "Compresses" research into smaller chunks to reduce token usage = uses /research/agentic to make smart decisions about what to keep and what to remove
-/compress-research [research-file.md] 
-```
+### 🚀 Immediate Priorities
+- [ ] Update CLAUDE.md with command execution guidelines and directory handling patterns
+- [ ] Fix create-expo-project.md to handle existing directories and add better error recovery
+- [ ] Document bash execution model and shell persistence limitations in CLAUDE.md
+- [ ] Create test-command.md for validating new commands before deployment
 
-### Brainstorming
-- the idea of having the "creative" mind of the LLM create logical checks by creating scripts that can, in a very concrete way, verify logic. This is a human approach (e.g. using a linter to prevent silly mistakes).
-- research organized and used via tags
-- hook watching for changes in research folder -> update single files? INDEX.md within each subfolder? "Read each INDEX.md within each subfolder of the /research folder
-- once things are working more consistently, condense into two commands, generate + execute
+### 📝 Command Improvements
+- [ ] Add path verification between steps in multi-stage commands
+- [ ] Implement error handling for when projects already exist
+- [ ] Create rollback capabilities for failed setup commands
+- [ ] Build command dependency checker to verify prerequisites
+- [ ] Add conditional execution patterns for better error recovery
 
+### 🔬 Research Needs
+- [ ] Research Claude Code bash execution model and sandboxing
+- [ ] Document best practices for multi-step bash workflows in commands
+- [ ] Investigate state management strategies between commands
+- [ ] Study error recovery patterns for markdown-based commands
+- [ ] Explore monorepo vs single project setup patterns
+- [ ] Research template versioning strategies for project generators
+
+### 🏗️ Infrastructure
+- [ ] Create automated testing for Claude Code commands
+- [ ] Build command validation framework
+- [ ] Implement command versioning system
+- [ ] Add performance metrics for command execution
+- [ ] Create cross-command communication patterns
+
+### 📚 Documentation
+- [ ] Write comprehensive guide for bash command patterns
+- [ ] Document common pitfalls and solutions
+- [ ] Create troubleshooting guide for command failures
+- [ ] Add examples of successful command patterns
+- [ ] Build command template library
+
+### 🔧 Process Improvements
+- [ ] Implement pre-execution checks (verify CWD, check existing directories)
+- [ ] Enhance error messages with full path context
+- [ ] Add progress indicators for long-running commands
+- [ ] Create better clarification triggers for ambiguous requests
+- [ ] Improve testing strategy for commands with different project states
+
+### 🎯 Long-term Goals
+- [ ] Develop command composition system for complex workflows
+- [ ] Create dynamic frontmatter for conditional tool permissions
+- [ ] Build command marketplace for sharing between projects
+- [ ] Implement custom model parameters beyond model selection
+- [ ] Design cross-command state sharing mechanism
+
+### 🐛 Known Issues to Fix
+- [ ] MMKV compatibility with Expo SDK 54 on Android
+- [ ] npm scripts availability in fresh projects
+- [ ] Directory context persistence between bash commands
+- [ ] Silent failures in multi-step commands
+
+### ✨ Enhancement Ideas
+- [ ] Add command history and undo functionality
+- [ ] Create command aliases for frequently used patterns
+- [ ] Implement command chaining for workflows
+- [ ] Build interactive command builder UI
+- [ ] Add command analytics and usage tracking

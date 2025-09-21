@@ -1,0 +1,2 @@
+- Ask questions if you have gaps in knowledge or have any doubts
+- Avoid running git commands that can change the state, like git checkout or git stash. If something tells you to use something like git checkout or git stash, stop and ask for help before proceeding

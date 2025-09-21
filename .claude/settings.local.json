@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "WebSearch",
+      "WebFetch(domain:legendapp.com)",
+      "WebFetch(domain:expo.dev)",
+      "WebFetch(domain:github.com)",
+      "Bash(git for-each-ref:*)",
+      "Bash(git checkout:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
