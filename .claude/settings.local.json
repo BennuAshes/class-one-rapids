@@ -7,7 +7,10 @@
       "WebFetch(domain:expo.dev)",
       "WebFetch(domain:github.com)",
       "Bash(git for-each-ref:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(npx jest:*)",
+      "Bash(npm install)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

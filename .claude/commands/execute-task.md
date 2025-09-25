@@ -1,514 +1,366 @@
 ---
-description: "Execute tasks from task list using TDD approach with test-first development"
-argument-hint: "<task-file.yaml> [task-id] | <inline-task-definition>"
-allowed-tools: "Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite, Task"
-
+description: "Execute tasks from task list using Test-Driven Development (TDD) methodology"
+argument-hint: "<task-list-file-path> [task-id|phase-name]"
+allowed-tools: "TodoWrite, Read, Write, MultiEdit, Edit, Bash(npm:*), Bash(npx:*), Bash(node:*), Bash(git status:*), Bash(git diff:*), Grep, Glob, Task"
 ---
 
-# Task Executor with Test-Driven Development
+# TDD Task Executor Agent
 
-Execute tasks from a task list following Test-Driven Development (TDD) principles: **$ARGUMENTS**
+Execute tasks from the task list at: **$1**
+Target: $2 (optional: specific task ID or phase name)
 
-## Phase 1: Task Loading and Analysis
+## Phase 1: Initialize Execution Context
 
-### Load Task Definition
-First, determine the task source:
+First, I'll set up the execution environment and understand the task requirements.
 
-1. If `$ARGUMENTS` contains `.yaml`:
-   - Read the task file
-   - Parse all tasks and dependencies
-   - Build execution order respecting dependencies
-2. If `$ARGUMENTS` contains specific task_id:
-   - Load task file and find specific task
-3. Otherwise:
-   - Treat as inline task definition
-   - Parse the task structure
+1. **Read Task List**: Load and parse the task list from $1
+2. **Check Task Status**: Look for [COMPLETED] or [PARTIAL] prefixes in task titles
+3. **Identify Target**: Determine which tasks to execute based on $2 (if provided)
+4. **Skip Completed Tasks**: Tasks marked [COMPLETED] should be skipped
+5. **Validate Prerequisites**: Check that required tools, dependencies, and environment are ready
+6. **Initialize Progress Tracking**: Set up TodoWrite for tracking task execution
 
-### Parse Task Structure
-Extract from each task:
-- `task_id`: Unique identifier
-- `name`: Task description
-- `type`: [setup|implementation|testing|deployment]
-- `agent_prompt`: COSTAR-formatted instructions
-- `dependencies`: Required prerequisite tasks
-- `validation_script`: Commands to verify completion
-- `success_criteria`: List of verification checks
-- `files_to_modify`: Existing files to change
-- `files_to_create`: New files needed
+## Phase 2: Task Analysis & Planning
 
-## Phase 2: TDD Execution Workflow
+For the identified tasks:
 
-For each task, follow this TDD cycle:
+1. **Extract Task Requirements**:
 
-### Step 1: Analyze Requirements
-From the agent_prompt, extract:
-- **CONTEXT**: Current state and environment
-- **OBJECTIVE**: Specific goal to achieve
-- **SPECIFICATIONS**: Input/output contracts
-- **VALIDATION**: How to verify success
+   - Task ID and description
+   - Dependencies and prerequisites
+   - Acceptance criteria
+   - Test requirements
+   - Deliverables
 
-### Step 2: Write Tests First
+2. **Determine Execution Order**:
 
-#### For React/React Native Components:
-```typescript
-// Generate test file BEFORE implementation
-// [ComponentName].test.tsx
+   - Resolve dependency graph
+   - Identify parallelizable tasks
+   - Create execution sequence
 
-import React from 'react';
-import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
-import { [ComponentName] } from './[ComponentName]';
+3. **Prepare Test Strategy**:
+   - Identify test categories needed (unit, integration, e2e)
+   - Determine testing tools and frameworks
+   - Plan test file structure
 
-describe('[ComponentName]', () => {
-  const user = userEvent.setup();
+## Phase 3: Test-Driven Development Execution
 
-  // Test for basic rendering
-  test('renders correctly with required props', () => {
-    render(<[ComponentName] {...requiredProps} />);
-    expect(screen.getByText('[expected text]')).toBeTruthy();
-  });
-
-  // Test for user interactions
-  test('handles [interaction] correctly', async () => {
-    const handle[Event] = jest.fn();
-    render(<[ComponentName] on[Event]={handle[Event]} />);
-
-    await user.press(screen.getByText('[button text]'));
-    expect(handle[Event]).toHaveBeenCalledWith([expectedArgs]);
-  });
-
-  // Test for edge cases
-  test('[edge case description]', () => {
-    // Implementation based on specifications
-  });
-});
-```
-
-#### For API Endpoints:
-```typescript
-// Generate API test file first
-// [endpoint].test.ts
-
-import request from 'supertest';
-import { app } from '../server';
-import { mockDatabase } from '../test-utils';
-
-describe('[HTTP_METHOD] [endpoint_path]', () => {
-  beforeEach(() => {
-    mockDatabase.reset();
-  });
-
-  test('returns [expected_status] with valid data', async () => {
-    const response = await request(app)
-      .[method]('[path]')
-      .send({ [validPayload] })
-      .expect([statusCode]);
-
-    expect(response.body).toMatchObject({
-      [expectedStructure]
-    });
-  });
-
-  test('returns 400 for invalid input', async () => {
-    const response = await request(app)
-      .[method]('[path]')
-      .send({ [invalidPayload] })
-      .expect(400);
-
-    expect(response.body.error).toBeDefined();
-  });
-
-  test('handles [edge_case]', async () => {
-    // Edge case implementation
-  });
-});
-```
-
-#### For Utility Functions:
-```typescript
-// Generate utility test first
-// [utilityName].test.ts
-
-import { [functionName] } from './[utilityName]';
-
-describe('[functionName]', () => {
-  test('returns expected output for valid input', () => {
-    const input = [testInput];
-    const expected = [expectedOutput];
-
-    expect([functionName](input)).toEqual(expected);
-  });
-
-  test('handles edge case: [description]', () => {
-    expect([functionName]([edgeInput])).toBe([edgeOutput]);
-  });
-
-  test('throws error for invalid input', () => {
-    expect(() => [functionName]([invalidInput]))
-      .toThrow('[ExpectedError]');
-  });
-});
-```
-
-#### For Custom Hooks:
-```typescript
-// Generate hook test first
-// [useHookName].test.ts
-
-import { renderHook, act } from '@testing-library/react-native';
-import { [useHookName] } from './[useHookName]';
-
-describe('[useHookName]', () => {
-  test('initializes with correct default state', () => {
-    const { result } = renderHook(() => [useHookName]());
-
-    expect(result.current.[stateProp]).toBe([defaultValue]);
-  });
-
-  test('updates state when [action] is called', () => {
-    const { result } = renderHook(() => [useHookName]());
-
-    act(() => {
-      result.current.[actionMethod]([args]);
-    });
-
-    expect(result.current.[stateProp]).toBe([expectedValue]);
-  });
-
-  test('handles async operations correctly', async () => {
-    const { result, waitForNextUpdate } = renderHook(() => [useHookName]());
-
-    act(() => {
-      result.current.[asyncMethod]();
-    });
-
-    await waitForNextUpdate();
-
-    expect(result.current.[asyncResult]).toBeDefined();
-  });
-});
-```
-
-### Step 3: Run Tests to See Them Fail
-
+**Pre-execution Check**: For each task, verify it's not already implemented:
 ```bash
-# Run the newly created test
-npm test [test-file-path] --no-coverage
+# Check if component/service exists
+test -f src/components/ComponentName/ComponentName.tsx
+test -f src/services/ServiceName.ts
 
-# Expect RED - tests should fail because implementation doesn't exist
-# This confirms tests are properly checking for the functionality
+# Check for existing tests
+test -f src/__tests__/components/ComponentName.test.tsx
 ```
 
-### Step 4: Implement Minimal Code to Pass
+For each task in the execution sequence:
 
-Based on the test requirements and agent_prompt, implement:
+### Step 1: RED - Write Failing Tests First
 
-1. **Create the implementation file**
-2. **Write minimal code** that satisfies the test
-3. **Focus on passing tests** rather than perfection
-4. **Use existing patterns** from the codebase
+**CRITICAL**: Always write tests BEFORE implementation
 
-Implementation approach:
-- Start with the simplest solution
-- Add only what's needed to pass tests
-- Avoid premature optimization
-- Follow existing code conventions
-
-### Step 5: Run Tests Again
-
-```bash
-# Run tests to verify they now pass
-npm test [test-file-path]
-
-# Expect GREEN - all tests should pass
-# If any fail, fix implementation and re-run
+```typescript
+// Example test structure based on React Native Testing Library guide
+describe("[ComponentName]", () => {
+  test("should [specific behavior from requirement]", async () => {
+    // Test ONE specific behavior
+    // Test MUST fail initially (component doesn't exist)
+    // Use user-centric queries (getByText, getByRole, etc.)
+  });
+});
 ```
 
-### Step 6: Refactor if Needed
+Actions:
 
-Once tests pass:
-1. **Review code** for improvements
-2. **Extract common logic** to utilities
-3. **Improve naming** and structure
-4. **Add type safety** where missing
-5. **Run tests again** to ensure nothing broke
+1. Create test file in appropriate location
+2. Write test for FIRST requirement only
+3. Run test to confirm it fails with expected error
+4. Commit the failing test (documents the requirement)
 
-### Step 7: Run Full Validation
+### Step 2: GREEN - Write Minimal Code to Pass
 
-Execute the task's validation_script:
-```bash
-# Run validation commands from task definition
-[validation_script commands]
+**RULE**: Write ONLY enough code to make the test pass
 
-# Run broader test suite
-npm test
-npm run typecheck
-npm run lint
-```
+Actions:
 
-## Phase 3: Task Orchestration
+1. Implement minimal solution
+2. No extra features or optimization
+3. Run test to confirm it passes
+4. Keep all existing tests passing
 
-### Dependency Management
+### Step 3: REFACTOR - Improve Code Quality
+
+**MAINTAIN**: All tests must remain green during refactoring
+
+Actions:
+
+1. Extract constants and improve naming
+2. Remove duplication
+3. Improve code organization
+4. Run tests after each change
+
+### Step 4: Iterate for Next Requirement
+
+Repeat RED-GREEN-REFACTOR for each requirement:
+
+1. Add new failing test for next behavior
+2. Implement code to pass new test
+3. Refactor if needed
+4. Continue until all requirements have tests
+
+## Phase 4: Task Validation & Completion
+
+### Validation Checklist
+
+Before marking any task complete:
+
+1. **Test Coverage Validation**:
+
+   ```bash
+   npm test -- --coverage
+   ```
+
+   - Coverage > 80% for new code
+   - All requirements have corresponding tests
+   - Tests document expected behavior clearly
+
+2. **Code Quality Checks**:
+
+   ```bash
+   npm run typecheck
+   npm run lint
+   ```
+
+   - No TypeScript errors
+   - No linting violations
+   - Code follows project conventions
+
+3. **Acceptance Criteria Verification**:
+
+   - [ ] Each criterion from task list is met
+   - [ ] All deliverables are present
+   - [ ] Dependencies are properly managed
+
+4. **Documentation**:
+   - Tests serve as living documentation
+   - Complex logic has inline comments
+   - API/Component has usage examples
+
+## Phase 5: Progress Reporting
+
+### Update Task Tracking File
+
+After completing each task:
 ```yaml
-# Execute tasks in dependency order
-execution_order:
-  1. Check all dependencies completed
-  2. Execute current task with TDD
-  3. Mark task as completed
-  4. Unlock dependent tasks
+# Update task-tracking.yaml
+task_id:
+  status: completed  # was: not_started
+  completed:
+    - List of implemented features
+  evidence:
+    - src/path/to/implementation.ts
+    - src/__tests__/path/to/tests.test.ts
+  completed_at: 2025-09-24T10:30:00Z
 ```
 
-### Parallel Execution
-When tasks have no interdependencies:
-```yaml
-parallel_groups:
-  - [task_a, task_b]  # Can run simultaneously
-  - [task_c]          # Depends on both a and b
-```
+### Progress Tracking with TodoWrite
 
-### Error Handling
-```yaml
-on_failure:
-  1. Capture error details
-  2. Log failure reason
-  3. Attempt recovery if possible
-  4. Mark task as failed
-  5. Stop dependent tasks
-  6. Report status
-```
+Maintain real-time task status:
 
-## Phase 4: Implementation Patterns
+- **pending**: Not started
+- **in_progress**: Currently executing (only ONE at a time)
+- **completed**: All criteria met and validated
 
-### Pattern 1: Component Development
-```typescript
-// TDD Cycle for React Components
-1. Write test describing expected behavior
-2. Create component shell that fails test
-3. Add props and basic structure
-4. Implement logic to pass tests
-5. Add styling and polish
-6. Verify all tests still pass
-```
+### Execution Report Structure
 
-### Pattern 2: API Development
-```typescript
-// TDD Cycle for API Endpoints
-1. Write integration tests for endpoint
-2. Create route that returns 404
-3. Add basic handler returning mock data
-4. Implement business logic
-5. Add validation and error handling
-6. Verify all status codes tested
-```
+For each completed task:
 
-### Pattern 3: State Management
-```typescript
-// TDD Cycle for State/Store
-1. Write tests for state transitions
-2. Create initial state structure
-3. Implement actions/reducers
-4. Add selectors and computed values
-5. Test side effects and async operations
-6. Verify state integrity maintained
-```
-
-### Pattern 4: Integration Features
-```typescript
-// TDD Cycle for Feature Integration
-1. Write end-to-end test scenario
-2. Implement UI components (with tests)
-3. Implement API endpoints (with tests)
-4. Connect UI to API
-5. Add error handling and loading states
-6. Run full integration test
-```
-
-## Phase 5: Quality Checks
-
-### Test Coverage Requirements
-```bash
-# Ensure adequate coverage
-npm test -- --coverage
-
-# Check coverage meets thresholds:
-- Statements: >80%
-- Branches: >75%
-- Functions: >80%
-- Lines: >80%
-```
-
-### Code Quality Checks
-```bash
-# TypeScript validation
-npm run typecheck
-
-# Linting
-npm run lint
-
-# Format check
-npm run format:check
-
-# Security audit
-npm audit
-```
-
-### Performance Validation
-For React Native components:
-```typescript
-// Measure render performance
-test('renders efficiently', () => {
-  const { rerender } = render(<Component />);
-
-  const start = performance.now();
-  for (let i = 0; i < 10; i++) {
-    rerender(<Component key={i} />);
-  }
-  const duration = performance.now() - start;
-
-  expect(duration).toBeLessThan(100); // <100ms for 10 renders
-});
-```
-
-## Phase 6: Documentation
-
-### Generate Documentation
-For each implemented feature:
-1. **API Documentation**: Endpoint contracts
-2. **Component Documentation**: Props and usage
-3. **Test Documentation**: What's being tested
-4. **Integration Guide**: How pieces connect
-
-### Update Project Files
-- README.md: Add new features
-- CHANGELOG.md: Document changes
-- API.md: Update endpoint documentation
-- TESTING.md: Add testing guidelines
-
-## Phase 7: Task Completion
-
-### Success Criteria Verification
-```yaml
-for each criterion in success_criteria:
-  - Execute verification command
-  - Check expected outcome
-  - Document result
-  - If failed, attempt fix and retry
-```
-
-### Final Validation
-```bash
-# Run complete test suite
-npm test
-
-# Build project
-npm run build
-
-# Run any task-specific validation
-[validation_script from task]
-```
-
-### Status Reporting
 ```markdown
-## Task Completion Report
+## Task [ID]: [Name]
 
-**Task ID**: [task_id]
-**Name**: [task_name]
-**Status**: ✅ Completed | ❌ Failed | ⚠️ Partial
+✅ Status: Completed
+⏱️ Duration: [time]
 
 ### Tests Written:
-- [test_file_1]: X tests, all passing
-- [test_file_2]: Y tests, all passing
 
-### Files Created:
-- [file_1]: Implementation
-- [file_2]: Tests
-- [file_3]: Documentation
+- [Test file 1]: [X] test cases
+- [Test file 2]: [Y] test cases
 
-### Validation Results:
+### Implementation:
+
+- [Component/Module 1]
+- [Component/Module 2]
+
+### Coverage:
+
+- Statements: X%
+- Branches: Y%
+- Functions: Z%
+
+### Validation:
+
 - ✅ All tests passing
-- ✅ TypeScript: No errors
-- ✅ Linting: Clean
-- ✅ Coverage: XX%
-
-### Next Steps:
-- [Dependent tasks now unblocked]
-- [Recommendations for improvement]
+- ✅ TypeScript check passed
+- ✅ Lint check passed
+- ✅ Acceptance criteria met
 ```
 
-## Execution Strategy
+## Phase 6: Error Handling & Recovery
 
-### For Individual Task:
-```bash
-# Execute single task with TDD
-1. Load task definition
-2. Write all tests first
-3. Run tests (expect failure)
-4. Implement code incrementally
-5. Run tests until all pass
-6. Refactor and optimize
-7. Run final validation
-```
+### When Tests Fail
 
-### For Task List:
-```bash
-# Execute all tasks in order
-1. Parse task dependency graph
-2. For each task level:
-   a. Execute independent tasks in parallel
-   b. Each follows TDD cycle
-   c. Wait for all to complete
-   d. Move to next level
-3. Run final integration tests
-4. Generate completion report
-```
+1. **Analyze Failure**:
 
-## Best Practices
+   - Is it a legitimate requirement change?
+   - Is the test correctly written?
+   - Is the implementation incomplete?
 
-### DO:
-✅ Always write tests before implementation
-✅ Run tests to see them fail first
-✅ Write minimal code to pass tests
-✅ Refactor only after tests pass
-✅ Use existing patterns from codebase
-✅ Follow React Native Testing Library best practices
-✅ Mock external dependencies properly
-✅ Test user-visible behavior, not implementation
-✅ Use userEvent for realistic interactions
-✅ Handle async operations with waitFor
+2. **Recovery Actions**:
+   - Fix implementation (not the test!)
+   - If test is wrong, document why and update
+   - Create new task for unresolved issues
 
-### DON'T:
-❌ Skip the "Red" phase (failing tests)
-❌ Write implementation before tests
-❌ Test implementation details
-❌ Use fireEvent when userEvent available
-❌ Ignore test failures
-❌ Skip validation steps
-❌ Forget error scenarios
-❌ Leave console.logs in code
-❌ Commit without all tests passing
-❌ Use .only() or .skip() in committed tests
+### When Blocked
 
-## Error Recovery
+1. **Document Blocker**:
 
-If task execution fails:
-1. **Identify failure point**: Test, implementation, or validation
-2. **Analyze error**: Read error messages and stack traces
-3. **Fix incrementally**: Address one issue at a time
-4. **Re-run from failure point**: Don't restart entire task
-5. **Update tests if needed**: Requirements may have been misunderstood
-6. **Document issues**: Note any blockers or assumptions
+   - What is preventing progress?
+   - What information/resources are needed?
+
+2. **Mitigation**:
+   - Skip to next independent task
+   - Create placeholder/mock for missing dependency
+   - Request user intervention if critical
+
+## Execution Principles
+
+### TDD Discipline
+
+1. **Never write production code without a failing test**
+2. **Write only enough production code to pass the test**
+3. **Refactor only when tests are green**
+4. **One behavior per test**
+5. **Tests are first-class code (maintain them well)**
+
+### Testing Best Practices (from React Native Testing Library)
+
+1. **Query Priority**:
+
+   - getByRole > getByLabelText > getByPlaceholderText > getByText
+   - Avoid getByTestId unless absolutely necessary
+
+2. **User Event over FireEvent**:
+
+   ```typescript
+   // Good
+   const user = userEvent.setup();
+   await user.press(button);
+
+   // Avoid
+   fireEvent.press(button);
+   ```
+
+3. **Async Handling**:
+
+   ```typescript
+   // Use waitFor for async operations
+   await waitFor(() => {
+     expect(screen.getByText("Loaded")).toBeTruthy();
+   });
+   ```
+
+4. **Test What Users See**:
+   - Don't test implementation details
+   - Test behavior, not state
+   - Test integration, not just units
+
+### Code Generation Guidelines
+
+1. **Follow Existing Patterns**:
+
+   - Check neighboring files for conventions
+   - Use existing utilities and helpers
+   - Match code style (indentation, naming, etc.)
+
+2. **Component Structure** (with co-located tests):
+
+   ```
+   src/modules/[feature]/
+   ├── ComponentName.tsx
+   ├── ComponentName.test.tsx      # Test co-located with component
+   ├── useFeature.ts
+   ├── useFeature.test.ts          # Test co-located with hook
+   ├── featureService.ts
+   └── featureService.test.ts      # Test co-located with service
+   ```
+
+3. **Test Placement Rule**:
+   - Tests ALWAYS go next to the file they test
+   - Use `.test.ts` or `.test.tsx` extension
+   - No separate `__tests__` folders
+   - Import from same directory: `import { Component } from './Component'`
+
+## Task Types & Strategies
+
+### Frontend Component Tasks
+
+1. Start with render tests
+2. Add user interaction tests
+3. Test state management
+4. Test edge cases (loading, error, empty)
+
+### API/Backend Tasks
+
+1. Start with happy path tests
+2. Add validation tests
+3. Test error scenarios
+4. Test edge cases and limits
+
+### Infrastructure Tasks
+
+1. Start with configuration validation
+2. Test deployment scripts
+3. Verify monitoring/alerting
+4. Test rollback procedures
+
+### Data Model Tasks
+
+1. Start with schema validation tests
+2. Test CRUD operations
+3. Test relationships and constraints
+4. Test migrations
 
 ## Success Metrics
 
-Task execution succeeds when:
-- ✅ All tests written before implementation
-- ✅ All tests pass after implementation
-- ✅ Code coverage meets thresholds
-- ✅ No TypeScript errors
-- ✅ No linting warnings
-- ✅ Validation script passes
-- ✅ Success criteria all met
-- ✅ Documentation updated
-- ✅ Code follows project conventions
-- ✅ Performance benchmarks met (if applicable)
+Task execution is successful when:
 
-Execute the task(s) with discipline, following TDD principles throughout!
+1. ✅ All tests written before implementation
+2. ✅ Test coverage > 80% for new code
+3. ✅ All acceptance criteria validated
+4. ✅ No regressions in existing tests
+5. ✅ Code quality checks pass
+6. ✅ Task marked complete in tracking
+
+## Continuous Execution
+
+The agent will:
+
+1. Execute tasks in dependency order
+2. Validate each task before moving to next
+3. Report progress in real-time
+4. Handle errors gracefully
+5. Complete all tasks in target scope
+
+## Final Output
+
+Upon completion, provide:
+
+1. Summary of all completed tasks
+2. Test coverage report
+3. Any blockers or issues encountered
+4. Recommendations for next steps
+5. Location of all generated code and tests
+
+Remember: **Test-Driven Development is a discipline**. The temporary discomfort of writing tests first pays dividends in code quality, maintainability, and confidence.

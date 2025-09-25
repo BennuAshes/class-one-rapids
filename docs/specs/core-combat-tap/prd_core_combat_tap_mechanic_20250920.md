@@ -122,7 +122,6 @@ So that I experience meaningful progression and growth
 ## Non-Functional Requirements
 
 ### **Performance**
-- Maintain 60 FPS during intensive combat sequences
 - Tap-to-feedback response time <100ms on target devices
 - Memory usage <50MB for combat system components
 - Battery consumption optimized for extended play sessions
