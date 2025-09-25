@@ -435,75 +435,6 @@ const AnalyticsView = observer(() => {
 })
 ```
 
-## 🔧 Configuration
-
-### TypeScript Configuration
-
-```json
-// tsconfig.json
-{
-  "extends": "expo/tsconfig.base",
-  "compilerOptions": {
-    "strict": true,
-    "noEmit": true,
-    "isolatedModules": true,
-    "jsx": "react-native",
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "paths": {
-      "@/*": ["./src/*"],
-      "@store/*": ["./src/store/*"],
-      "@components/*": ["./src/components/*"]
-    }
-  },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
-  "exclude": ["node_modules"]
-}
-```
-
-### App.json Configuration
-
-```json
-// app.json
-{
-  "expo": {
-    "name": "my-app",
-    "slug": "my-app",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.example.myapp"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "package": "com.example.myapp"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png",
-      "bundler": "metro"
-    },
-    "newArchEnabled": true,
-    "experiments": {
-      "reactCompiler": true
-    }
-  }
-}
-```
-
 ## ✅ Best Practices
 
 ### DO: Use Fine-Grained Reactivity
@@ -618,15 +549,6 @@ describe('Todo Store', () => {
   })
 })
 ```
-
-## 📚 Resources
-
-- [Legend-State v3 Documentation](https://legendapp.com/open-source/state/v3/)
-- [Legend-State GitHub](https://github.com/LegendApp/legend-state)
-- [Expo SDK 54 Changelog](https://expo.dev/changelog/sdk-54)
-- [Expo Documentation](https://docs.expo.dev/)
-- [React Native New Architecture](https://docs.expo.dev/guides/new-architecture/)
-- [AsyncStorage Documentation](https://react-native-async-storage.github.io/async-storage/)
 
 ## ⚠️ Known Limitations
 

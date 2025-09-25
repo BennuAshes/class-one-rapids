@@ -1,6 +1,9 @@
 # Class One Rapids
 This repo answers the question, "How do I make my own PRP (Product Document Prompt), or spec-driven style system?" 
 
+## Variations
+Providing a toolkit, or prompts and a methodology to create different types of projects with a central LLM-related mechanism for researching, remembering knowledge, searching that knowledge when relevant
+
 ## Description
 There are many CLI systems and now IDEs that let you build an app by creating requirements, design, and tasks for an agent
 
@@ -10,11 +13,30 @@ There are many CLI systems and now IDEs that let you build an app by creating re
 - Windows 11 WSL 2 (Ubuntu)
 
 ## How this was created
-### Claude Code Conversation
-There is a convo in the repo that shows exactly how it was created.
-
 ### Conversation Summary
 [summary from LLM anaylzing conversation]
+
+### General Issues I'm Running Into
+- folder organization: organizing by feature is not super common for react apps as the apps tend to be small
+- fine-grained state management for non-established 
+- starting new projects (don't let it overthink)
+- related to above, creating configs ahead of time
+- configs should be updated step by step per item relevant to the step
+- eg don't use a "standard config" it suggests - start with a seed project and build on that as you add "features" even if the feature is a dev enabler.
+- big focus on stuff like marketing, metrics, and full testing suite when talking about an "MVP" - maybe I need to use "POC"
+- Tries adding a babel config - no knowledge of babel-preset-expo
+- Tries to validate code in ways that cause it to freeze/pause
+- Jest compatibility
+- Doing research helps but there's a lot and it becomes bloated
+- Memory Capabilities?
+- hard time giving up, or realizing something isn't their fault
+- data flow, architecture
+
+### PRD specific issues
+- focus on 60 FPS coming from the PRD generated
+
+### Expo - Configuring a New Project
+
 
 ## Future Development Todo List
 

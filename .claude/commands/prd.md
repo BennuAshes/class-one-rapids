@@ -68,7 +68,7 @@ Organize by feature area:
   - Requirement 2: [Specific, measurable description]
 
 #### 7. Non-Functional Requirements
-- **Performance**: [Specific benchmarks, e.g., <2s load time]
+- **Performance**: [Specific benchmarks, e.g., <2s load time, that are relevant to the technology used]
 - **Security**: [Authentication, data protection requirements]
 - **Accessibility**: [WCAG standards compliance]
 - **Scalability**: [User/data volume requirements]

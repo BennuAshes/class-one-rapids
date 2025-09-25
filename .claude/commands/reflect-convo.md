@@ -2,7 +2,6 @@
 description: "Analyze chat to suggest CLAUDE.md updates, prompt improvements, and research needs"
 argument-hint: "[specific-focus-area]"
 allowed-tools: "Read, Write, MultiEdit"
-
 ---
 
 # Reflect on Current Chat Session

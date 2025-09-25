@@ -1,4 +1,4 @@
- ---
+---
 description: "Technical research focused on code, APIs, and implementation details for LLM context"
 argument-hint: "<technical topic, framework, or tool>"
 allowed-tools: "WebSearch, WebFetch, Task, Write, Read, Bash(mkdir:*), Grep"
