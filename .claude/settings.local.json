@@ -10,7 +10,13 @@
       "Bash(git checkout:*)",
       "Bash(npx jest:*)",
       "Bash(npm install)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm test:*)",
+      "WebFetch(domain:docs.expo.dev)",
+      "WebFetch(domain:callstack.github.io)",
+      "WebFetch(domain:stackoverflow.com)",
+      "Bash(cat:*)",
+      "WebFetch(domain:www.npmjs.com)"
     ],
     "deny": [],
     "ask": []

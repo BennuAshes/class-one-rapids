@@ -1,1177 +1,743 @@
-# Technical Design Document: Core Combat Tap Mechanic
+# Core Combat Tap Mechanic Technical Design Document
 
-## Document Information
-| Version | Author | Date | Status |
-|---------|--------|------|--------|
-| v1.0 | Engineering Team | 2025-09-25 | Draft |
+## Document Control
+| Version | Author | Date | Status | Changes |
+|---------|--------|------|--------|---------|
+| v1.0 | Claude AI | 2025-09-25 | Draft | Initial TDD from PRD |
 
-**Executive Summary**: Technical design for implementing the core tap-based combat system using React Native/Expo with Test-Driven Development principles, focusing on sub-100ms response times, visual feedback systems, and scalable architecture.
+## Executive Summary
+Design and implement a high-performance, responsive tap-based combat system for Asheron's Call Idler using React Native and Expo, delivering sub-100ms input latency with visual feedback that creates visceral player satisfaction through weakness targeting and combo mechanics.
 
-## Requirements Analysis
+## 1. Overview & Context
 
-### Extracted Functional Requirements
+### Problem Statement
+Mobile idle games suffer from passive, unengaging combat that results in 15% D7 retention rates. Players lack agency in combat outcomes, leading to disconnection from gameplay and reduced monetization. From a technical perspective, this requires building a responsive input system with complex visual feedback while maintaining 60 FPS performance on mobile devices.
 
-#### Input System Requirements
-- **INP-001**: Register tap inputs with <50ms latency on supported devices
-- **INP-002**: Support multitouch with primary tap taking precedence
-- **INP-003**: Provide haptic feedback within 20ms of tap on supported devices
-- **INP-004**: Handle automated tapping detection (>20 taps/second triggers anti-cheat)
+### Solution Approach
+Implement a React Native-based tap combat system using React Native Gesture Handler for low-latency input processing, React Native Reanimated 3 for smooth 60 FPS animations, and MSW for testable API mocking. The system will use a component-based architecture with immediate visual feedback through floating damage numbers, particle effects, and haptic responses.
 
-#### Enemy Weakness System Requirements
-- **EWS-001**: Display 1-3 weakness spots per enemy based on enemy type
-- **EWS-002**: Rotate weakness spots every 2-3 seconds with 0.5s fade transition
-- **EWS-003**: Weakness spots minimum 44x44 pixels for accessibility
-- **EWS-004**: Provide 0.5s visual telegraph before weakness spot appears
+### Success Criteria
+- Input-to-visual latency < 100ms measured via performance profiling
+- Maintain 60 FPS during combat with 10+ simultaneous particle effects
+- Memory usage < 150MB for combat system components
+- Test coverage > 80% using React Native Testing Library
+- Zero rage quits due to input lag in first 1000 sessions
 
-#### Damage Calculation Requirements
-- **DMG-001**: Base damage = Player Power × (1.0 - 1.5 random multiplier)
-- **DMG-002**: Weakness multiplier = 2.0x base, scaling to 3.0x with upgrades
-- **DMG-003**: Combo multiplier = 1.0 + (0.5 × combo count), max 5.0x
-- **DMG-004**: Display damage numbers for 1.5s with float animation
+## 2. Requirements Analysis
 
-#### Feedback Systems Requirements
-- **FBK-001**: Play impact particle effect at tap location lasting 0.3s
-- **FBK-002**: Enemy sprite deformation (squash/stretch) over 0.2s
-- **FBK-003**: Screen shake proportional to damage (0-5 pixels amplitude)
-- **FBK-004**: Audio feedback with 3 tiers based on damage amount
+### Functional Requirements
+**Combat Input Processing**
+- Single tap damage dealing with gesture recognition
+- Multitouch handling with primary tap precedence
+- Weakness spot hit detection with 44x44px minimum touch targets
+- Combo tracking for consecutive weakness hits
 
-#### Loot System Requirements
-- **LOT-001**: Drop 1-5 Pyreal on enemy defeat based on enemy level
-- **LOT-002**: Auto-collect loot within 100 pixels of drop location
-- **LOT-003**: Display collection animation and "+X Pyreal" text
-- **LOT-004**: Loot persists for 10 seconds before auto-collection
+**Visual Feedback System**
+- Floating damage numbers with 1.5s duration
+- Impact particle effects at tap location
+- Enemy sprite deformation animations
+- Screen shake proportional to damage (0-5px amplitude)
+
+**Damage Calculation Engine**
+- Base damage = Player Power × (1.0-1.5 random)
+- Weakness multiplier = 2.0x-3.0x based on upgrades
+- Combo multiplier = 1.0 + (0.5 × combo), max 5.0x
+- Server-side validation for anti-cheat
+
+**Loot & Collection System**
+- Pyreal drops on enemy defeat (1-5 based on level)
+- Auto-collection within 100px radius
+- 10-second persistence before forced collection
 
 ### Non-Functional Requirements
-- **NFR-001**: Maintain 60 FPS on devices from 2020 or newer
-- **NFR-002**: Input latency <100ms from tap to visual feedback
-- **NFR-003**: Memory usage <150MB for combat system
-- **NFR-004**: Battery drain <5% per 10-minute session
-- **NFR-005**: Support 100+ simultaneous particle effects
-- **NFR-006**: Handle 1000+ damage calculations per minute
+- **Performance**: 60 FPS on iPhone 11+ and Pixel 4+
+- **Latency**: < 50ms input registration, < 100ms total feedback loop
+- **Memory**: < 150MB heap usage for combat components
+- **Battery**: < 5% drain per 10-minute session
+- **Security**: Server-side damage validation, anti-automation (>20 taps/sec detection)
+- **Accessibility**: WCAG 2.1 AA compliance, colorblind modes, 66x66px large touch mode
 
-## Architecture Overview
+## 3. System Architecture
 
-### System Architecture
-
+### High-Level Architecture
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Presentation Layer                   │
-├─────────────────────────────────────────────────────────────┤
-│  CombatScreen │ EnemyComponent │ ParticleSystem │ UIOverlay │
-├─────────────────────────────────────────────────────────────┤
-│                        Business Logic Layer                 │
-├─────────────────────────────────────────────────────────────┤
-│ InputHandler │ DamageCalculator │ ComboManager │ LootSystem │
-├─────────────────────────────────────────────────────────────┤
-│                        State Management Layer               │
-├─────────────────────────────────────────────────────────────┤
-│    CombatState │ EnemyState │ PlayerState │ AnimationState  │
-├─────────────────────────────────────────────────────────────┤
-│                        Core Services Layer                  │
-├─────────────────────────────────────────────────────────────┤
-│ AudioManager │ HapticManager │ AnimationEngine │ PerfMonitor│
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│  Input Layer    │────▶│  Game Logic      │────▶│  Render Layer   │
+│  (Gestures)     │     │  (State/Combat)  │     │  (React Native) │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+        │                       │                         │
+        ▼                       ▼                         ▼
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│  Haptic Service │     │  Audio Service   │     │  Animation Svc  │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
 ```
 
-### Technology Stack
-- **Framework**: React Native 0.70+ with Expo SDK 48+
-- **State Management**: Zustand for performance-critical combat state
-- **Animation**: React Native Reanimated 3.x for 60 FPS animations
-- **Gesture Handling**: React Native Gesture Handler for low-latency input
-- **Audio**: Expo AV with AudioContext for low-latency audio
-- **Testing**: React Native Testing Library + Jest + Detox for E2E
+### Component Design
 
-## Component Architecture
+#### TapHandler Component
+- **Purpose**: Process touch inputs and determine hit locations
+- **Responsibilities**: Gesture recognition, hit detection, multitouch filtering
+- **Interfaces**: onTap(x, y, timestamp), onWeaknessHit(spotId)
+- **Dependencies**: react-native-gesture-handler, enemy position data
 
-### Core Components
+#### CombatEngine Service
+- **Purpose**: Calculate damage and manage combat state
+- **Responsibilities**: Damage calculation, combo tracking, loot generation
+- **Interfaces**: calculateDamage(tapData), updateCombo(hit), dropLoot(enemyId)
+- **Dependencies**: Player stats, enemy data, RNG service
 
-#### 1. CombatScreen Component
-**Responsibility**: Main container managing combat flow and layout
+#### FeedbackRenderer Component
+- **Purpose**: Display visual and audio feedback
+- **Responsibilities**: Damage numbers, particles, screen shake, audio playback
+- **Interfaces**: showDamage(amount, position), playImpact(intensity)
+- **Dependencies**: react-native-reanimated, expo-av, expo-haptics
+
+#### EnemyManager Component
+- **Purpose**: Manage enemy state and weakness spots
+- **Responsibilities**: Health tracking, weakness rotation, death handling
+- **Interfaces**: takeDamage(amount), rotateWeakness(), checkDefeat()
+- **Dependencies**: Enemy definitions, animation service
+
+### Data Flow
+```
+User Tap → GestureHandler → HitDetection → CombatEngine
+    ↓                           ↓              ↓
+HapticFeedback          WeaknessCheck    DamageCalc
+    ↓                           ↓              ↓
+AudioFeedback           ComboUpdate      StateUpdate
+    ↓                           ↓              ↓
+ParticleEffect          DamageNumber     HealthBar
+```
+
+## 4. API Design
+
+### Internal APIs
+
+| Endpoint | Method | Purpose | Request | Response |
+|----------|--------|---------|---------|----------|
+| /combat/tap | POST | Process tap input | {x, y, timestamp, enemyId} | {damage, isWeakness, combo, loot} |
+| /combat/state | GET | Get combat state | - | {enemies, playerStats, combo} |
+| /enemy/spawn | POST | Spawn new enemy | {type, level} | {enemyId, health, weaknessSpots} |
+| /loot/collect | POST | Collect dropped loot | {lootId, position} | {collected, pyreal, items} |
+
+### External Integrations
+- **Analytics Service**: Combat metrics tracking via Amplitude/Mixpanel
+- **Leaderboard Service**: High score submission with damage validation
+- **IAP Service**: Premium damage multiplier purchases
+
+## 5. Data Model
+
+### Entity Design
 
 ```typescript
-interface CombatScreenProps {
-  enemy: Enemy;
-  player: Player;
-  onEnemyDefeat: (enemy: Enemy, loot: Loot[]) => void;
-  onCombatEnd: () => void;
-}
-
-interface CombatScreenState {
-  isActive: boolean;
-  isPaused: boolean;
-  combatMetrics: CombatMetrics;
-}
-```
-
-**Key Features**:
-- Manages overall combat lifecycle
-- Coordinates between input, animation, and state systems
-- Handles performance monitoring and metrics collection
-
-#### 2. EnemyComponent
-**Responsibility**: Renders enemy with weakness spots and handles visual feedback
-
-```typescript
-interface EnemyComponentProps {
-  enemy: Enemy;
+interface Enemy {
+  id: string;
+  type: EnemyType;
+  health: number;
+  maxHealth: number;
+  position: { x: number; y: number };
   weaknessSpots: WeaknessSpot[];
-  onTap: (position: Position, isWeakness: boolean) => void;
-  animationState: EnemyAnimationState;
+  level: number;
+  lootTable: LootEntry[];
 }
 
 interface WeaknessSpot {
   id: string;
-  position: Position;
+  position: { x: number; y: number };
   radius: number;
   multiplier: number;
+  activeUntil: number;
   isVisible: boolean;
-  timeRemaining: number;
-}
-```
-
-**Key Features**:
-- Renders enemy sprite with real-time deformation
-- Manages weakness spot visualization and timing
-- Handles tap detection with precise hit testing
-- Supports accessibility requirements (minimum touch targets)
-
-#### 3. InputHandler Service
-**Responsibility**: Low-latency input processing and gesture recognition
-
-```typescript
-interface InputHandlerConfig {
-  maxLatency: number; // 50ms target
-  multiTouchMode: 'primary' | 'all' | 'disabled';
-  hapticEnabled: boolean;
-  antiCheatThreshold: number; // 20 taps/second
 }
 
-interface TapEvent {
-  id: string;
-  position: Position;
-  timestamp: number;
-  force?: number; // iOS 3D Touch support
-}
-```
-
-**Key Features**:
-- Uses React Native Gesture Handler for minimal latency
-- Implements touch debouncing and anti-cheat detection
-- Provides immediate haptic feedback
-- Tracks input metrics for performance analysis
-
-#### 4. DamageCalculator Service
-**Responsibility**: Server-authoritative damage computation
-
-```typescript
-interface DamageCalculationInput {
-  basePower: number;
-  isWeaknessHit: boolean;
-  weaknessMultiplier: number;
-  comboCount: number;
-  randomSeed?: number; // For deterministic testing
-}
-
-interface DamageResult {
-  finalDamage: number;
-  isCritical: boolean;
-  multipliers: {
-    base: number;
-    weakness: number;
-    combo: number;
-    random: number;
-  };
-  effectType: 'normal' | 'critical' | 'mega';
-}
-```
-
-**Key Features**:
-- Implements all damage calculation formulas from PRD
-- Provides deterministic results for testing
-- Supports damage type classification for visual effects
-- Thread-safe for high-frequency calculations
-
-#### 5. ComboManager Service
-**Responsibility**: Combo tracking and multiplier calculation
-
-```typescript
-interface ComboState {
-  count: number;
-  multiplier: number;
-  lastHitTimestamp: number;
-  isActive: boolean;
-  maxCombo: number;
-}
-
-interface ComboConfig {
-  baseMultiplier: number; // 0.5 per combo level
-  maxMultiplier: number; // 5.0x cap
-  decayTime: number; // Time before combo resets
-  milestoneThresholds: number[]; // [10, 25, 50] for special effects
-}
-```
-
-**Key Features**:
-- Tracks consecutive weakness hits
-- Calculates combo multipliers with configurable caps
-- Handles combo decay and reset logic
-- Triggers milestone effects for UI feedback
-
-### Animation System Architecture
-
-#### ParticleSystem Component
-**Responsibility**: High-performance particle effects for combat feedback
-
-```typescript
-interface ParticleSystemProps {
-  effects: ParticleEffect[];
-  maxParticles: number; // 100+ simultaneous
-  poolSize: number;
-  performanceMode: 'high' | 'balanced' | 'battery';
-}
-
-interface ParticleEffect {
-  type: 'impact' | 'damage_number' | 'loot_drop' | 'combo_burst';
-  position: Position;
-  duration: number;
-  intensity: number;
-  color: string;
-  customData?: any;
-}
-```
-
-**Key Features**:
-- Object pooling for memory efficiency
-- Batch rendering for performance
-- Configurable quality levels for different devices
-- Support for custom particle types and behaviors
-
-#### AnimationEngine Service
-**Responsibility**: Coordinates all combat animations for 60 FPS performance
-
-```typescript
-interface AnimationConfig {
-  targetFPS: number; // 60 FPS
-  enableScreenShake: boolean;
-  particleQuality: 'low' | 'medium' | 'high';
-  reducedMotion: boolean; // Accessibility
-}
-
-interface AnimationState {
-  activeAnimations: Animation[];
-  performanceMetrics: {
-    frameTime: number;
-    droppedFrames: number;
-    memoryUsage: number;
-  };
-}
-```
-
-**Key Features**:
-- Uses React Native Reanimated for native thread animations
-- Implements screen shake with configurable intensity
-- Manages animation queues and priority system
-- Provides performance monitoring and automatic quality adjustment
-
-## State Management Design
-
-### Combat State Schema
-
-```typescript
 interface CombatState {
-  // Combat Flow
-  phase: 'idle' | 'active' | 'victory' | 'defeat';
-  startTime: number;
-  isAutoPilotEnabled: boolean;
+  combo: number;
+  lastHitTime: number;
+  totalDamage: number;
+  weaknessStreak: number;
+  activeBuffs: Buff[];
+}
 
-  // Enemy State
-  currentEnemy: Enemy | null;
-  enemyHealth: number;
-  maxEnemyHealth: number;
-  weaknessSpots: WeaknessSpot[];
-  lastWeaknessRotation: number;
-
-  // Player State
-  basePower: number;
-  totalDamageDealt: number;
-  totalTaps: number;
-  accuracy: number; // weakness hits / total taps
-
-  // Combo System
-  currentCombo: ComboState;
-  comboHistory: number[]; // For analytics
-
-  // Loot System
-  pendingLoot: LootDrop[];
-  sessionEarnings: number;
-
-  // Performance Metrics
-  metrics: {
-    averageInputLatency: number;
-    currentFPS: number;
-    memoryUsage: number;
-    batteryImpact: number;
-  };
+interface DamageEvent {
+  amount: number;
+  position: { x: number; y: number };
+  type: 'normal' | 'weakness' | 'critical';
+  combo: number;
+  timestamp: number;
 }
 ```
 
-### State Management Pattern
+### Database Schema
+```sql
+-- Local SQLite for offline play
+CREATE TABLE combat_sessions (
+  id INTEGER PRIMARY KEY,
+  start_time TIMESTAMP,
+  total_damage INTEGER,
+  max_combo INTEGER,
+  pyreal_earned INTEGER,
+  enemies_defeated INTEGER
+);
 
-Using Zustand with performance optimizations:
+CREATE TABLE damage_events (
+  id INTEGER PRIMARY KEY,
+  session_id INTEGER,
+  enemy_id TEXT,
+  damage INTEGER,
+  is_weakness BOOLEAN,
+  combo_level INTEGER,
+  timestamp TIMESTAMP,
+  FOREIGN KEY (session_id) REFERENCES combat_sessions(id)
+);
 
+-- Indexes for performance
+CREATE INDEX idx_damage_timestamp ON damage_events(timestamp);
+CREATE INDEX idx_session_start ON combat_sessions(start_time);
+```
+
+### Data Access Patterns
+- **Write-heavy**: Damage events (100+ per minute)
+- **Read patterns**: Session stats, high scores, recent damage
+- **Caching**: Enemy stats in memory, damage numbers in circular buffer
+- **Sync strategy**: Batch upload damage events every 30 seconds
+
+## 6. Security Design
+
+### Authentication & Authorization
+- **Method**: JWT tokens via Expo SecureStore
+- **Session**: 7-day refresh tokens, 1-hour access tokens
+- **Validation**: Server-side damage calculation verification
+
+### Data Security
+- **Encryption at rest**: iOS Keychain / Android Keystore for sensitive data
+- **Encryption in transit**: TLS 1.3 for all API calls
+- **Anti-cheat**: Server-side validation of damage ranges, tap frequency limits
+- **Audit logging**: Combat events logged with timestamps and session IDs
+
+### Security Controls
 ```typescript
-// Combat store with selective subscriptions
-const useCombatStore = create<CombatState>((set, get) => ({
-  // State initialization
-  phase: 'idle',
-  currentEnemy: null,
-  // ... other initial state
+// Input validation
+const MAX_TAPS_PER_SECOND = 20;
+const MAX_DAMAGE_MULTIPLIER = 10;
+const MIN_TAP_INTERVAL_MS = 50;
 
-  // Actions
-  actions: {
-    handleTap: (position: Position) => {
-      const startTime = performance.now();
-
-      // Immediate state update for responsiveness
-      set((state) => ({
-        totalTaps: state.totalTaps + 1,
-        // ... other immediate updates
-      }));
-
-      // Async processing for complex calculations
-      requestAnimationFrame(() => {
-        // Damage calculation and effects
-        const endTime = performance.now();
-        const latency = endTime - startTime;
-
-        // Update performance metrics
-        set((state) => ({
-          metrics: {
-            ...state.metrics,
-            averageInputLatency: (state.metrics.averageInputLatency + latency) / 2
-          }
-        }));
-      });
-    },
-
-    updateWeaknessSpots: () => {
-      // Weakness spot rotation logic
-    },
-
-    calculateDamage: (input: DamageCalculationInput) => {
-      // Damage calculation with combo multipliers
-    }
-  }
-}));
-
-// Selective subscriptions for performance
-const useEnemyHealth = () => useCombatStore((state) => state.enemyHealth);
-const useComboCount = () => useCombatStore((state) => state.currentCombo.count);
-const useCombatActions = () => useCombatStore((state) => state.actions);
-```
-
-## Test-Driven Development Strategy
-
-### Testing Pyramid
-
-```
-┌─────────────────────────────────────────┐
-│              E2E Tests (5%)             │
-│            Full Combat Flow             │
-├─────────────────────────────────────────┤
-│         Integration Tests (15%)         │
-│      Component + Service Integration    │
-├─────────────────────────────────────────┤
-│           Unit Tests (80%)              │
-│    Services, Utilities, Components     │
-└─────────────────────────────────────────┘
-```
-
-### Unit Test Categories
-
-#### 1. Input Handler Tests
-```typescript
-describe('InputHandler', () => {
-  describe('tap detection', () => {
-    it('should register tap with <50ms latency', async () => {
-      const handler = new InputHandler(mockConfig);
-      const startTime = performance.now();
-
-      const result = await handler.handleTap(mockTapEvent);
-      const endTime = performance.now();
-
-      expect(endTime - startTime).toBeLessThan(50);
-      expect(result.isValid).toBe(true);
-    });
-
-    it('should trigger haptic feedback within 20ms', async () => {
-      const hapticSpy = jest.spyOn(Haptics, 'impactAsync');
-      const handler = new InputHandler({ hapticEnabled: true });
-
-      await handler.handleTap(mockTapEvent);
-
-      expect(hapticSpy).toHaveBeenCalledWithin(20);
-    });
-
-    it('should detect automated tapping >20 taps/second', () => {
-      const handler = new InputHandler(mockConfig);
-      const rapidTaps = generateRapidTaps(25, 1000); // 25 taps in 1 second
-
-      const result = handler.validateTapPattern(rapidTaps);
-
-      expect(result.isAutomated).toBe(true);
-      expect(result.suspiciousActivity).toBe(true);
-    });
-  });
+// Rate limiting
+const tapRateLimiter = new RateLimiter({
+  maxRequests: 20,
+  windowMs: 1000,
+  penalty: 5000 // 5 second cooldown on violation
 });
 ```
 
-#### 2. Damage Calculator Tests
+## 7. Test-Driven Development (TDD) Strategy
+
+### TDD Approach (MANDATORY)
+**All implementation must follow Red-Green-Refactor cycle**
+
+#### Testing Framework & Tools
+- **Framework**: React Native Testing Library
+- **Reference**: `/docs/research/react_native_testing_library_guide_20250918_184418.md`
+- **Test Runner**: Jest with React Native preset
+- **Mocking**: MSW for API mocking, Jest mocks for native modules
+- **E2E**: Detox for critical user flows
+
+#### TDD Implementation Process
+
+1. **RED Phase - Write Failing Test First**
+   ```typescript
+   // Test: Enemy takes damage when tapped
+   test('should deal damage when enemy is tapped', async () => {
+     const { getByTestId } = render(
+       <CombatScreen enemy={mockEnemy} playerPower={100} />
+     );
+
+     const enemy = getByTestId('enemy-sprite');
+     const initialHealth = 1000;
+
+     fireEvent.press(enemy);
+
+     await waitFor(() => {
+       expect(screen.getByText(/\d+/)).toBeTruthy(); // Damage number appears
+       expect(mockEnemy.takeDamage).toHaveBeenCalled();
+     });
+   });
+   ```
+
+2. **GREEN Phase - Minimal Implementation**
+   ```typescript
+   const handleEnemyTap = (event) => {
+     const damage = calculateDamage(playerPower);
+     enemy.takeDamage(damage);
+     showDamageNumber(damage, event.nativeEvent);
+   };
+   ```
+
+3. **REFACTOR Phase - Improve Code**
+   ```typescript
+   const handleEnemyTap = useCallback((event) => {
+     const tapPosition = extractTapPosition(event);
+     const damage = combatEngine.processTap(tapPosition, enemy, player);
+     feedbackSystem.trigger(damage, tapPosition);
+   }, [enemy, player, combatEngine, feedbackSystem]);
+   ```
+
+### Unit Testing (TDD First Layer)
+
+**Combat Components Tests**
 ```typescript
-describe('DamageCalculator', () => {
-  describe('base damage calculation', () => {
-    it('should calculate damage within specified range', () => {
-      const calculator = new DamageCalculator();
-      const input: DamageCalculationInput = {
-        basePower: 100,
-        isWeaknessHit: false,
-        weaknessMultiplier: 1.0,
-        comboCount: 0,
-        randomSeed: 0.5 // Fixed for testing
-      };
+describe('TapHandler', () => {
+  test('registers tap within 50ms', async () => {
+    const onTap = jest.fn();
+    render(<TapHandler onTap={onTap} />);
 
-      const result = calculator.calculate(input);
-
-      expect(result.finalDamage).toBeGreaterThanOrEqual(100);
-      expect(result.finalDamage).toBeLessThanOrEqual(150);
-      expect(result.multipliers.base).toBe(1.0);
-    });
-
-    it('should apply weakness multiplier correctly', () => {
-      const calculator = new DamageCalculator();
-      const input: DamageCalculationInput = {
-        basePower: 100,
-        isWeaknessHit: true,
-        weaknessMultiplier: 2.0,
-        comboCount: 0,
-        randomSeed: 0.5
-      };
-
-      const result = calculator.calculate(input);
-
-      expect(result.multipliers.weakness).toBe(2.0);
-      expect(result.finalDamage).toBeGreaterThanOrEqual(200);
-    });
-
-    it('should cap combo multiplier at 5.0x', () => {
-      const calculator = new DamageCalculator();
-      const input: DamageCalculationInput = {
-        basePower: 100,
-        isWeaknessHit: false,
-        weaknessMultiplier: 1.0,
-        comboCount: 20, // Would be 11.0x without cap
-        randomSeed: 0.5
-      };
-
-      const result = calculator.calculate(input);
-
-      expect(result.multipliers.combo).toBe(5.0);
-    });
-  });
-});
-```
-
-#### 3. Combo Manager Tests
-```typescript
-describe('ComboManager', () => {
-  describe('combo tracking', () => {
-    it('should increment combo on weakness hit', () => {
-      const manager = new ComboManager();
-
-      manager.recordHit(true); // weakness hit
-
-      expect(manager.getComboState().count).toBe(1);
-      expect(manager.getComboState().multiplier).toBe(1.5);
-    });
-
-    it('should reset combo on normal hit', () => {
-      const manager = new ComboManager();
-      manager.recordHit(true); // weakness hit
-      manager.recordHit(false); // normal hit
-
-      expect(manager.getComboState().count).toBe(0);
-      expect(manager.getComboState().multiplier).toBe(1.0);
-    });
-
-    it('should trigger milestone effects', () => {
-      const manager = new ComboManager();
-      const milestoneCallback = jest.fn();
-      manager.onMilestone(milestoneCallback);
-
-      // Hit 10 combo milestone
-      for (let i = 0; i < 10; i++) {
-        manager.recordHit(true);
-      }
-
-      expect(milestoneCallback).toHaveBeenCalledWith(10);
-    });
-  });
-});
-```
-
-### Integration Test Strategy
-
-#### Component Integration Tests
-```typescript
-describe('CombatScreen Integration', () => {
-  it('should complete full tap-to-feedback cycle within 100ms', async () => {
-    const { getByTestId } = render(
-      <CombatScreen
-        enemy={mockEnemy}
-        player={mockPlayer}
-        onEnemyDefeat={jest.fn()}
-        onCombatEnd={jest.fn()}
-      />
-    );
-
-    const enemy = getByTestId('enemy-component');
-    const startTime = performance.now();
-
-    fireEvent.press(enemy, { nativeEvent: { pageX: 100, pageY: 100 } });
-
-    await waitFor(() => {
-      expect(getByTestId('damage-number')).toBeVisible();
-    });
-
-    const endTime = performance.now();
-    expect(endTime - startTime).toBeLessThan(100);
-  });
-
-  it('should handle weakness spot hit with correct multiplier', async () => {
-    const onEnemyDefeat = jest.fn();
-    const { getByTestId } = render(
-      <CombatScreen
-        enemy={{ ...mockEnemy, health: 50 }}
-        player={mockPlayer}
-        onEnemyDefeat={onEnemyDefeat}
-        onCombatEnd={jest.fn()}
-      />
-    );
-
-    // Tap on weakness spot
-    const weaknessSpot = getByTestId('weakness-spot-0');
-    fireEvent.press(weaknessSpot);
-
-    await waitFor(() => {
-      const damageNumber = getByTestId('damage-number');
-      expect(damageNumber).toHaveTextContent(/2[0-9][0-9]/); // 2x multiplier
-    });
-  });
-});
-```
-
-### End-to-End Test Scenarios
-
-#### Critical User Journeys
-```typescript
-describe('Combat E2E Tests', () => {
-  it('should complete basic combat encounter', async () => {
-    await device.launchApp();
-    await element(by.id('combat-button')).tap();
-
-    // Wait for combat screen to load
-    await waitFor(element(by.id('enemy-component')))
-      .toBeVisible()
-      .withTimeout(2000);
-
-    // Tap enemy multiple times
-    for (let i = 0; i < 10; i++) {
-      await element(by.id('enemy-component')).tap();
-      await sleep(100); // Realistic user tapping
-    }
-
-    // Verify enemy defeat
-    await waitFor(element(by.id('victory-screen')))
-      .toBeVisible()
-      .withTimeout(10000);
-
-    // Verify loot collection
-    await expect(element(by.id('loot-animation'))).toBeVisible();
-  });
-
-  it('should maintain performance during extended combat', async () => {
-    await device.launchApp();
-    await element(by.id('combat-button')).tap();
-
-    // Rapid tapping for 60 seconds
     const startTime = Date.now();
-    while (Date.now() - startTime < 60000) {
-      await element(by.id('enemy-component')).tap();
-      await sleep(50); // 20 taps per second
-    }
+    fireEvent.press(screen.getByTestId('tap-area'));
 
-    // Check performance metrics
-    const fpsText = await element(by.id('fps-counter')).getAttributes();
-    const fps = parseInt(fpsText.text);
-    expect(fps).toBeGreaterThanOrEqual(55); // Allow 5 FPS tolerance
+    await waitFor(() => {
+      expect(onTap).toHaveBeenCalled();
+      expect(Date.now() - startTime).toBeLessThan(50);
+    });
   });
-});
-```
 
-### Performance Testing Strategy
+  test('detects weakness spot hits', () => {
+    const weaknessSpot = { x: 100, y: 100, radius: 30 };
+    render(<Enemy weaknessSpots={[weaknessSpot]} />);
 
-#### Automated Performance Tests
-```typescript
-describe('Performance Tests', () => {
-  it('should handle 100+ simultaneous particle effects', async () => {
-    const particleSystem = new ParticleSystem({
-      maxParticles: 150,
-      poolSize: 200,
-      performanceMode: 'high'
+    fireEvent.press(screen.getByTestId('enemy'), {
+      nativeEvent: { locationX: 100, locationY: 100 }
     });
 
-    // Generate 150 simultaneous effects
-    const effects = Array.from({ length: 150 }, (_, i) => ({
-      type: 'impact' as const,
-      position: { x: Math.random() * 400, y: Math.random() * 800 },
-      duration: 300,
-      intensity: 1.0,
-      color: '#FF0000'
-    }));
+    expect(screen.getByText(/WEAKNESS!/)).toBeTruthy();
+  });
+});
 
-    const startTime = performance.now();
-    particleSystem.addEffects(effects);
+describe('DamageCalculation', () => {
+  test('applies weakness multiplier correctly', () => {
+    const baseDamage = 100;
+    const weaknessMultiplier = 2.5;
 
-    // Simulate one frame of animation
-    particleSystem.update(16.67); // 60 FPS frame time
+    const result = calculateDamage({
+      base: baseDamage,
+      isWeaknessHit: true,
+      weaknessMultiplier
+    });
 
-    const endTime = performance.now();
-    expect(endTime - startTime).toBeLessThan(16.67); // Must complete within frame budget
+    expect(result).toBe(250);
   });
 
-  it('should maintain memory usage under 150MB', async () => {
-    const initialMemory = await getMemoryUsage();
-
-    // Simulate extended combat session
-    for (let i = 0; i < 1000; i++) {
-      await simulateTapAndEffects();
+  test('combo multiplier increases damage', () => {
+    const damages = [];
+    for (let combo = 0; combo < 5; combo++) {
+      damages.push(calculateDamage({ base: 100, combo }));
     }
 
-    const finalMemory = await getMemoryUsage();
-    const memoryIncrease = finalMemory - initialMemory;
-
-    expect(memoryIncrease).toBeLessThan(150 * 1024 * 1024); // 150MB in bytes
+    // Each combo level should increase damage
+    for (let i = 1; i < damages.length; i++) {
+      expect(damages[i]).toBeGreaterThan(damages[i - 1]);
+    }
   });
 });
 ```
 
-## Performance Optimization Plan
+### Integration Testing (TDD Second Layer)
 
-### Input Latency Optimization
-
-#### 1. Native Module Integration
+**Combat Flow Tests**
 ```typescript
-// Custom native module for ultra-low latency input
-interface NativeInputModule {
-  registerTapHandler: (callback: (event: NativeTapEvent) => void) => void;
-  enableHapticPreload: () => void; // Pre-warm haptic engine
-  getInputMetrics: () => Promise<InputMetrics>;
-}
+describe('Combat Integration', () => {
+  test('complete tap-to-damage flow', async () => {
+    const { getByTestId } = render(<GameScreen />);
 
-// Implementation strategy:
-// - Bypass React Native bridge for critical path
-// - Direct native event handling with 1-2ms latency
-// - Batch non-critical updates to main thread
-```
+    // Enemy appears
+    await waitFor(() => expect(getByTestId('enemy-1')).toBeTruthy());
 
-#### 2. Gesture Handler Optimization
-```typescript
-// Optimized tap gesture configuration
-const tapGestureConfig = {
-  shouldCancelWhenOutside: false,
-  enabled: true,
-  hitSlop: { top: 5, bottom: 5, left: 5, right: 5 },
-  numberOfTaps: 1,
-  maxDelayMs: 0, // Immediate recognition
-  simultaneousHandlers: [], // Prevent conflicts
-};
+    // Tap enemy
+    fireEvent.press(getByTestId('enemy-1'));
 
-// Use simultaneous gestures for weakness spots
-const weaknessGestureConfig = {
-  ...tapGestureConfig,
-  id: 'weakness-tap',
-  priority: 1, // Higher priority than base tap
-};
-```
+    // Verify feedback chain
+    await waitFor(() => {
+      expect(screen.getByText(/\d+/)).toBeTruthy(); // Damage number
+      expect(Haptics.impactAsync).toHaveBeenCalled(); // Haptic
+      expect(Audio.Sound.createAsync).toHaveBeenCalled(); // Sound
+    });
 
-### Animation Performance
-
-#### 1. Reanimated Worklets
-```typescript
-// Move critical animations to UI thread
-const damageNumberAnimation = useSharedValue(0);
-
-const animateDamageNumber = (damage: number) => {
-  'worklet';
-
-  // All animation logic runs on UI thread
-  damageNumberAnimation.value = withSequence(
-    withTiming(1, { duration: 100 }),
-    withDelay(1400, withTiming(0, { duration: 100 }))
-  );
-};
-
-// Derived values for position and scale
-const animatedStyle = useAnimatedStyle(() => ({
-  opacity: damageNumberAnimation.value,
-  transform: [
-    { translateY: interpolate(damageNumberAnimation.value, [0, 1], [0, -50]) },
-    { scale: interpolate(damageNumberAnimation.value, [0, 0.1, 1], [0, 1.2, 1]) }
-  ],
-}));
-```
-
-#### 2. Particle System Optimization
-```typescript
-// Object pooling for particle effects
-class ParticlePool {
-  private pool: Particle[] = [];
-  private active: Particle[] = [];
-
-  constructor(size: number) {
-    for (let i = 0; i < size; i++) {
-      this.pool.push(new Particle());
-    }
-  }
-
-  acquire(): Particle | null {
-    if (this.pool.length === 0) return null;
-
-    const particle = this.pool.pop()!;
-    this.active.push(particle);
-    return particle;
-  }
-
-  release(particle: Particle): void {
-    particle.reset();
-    const index = this.active.indexOf(particle);
-    if (index !== -1) {
-      this.active.splice(index, 1);
-      this.pool.push(particle);
-    }
-  }
-}
-```
-
-### Memory Management
-
-#### 1. Component Memoization
-```typescript
-// Memoize expensive components
-const EnemyComponent = React.memo<EnemyComponentProps>(({
-  enemy,
-  weaknessSpots,
-  animationState
-}) => {
-  // Component implementation
-}, (prevProps, nextProps) => {
-  // Custom comparison for optimal re-rendering
-  return (
-    prevProps.enemy.id === nextProps.enemy.id &&
-    prevProps.enemy.health === nextProps.enemy.health &&
-    prevProps.weaknessSpots.length === nextProps.weaknessSpots.length &&
-    prevProps.animationState.isAnimating === nextProps.animationState.isAnimating
-  );
-});
-
-// Memoize expensive calculations
-const useDamageCalculation = (basePower: number, combo: number) => {
-  return useMemo(() => {
-    return new DamageCalculator(basePower, combo);
-  }, [basePower, Math.floor(combo / 5)]); // Only recalculate every 5 combo levels
-};
-```
-
-#### 2. Cleanup Strategies
-```typescript
-// Automatic cleanup for animations and effects
-const useCleanupOnUnmount = (cleanupFn: () => void) => {
-  useEffect(() => {
-    return cleanupFn;
-  }, []);
-};
-
-// Component with comprehensive cleanup
-const CombatScreen: React.FC<CombatScreenProps> = (props) => {
-  const animationRef = useRef<AnimationEngine | null>(null);
-  const particleSystemRef = useRef<ParticleSystem | null>(null);
-
-  useCleanupOnUnmount(() => {
-    animationRef.current?.dispose();
-    particleSystemRef.current?.dispose();
+    // Health decreases
+    const healthBar = getByTestId('enemy-health-bar');
+    expect(healthBar.props.value).toBeLessThan(1.0);
   });
 
-  // Component implementation
-};
-```
+  test('combo system builds and resets', async () => {
+    render(<CombatScreen enemy={mockEnemyWithWeakness} />);
 
-### Battery Optimization
-
-#### 1. Adaptive Quality System
-```typescript
-interface PerformanceConfig {
-  targetFPS: number;
-  particleCount: number;
-  effectQuality: 'low' | 'medium' | 'high';
-  enableScreenShake: boolean;
-  enableHaptics: boolean;
-}
-
-class AdaptivePerformanceManager {
-  private config: PerformanceConfig;
-  private batteryLevel = 1.0;
-  private isLowPowerMode = false;
-
-  adjustForBatteryLevel(level: number): void {
-    this.batteryLevel = level;
-
-    if (level < 0.2) { // Below 20%
-      this.config = {
-        targetFPS: 30,
-        particleCount: 20,
-        effectQuality: 'low',
-        enableScreenShake: false,
-        enableHaptics: false
-      };
-    } else if (level < 0.5) { // Below 50%
-      this.config = {
-        targetFPS: 45,
-        particleCount: 50,
-        effectQuality: 'medium',
-        enableScreenShake: true,
-        enableHaptics: false
-      };
+    // Hit weakness spots to build combo
+    for (let i = 0; i < 3; i++) {
+      fireEvent.press(screen.getByTestId('weakness-spot'));
+      await waitFor(() => {
+        expect(screen.getByText(`Combo x${i + 1}`)).toBeTruthy();
+      });
     }
-    // Full quality above 50%
-  }
-}
+
+    // Miss weakness to reset combo
+    fireEvent.press(screen.getByTestId('enemy-body'));
+    await waitFor(() => {
+      expect(screen.queryByText(/Combo/)).toBeFalsy();
+    });
+  });
+});
 ```
 
-#### 2. Background Mode Handling
+### End-to-End Testing (TDD Third Layer)
+
+**User Flow Tests**
 ```typescript
-// Pause non-essential systems when app backgrounds
-const useBatteryOptimization = () => {
-  const [appState, setAppState] = useState(AppState.currentState);
+describe('E2E Combat Scenarios', () => {
+  test('defeat enemy and collect loot', async () => {
+    await device.launchApp();
 
-  useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'background') {
-        // Pause particle effects
-        ParticleSystem.pauseAll();
+    // Start combat
+    await element(by.id('start-combat')).tap();
 
-        // Reduce animation frame rate
-        AnimationEngine.setTargetFPS(1);
+    // Tap enemy until defeated
+    const enemy = element(by.id('enemy'));
+    while (await enemy.exists()) {
+      await enemy.tap();
+      await waitFor(element(by.text(/\d+/))).toBeVisible();
+    }
 
-        // Disable haptics and audio
-        HapticManager.disable();
-        AudioManager.pauseAll();
-      } else if (nextAppState === 'active') {
-        // Resume full performance
-        ParticleSystem.resumeAll();
-        AnimationEngine.setTargetFPS(60);
-        HapticManager.enable();
-        AudioManager.resumeAll();
-      }
+    // Verify loot drops
+    await expect(element(by.text(/\+\d+ Pyreal/))).toBeVisible();
 
-      setAppState(nextAppState);
-    };
+    // Auto-collection after delay
+    await device.pause(1000);
+    await expect(element(by.id('pyreal-counter'))).toHaveText(/[1-9]\d*/);
+  });
+});
+```
 
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => subscription?.remove();
-  }, []);
+### TDD Checklist for Each Component
+- [x] First test written before any implementation code
+- [x] Each test covers one specific behavior
+- [x] Tests use React Native Testing Library patterns
+- [x] No testIds unless absolutely necessary (accessibility fallback)
+- [x] Tests query by user-visible content
+- [x] Async operations use waitFor/findBy
+- [x] All tests pass before next feature
+- [x] Coverage > 80% for new code
+
+## 8. Infrastructure & Deployment
+
+### Infrastructure Requirements
+
+| Component | Specification | Justification |
+|-----------|--------------|---------------|
+| API Server | 2 vCPU, 4GB RAM | Handle 1000 req/s damage validation |
+| Database | PostgreSQL 14, 20GB SSD | Store combat sessions and events |
+| Cache | Redis 6, 1GB RAM | Session state and rate limiting |
+| CDN | CloudFront | Serve game assets globally |
+| Analytics | Amplitude | Track combat metrics in real-time |
+
+### Deployment Architecture
+
+```yaml
+# Expo EAS Build Configuration
+build:
+  production:
+    env:
+      EXPO_PUBLIC_API_URL: https://api.asherons-idler.com
+    ios:
+      buildConfiguration: Release
+      bundleIdentifier: com.asheronsidler.game
+    android:
+      buildType: release
+      package: com.asheronsidler.game
+
+# CI/CD Pipeline
+workflow:
+  - test: npm test -- --coverage
+  - lint: npm run lint
+  - type-check: npm run type-check
+  - build: eas build --platform all
+  - deploy: eas submit --platform all
+```
+
+### Monitoring & Observability
+
+#### Metrics
+- **Application**: Tap latency p50/p95/p99, FPS distribution, crash rate
+- **Business**: DAU, session length, taps per session, combo achievements
+- **Infrastructure**: API response time, error rate, database query time
+
+#### Logging
+```typescript
+// Structured logging with context
+logger.info('combat.tap', {
+  sessionId: session.id,
+  enemyId: enemy.id,
+  damage: result.damage,
+  isWeakness: result.isWeakness,
+  combo: state.combo,
+  timestamp: Date.now()
+});
+```
+
+#### Alerting
+
+| Alert | Condition | Priority | Action |
+|-------|-----------|----------|--------|
+| High Input Latency | p95 > 150ms | P0 | Page on-call, rollback |
+| Low FPS | < 30 FPS for > 1% users | P1 | Investigate performance |
+| Combo Exploit | > 100x combo achieved | P1 | Review anti-cheat logs |
+| Memory Leak | Heap > 200MB | P2 | Schedule fix for next release |
+
+## 9. Scalability & Performance
+
+### Performance Requirements
+- **Response time**: < 100ms tap-to-feedback for 95th percentile
+- **Frame rate**: 60 FPS with 10+ simultaneous effects
+- **Throughput**: 20 taps/second per session
+- **Concurrent users**: 10,000 simultaneous players
+
+### Scalability Strategy
+
+```typescript
+// Performance optimizations
+const optimizations = {
+  // Use InteractionManager for non-critical updates
+  heavyOperation: () => {
+    InteractionManager.runAfterInteractions(() => {
+      // Update secondary UI elements
+    });
+  },
+
+  // Batch state updates
+  batchedUpdates: unstable_batchedUpdates(() => {
+    setDamage(newDamage);
+    setCombo(newCombo);
+    setScore(newScore);
+  }),
+
+  // Memoize expensive calculations
+  memoizedDamage: useMemo(() =>
+    calculateDamage(power, modifiers), [power, modifiers]
+  ),
+
+  // Virtualize particle effects
+  particlePool: new ObjectPool(ParticleEffect, 50)
 };
 ```
 
-## Implementation Phases
+### Performance Optimization
+- **React Native**: Use Hermes engine, enable ProGuard/R8
+- **Animations**: GPU-accelerated via Reanimated 3 worklets
+- **Images**: WebP format, lazy loading, memory cache
+- **Network**: Request batching, compression, offline mode
 
-### Phase 1: Foundation (Weeks 1-2)
-**Deliverables**: Basic tap input and damage system
-
-#### Week 1: Core Architecture Setup
-- [ ] **Setup project structure with Expo SDK 48+**
-  - Initialize React Native project with required dependencies
-  - Configure TypeScript and ESLint rules
-  - Setup testing environment (Jest + React Native Testing Library)
-
-- [ ] **Implement basic InputHandler service**
-  - Create touch gesture recognition with React Native Gesture Handler
-  - Implement haptic feedback integration
-  - Add basic anti-cheat detection for automated tapping
-
-- [ ] **Create DamageCalculator service with TDD**
-  - Implement base damage formula: Power × (1.0-1.5 random)
-  - Add weakness multiplier calculation (2.0x-3.0x)
-  - Create comprehensive unit tests for all damage scenarios
-
-#### Week 2: Basic Combat Loop
-- [ ] **Develop EnemyComponent with hit detection**
-  - Create enemy sprite rendering with health bar
-  - Implement precise tap-to-coordinate mapping
-  - Add basic visual feedback for successful hits
-
-- [ ] **Implement state management with Zustand**
-  - Design combat state schema with performance optimization
-  - Create selective subscriptions for different UI components
-  - Add state persistence for combat metrics
-
-- [ ] **Create basic damage number display**
-  - Implement floating damage numbers with animations
-  - Add color coding for different damage types
-  - Ensure 60 FPS performance during number animations
-
-**Success Criteria**:
-- Tap-to-damage latency < 100ms measured
-- All damage calculation tests passing
-- Basic combat loop functional end-to-end
-
-### Phase 2: Weakness System (Weeks 3-4)
-**Deliverables**: Full weakness spot system with combo mechanics
-
-#### Week 3: Weakness Spot Implementation
-- [ ] **Create WeaknessSpot component with animations**
-  - Implement glowing weakness spot visualization
-  - Add 2-3 second visibility timer with fade transitions
-  - Create 0.5s telegraph animation before spot appears
-
-- [ ] **Implement weakness rotation system**
-  - Create 1-3 weakness spots per enemy based on type
-  - Add automatic rotation every 2-3 seconds
-  - Ensure minimum 44x44 pixel touch targets for accessibility
-
-- [ ] **Add precise hit detection for weakness spots**
-  - Implement circular hit areas with configurable radius
-  - Add visual feedback for weakness vs normal hits
-  - Create hit accuracy tracking for analytics
-
-#### Week 4: Combo System Development
-- [ ] **Develop ComboManager service**
-  - Implement combo tracking for consecutive weakness hits
-  - Add combo multiplier calculation: 1.0 + (0.5 × count), max 5.0x
-  - Create combo reset logic on normal hits or misses
-
-- [ ] **Create combo UI display**
-  - Design combo counter with animated updates
-  - Add milestone celebration effects (10x, 25x, 50x combos)
-  - Implement combo decay visualization
-
-- [ ] **Integrate combo system with damage calculation**
-  - Update DamageCalculator to include combo multipliers
-  - Add combo state to damage result display
-  - Create comprehensive integration tests
-
-**Success Criteria**:
-- Weakness spots appear and rotate correctly
-- Combo system accurately tracks consecutive hits
-- Damage multipliers calculate correctly with all factors
-
-### Phase 3: Visual Polish & Effects (Weeks 5-6)
-**Deliverables**: Complete visual feedback and particle systems
-
-#### Week 5: Advanced Particle System
-- [ ] **Implement ParticleSystem with object pooling**
-  - Create particle effect components for impacts, combos, loot
-  - Implement object pooling for 100+ simultaneous particles
-  - Add configurable quality levels for different devices
-
-- [ ] **Add enemy deformation animations**
-  - Implement squash/stretch animations on hit (0.2s duration)
-  - Create proportional screen shake effects (0-5 pixel amplitude)
-  - Add impact ripple effects at tap locations
-
-- [ ] **Create audio feedback system**
-  - Integrate Expo AV for low-latency audio playback
-  - Implement 3-tier audio feedback based on damage amount
-  - Add haptic patterns that sync with audio effects
-
-#### Week 6: Advanced Visual Effects
-- [ ] **Implement critical hit effects**
-  - Create special particle bursts for critical damage
-  - Add enhanced screen shake for mega damage hits
-  - Implement combo milestone celebrations
-
-- [ ] **Add loot drop animations**
-  - Create Pyreal drop physics simulation
-  - Implement auto-collection within 100 pixel radius
-  - Add loot collection animations and "+X Pyreal" display
-
-- [ ] **Performance optimization pass**
-  - Profile animation performance on target devices
-  - Implement adaptive quality based on device capabilities
-  - Add frame rate monitoring and automatic quality adjustment
-
-**Success Criteria**:
-- Consistent 60 FPS during intense particle effects
-- Audio feedback plays within 50ms of events
-- All visual effects meet design specifications
-
-### Phase 4: Performance & Polish (Weeks 7-8)
-**Deliverables**: Optimized performance and complete testing coverage
-
-#### Week 7: Performance Optimization
-- [ ] **Implement native input optimization**
-  - Create native module for ultra-low latency input handling
-  - Optimize gesture handler configuration for minimal delay
-  - Add input latency monitoring and reporting
-
-- [ ] **Memory and battery optimization**
-  - Implement comprehensive cleanup systems
-  - Add adaptive performance based on battery level
-  - Create background mode optimizations
-
-- [ ] **Advanced testing implementation**
-  - Complete unit test suite with 90%+ coverage
-  - Implement integration tests for all major user flows
-  - Add performance benchmarking tests
-
-#### Week 8: Final Polish & Testing
-- [ ] **End-to-end testing on target devices**
-  - Test on minimum spec devices (2020 Android/iOS)
-  - Verify 60 FPS performance requirements
-  - Validate memory usage stays under 150MB
-
-- [ ] **Accessibility implementation**
-  - Add colorblind support for weakness spots
-  - Implement screen reader support for damage numbers
-  - Add optional larger touch targets (66x66 pixels)
-
-- [ ] **Anti-cheat and security measures**
-  - Finalize automated tapping detection
-  - Implement server-side damage validation for leaderboards
-  - Add secure storage for player progression
-
-**Success Criteria**:
-- Input latency consistently < 50ms on target devices
-- Memory usage never exceeds 150MB during extended play
-- Battery drain < 5% per 10-minute session
-
-### Phase 5: Launch Preparation (Week 9)
-**Deliverables**: Production-ready combat system
-
-#### Week 9: Launch Readiness
-- [ ] **Final integration testing**
-  - Complete end-to-end testing of all combat scenarios
-  - Validate performance metrics meet all requirements
-  - Test edge cases and error handling
-
-- [ ] **Documentation and monitoring**
-  - Complete technical documentation for maintenance team
-  - Implement analytics tracking for combat metrics
-  - Add crash reporting and performance monitoring
-
-- [ ] **Production deployment preparation**
-  - Create deployment scripts and configuration
-  - Set up monitoring dashboards for launch metrics
-  - Prepare rollback procedures if needed
-
-**Success Criteria**:
-- All acceptance criteria from PRD validated
-- Performance requirements met on all target devices
-- System ready for production deployment
-
-## Risk Mitigation
+## 10. Risk Assessment & Mitigation
 
 ### Technical Risks
 
-#### 1. React Native Performance Limitations
-**Risk**: RN bridge latency causing >100ms input delay
-**Probability**: Medium
-**Impact**: High
-**Mitigation**:
-- Implement native modules for critical input path
-- Use React Native Reanimated worklets for UI thread operations
-- Fallback to reduced feature set if performance targets not met
+| Risk | Impact | Probability | Mitigation | Owner |
+|------|--------|-------------|------------|-------|
+| Input latency on Android | High | Medium | Use direct native event handling via Gesture Handler | Tech Lead |
+| Memory leaks from particles | High | Low | Implement object pooling, monitor heap | Performance Team |
+| React Native bridge bottleneck | High | Medium | Move critical path to native modules | Platform Team |
+| Battery drain from animations | Medium | Medium | Add quality settings, reduce effects | UX Team |
+| Network latency affects feel | Low | High | Client-side prediction with reconciliation | Backend Team |
 
-#### 2. Device Fragmentation Issues
-**Risk**: Performance varies significantly across Android devices
-**Probability**: High
-**Impact**: Medium
-**Mitigation**:
-- Implement adaptive quality system based on device capabilities
-- Define minimum device requirements with graceful degradation
-- Extensive testing on low-end devices from 2020
+### Dependencies
+- **React Native 0.72+**: Latest performance improvements
+- **Expo SDK 49+**: Haptics and audio APIs
+- **Reanimated 3**: Smooth 60 FPS animations
+- **Gesture Handler 2+**: Low-latency input processing
 
-#### 3. Memory Leaks in Particle System
-**Risk**: Extended gameplay causing memory growth and crashes
-**Probability**: Medium
-**Impact**: High
-**Mitigation**:
-- Implement object pooling for all dynamic objects
-- Add comprehensive cleanup in component lifecycle
-- Memory profiling and automated leak detection in CI
+## 11. Implementation Plan (TDD-Driven)
 
-### Design Risks
+### Development Phases
 
-#### 4. Weakness Spot Visibility Balance
-**Risk**: Spots too hard to see or too easy, affecting game balance
-**Probability**: Medium
-**Impact**: Medium
-**Mitigation**:
-- A/B testing with different visibility durations and sizes
-- Configurable parameters for post-launch tuning
-- Analytics tracking of hit/miss ratios for balance adjustments
+#### Phase 1: Foundation & Test Setup [Week 1]
+- **Day 1-2**: Set up Jest, React Native Testing Library, MSW
+  - Configure test environment with React Native preset
+  - Create test utilities for gesture simulation
+  - Set up MSW handlers for combat API mocking
 
-#### 5. Combo System Exploitation
-**Risk**: Players finding ways to maintain infinite combos
-**Probability**: Low
-**Impact**: High
-**Mitigation**:
-- Server-side validation of combo logic for leaderboards
-- Automatic combo decay after time thresholds
-- Analytics monitoring for suspicious combo patterns
+- **Day 3-4**: Create failing tests for core tap mechanic
+  ```typescript
+  // Write these tests FIRST - they must fail
+  test('enemy takes damage when tapped');
+  test('damage appears as floating number');
+  test('haptic feedback triggers on tap');
+  ```
 
-### Timeline Risks
+- **Day 5**: Implement minimal tap handler to pass tests
+  - Basic TouchableOpacity with onPress
+  - Simple Text component for damage display
+  - Mock haptic trigger
 
-#### 6. Third-party Library Integration Delays
-**Risk**: Audio or gesture libraries not working as expected
-**Probability**: Medium
-**Impact**: Medium
-**Mitigation**:
-- Prototype key integrations in first week
-- Identify fallback libraries for critical dependencies
-- Built-in Expo APIs as last resort options
+#### Phase 2: TDD Feature Implementation [Weeks 2-4]
 
-## Monitoring & Metrics
+**Week 2: Basic Combat (Red-Green-Refactor)**
+- **Day 1**: Write ALL tests for basic combat
+  ```typescript
+  describe('BasicCombat', () => {
+    test('tap reduces enemy health');
+    test('damage calculation uses player power');
+    test('enemy dies at zero health');
+    test('loot drops on enemy death');
+  });
+  ```
+- **Day 2-3**: Implement to pass tests
+  - Enemy component with health state
+  - Damage calculation function
+  - Death detection and loot generation
+- **Day 4-5**: Refactor and optimize
+  - Extract CombatEngine service
+  - Add proper TypeScript types
+  - Performance profiling
 
-### Performance Metrics
-- **Input Latency**: Target <50ms, Alert >80ms
-- **Frame Rate**: Target 60 FPS, Alert <50 FPS
-- **Memory Usage**: Target <100MB, Alert >140MB
-- **Battery Impact**: Target <4%/10min, Alert >6%/10min
+**Week 3: Weakness System (TDD Cycle)**
+- **Day 1**: Write weakness spot tests
+  ```typescript
+  test('weakness spots appear on enemy');
+  test('weakness spots glow for 2-3 seconds');
+  test('tapping weakness multiplies damage');
+  test('weakness spots rotate positions');
+  ```
+- **Day 2-3**: Implement weakness mechanics
+  - WeaknessSpot component with timer
+  - Hit detection within radius
+  - Multiplier application
+- **Day 4-5**: Integration tests
+  - Full weakness rotation cycle
+  - Multiple weakness spots
+  - Visual feedback for hits
 
-### User Engagement Metrics
-- **Taps per Session**: Target 150+
-- **Combo Achievement Rate**: Target 70% players achieve 10+ combo
-- **Session Length**: Target 8+ minutes average
-- **Accuracy Rate**: Target 60% weakness hit ratio
+**Week 4: Combo System (Test-First)**
+- **Day 1**: Define combo behavior tests
+  ```typescript
+  test('consecutive weakness hits build combo');
+  test('combo multiplier increases damage');
+  test('missing weakness resets combo');
+  test('combo counter displays on screen');
+  ```
+- **Day 2-3**: Build combo tracking
+  - ComboTracker component
+  - State management for streak
+  - Multiplier calculation
+- **Day 4-5**: Polish and effects
+  - Combo milestone animations
+  - Progressive visual feedback
+  - Performance optimization
 
-### Technical Health Metrics
-- **Crash Rate**: Target <0.1% sessions
-- **Load Time**: Target <2 seconds to combat ready
-- **Network Errors**: Target <1% for leaderboard sync
-- **Anti-cheat Triggers**: Monitor for <0.5% false positives
+#### Phase 3: Enhancement with TDD [Weeks 5-6]
 
-## Conclusion
+**Week 5: Visual Feedback System**
+- Write tests for each effect type first
+- Implement particles, screen shake, sprite deformation
+- Optimize for 60 FPS performance
 
-This Technical Design Document provides a comprehensive blueprint for implementing the core combat tap mechanic with Test-Driven Development principles. The architecture prioritizes performance, maintainability, and scalability while meeting all functional requirements from the PRD.
+**Week 6: Audio & Haptics**
+- Test audio playback timing
+- Test haptic intensity variations
+- Implement feedback systems
 
-Key success factors:
-1. **Performance-first design** with native optimizations where needed
-2. **Comprehensive testing strategy** ensuring reliability and maintainability
-3. **Phased implementation** allowing for iterative feedback and refinement
-4. **Risk mitigation** for known technical and design challenges
-5. **Monitoring strategy** for post-launch optimization and maintenance
+#### Phase 4: Hardening [Week 7]
+- **Performance test suite**: FPS monitoring, memory profiling
+- **Security testing**: Input validation, anti-cheat measures
+- **Accessibility testing**: Screen reader, colorblind modes
+- **Coverage review**: Ensure > 80% test coverage
 
-The 9-week timeline provides sufficient buffer for unexpected challenges while maintaining aggressive performance targets. The TDD approach ensures code quality and facilitates future feature development on this foundation.
+### Technical Milestones
+
+| Milestone | Deliverable | Date | Dependencies |
+|-----------|------------|------|--------------|
+| M1 | Working tap damage with tests | Week 1 | Test environment setup |
+| M2 | Weakness system fully tested | Week 3 | Basic combat complete |
+| M3 | Combo system with full coverage | Week 4 | Weakness system done |
+| M4 | All effects at 60 FPS | Week 6 | Performance profiling |
+| M5 | Launch-ready build | Week 7 | All tests passing |
+
+## 12. Decision Log
+
+### Architecture Decisions
+
+| Decision | Options Considered | Choice | Rationale |
+|----------|-------------------|--------|-----------|
+| State Management | Redux, MobX, Zustand, Context | Zustand | Minimal boilerplate, excellent React Native performance, 8KB bundle size |
+| Animation Library | Animated API, Reanimated, Lottie | Reanimated 3 | Worklet-based animations run at 60 FPS on UI thread |
+| Gesture Handling | PanResponder, Gesture Handler, TouchableOpacity | Gesture Handler 2 | Native thread processing, lowest latency, gesture composition |
+| Testing Framework | Enzyme, Testing Library, Native Testing Library | React Native Testing Library | Best practices, user-centric testing, active maintenance |
+| Database | AsyncStorage, SQLite, Realm | SQLite via Expo | Structured queries, good performance, offline support |
+
+### Trade-offs
+- **Performance over Features**: Limited to 50 particles to maintain 60 FPS
+- **Battery over Effects**: Reduced haptic intensity to meet 5% per 10min target
+- **Simplicity over Flexibility**: Fixed weakness spot sizes vs dynamic sizing
+- **Coverage over Speed**: 80% test coverage requirement may slow initial development
+
+## 13. Open Questions
+
+Technical questions requiring resolution:
+- [ ] Should we implement native modules for tap processing if JS thread becomes bottleneck?
+- [ ] What's the optimal particle pool size for various device tiers?
+- [ ] Should combo state persist between sessions or reset?
+- [ ] How do we handle simultaneous taps on multiple enemies?
+- [ ] Should damage numbers stack or spread when multiple hits occur rapidly?
+- [ ] What's the fallback for devices without haptic support?
+
+## 14. Appendices
+
+### A. Technical Glossary
+- **Worklet**: Reanimated function that runs on UI thread
+- **Gesture Handler**: Native module for processing touch events
+- **MSW**: Mock Service Worker for API mocking in tests
+- **Object Pool**: Reusable object cache to reduce GC pressure
+- **Bridge**: React Native JavaScript-to-native communication layer
+
+### B. Reference Architecture
+- [React Native Performance Guide](https://reactnative.dev/docs/performance)
+- [Reanimated 3 Documentation](https://docs.swmansion.com/react-native-reanimated/)
+- [Gesture Handler Docs](https://docs.swmansion.com/react-native-gesture-handler/)
+- [Testing Library Best Practices](https://testing-library.com/docs/react-native-testing-library/intro)
+
+### C. Proof of Concepts
+```typescript
+// Input latency measurement POC
+const measureLatency = () => {
+  const start = performance.now();
+
+  return (event) => {
+    const latency = performance.now() - start;
+    analytics.track('input_latency', {
+      latency,
+      device: Device.modelName
+    });
+  };
+};
+
+// Particle pooling POC
+class ParticlePool {
+  constructor(size = 50) {
+    this.pool = Array(size).fill(null).map(() => new Particle());
+    this.available = [...this.pool];
+    this.active = new Set();
+  }
+
+  spawn(position) {
+    const particle = this.available.pop();
+    if (particle) {
+      particle.reset(position);
+      this.active.add(particle);
+      return particle;
+    }
+    return null; // Pool exhausted
+  }
+}
+```
+
+### D. Related Documents
+- Product Requirements Document: `/docs/specs/core-combat-tap/prd_core_combat_tap_mechanic_20250925.md`
+- React Native Testing Guide: `/docs/research/react_native_testing_library_guide_20250918_184418.md`
+- Lean Task Generation Guide: `/docs/guides/lean-task-generation-guide.md`
 
 ---
-*Generated: 2025-09-25 | TDD Generator v1.0*
+*Generated from PRD: prd_core_combat_tap_mechanic_20250925.md*
+*Generation Date: 2025-09-25 15:45:00 UTC*
