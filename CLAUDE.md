@@ -31,3 +31,4 @@ See `/docs/guides/lean-task-generation-guide.md` for complete guide.
 
 ## Project Specific
 - When using npm, don't install specific versions unless its to fix a known compatibilty issue or to use a stable beta version thats recommended by the vendor (like with legend-state)
+- 
