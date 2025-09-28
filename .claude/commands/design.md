@@ -257,6 +257,8 @@ For each feature/component, follow this strict order:
 
 ## 11. Implementation Plan (TDD-Driven)
 ### Development Phases
+Following @docs/guides/lean-task-generation-guide.md principles - prioritize user-visible functionality:
+
 #### Phase 1: Foundation & Test Setup [X weeks]
 - Set up testing infrastructure (Jest, React Native Testing Library)
 - Configure MSW for API mocking

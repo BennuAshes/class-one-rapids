@@ -16,7 +16,21 @@
       "WebFetch(domain:callstack.github.io)",
       "WebFetch(domain:stackoverflow.com)",
       "Bash(cat:*)",
-      "WebFetch(domain:www.npmjs.com)"
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(rm:*)",
+      "Bash(time npm test:*)",
+      "Bash(sudo apt:*)",
+      "Bash(sudo apt install:*)",
+      "Bash(ip route:*)",
+      "Bash(awk:*)",
+      "Read(//home/themime/**)",
+      "Bash(npx expo start:*)",
+      "Read(//mnt/wsl/**)",
+      "Bash(wsl.exe:*)",
+      "Bash(adb:*)",
+      "Bash(source ~/.bashrc)",
+      "Bash(echo:*)",
+      "Bash(npx expo:*)"
     ],
     "deny": [],
     "ask": []

@@ -10,7 +10,7 @@ Generate a lean, actionable Product Requirements Document for: **$ARGUMENTS**
 
 ## Analysis Phase
 
-First, analyze the feature description to extract:
+First, analyze the feature description to extract (following @docs/guides/lean-task-generation-guide.md principles):
 1. **Core Problem**: What user problem does this solve?
 2. **Target Users**: Who will benefit from this feature?
 3. **Business Value**: Why is this worth building?
@@ -75,9 +75,11 @@ Organize by feature area:
 - **Browser/Device Support**: [Specific requirements]
 
 #### 8. Scope Definition
+Following @docs/guides/lean-task-generation-guide.md - focus on deliverable features, not infrastructure:
+
 **MVP (Must Have):**
-- P0: [Critical feature]
-- P0: [Critical feature]
+- P0: [Critical user-visible feature]
+- P0: [Critical user-visible feature]
 
 **Nice to Have:**
 - P1: [Important but not critical]
