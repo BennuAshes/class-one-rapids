@@ -9,6 +9,8 @@ allowed-tools: "TodoWrite, Read, Write, MultiEdit, Edit, Bash(npm:*), Bash(npx:*
 Execute tasks from the task list at: **$1**
 Target: $2 (optional: specific task ID or phase name)
 
+**IMPORTANT**: Follow @docs/guides/lean-task-generation-guide.md principles - prioritize user-visible features, create infrastructure only when needed.
+
 ## Phase 1: Initialize Execution Context
 
 First, I'll set up the execution environment and understand the task requirements.

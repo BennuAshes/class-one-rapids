@@ -8,6 +8,8 @@ allowed-tools: "Write, Read, Edit, Bash(date:*), Grep, Glob, Task"
 
 Generate a comprehensive, executable task list from the TDD at: **$ARGUMENTS**
 
+**IMPORTANT**: Follow @docs/guides/lean-task-generation-guide.md principles throughout - focus on user-visible functionality, not infrastructure.
+
 ## Phase 1: Check Existing Implementations & Architecture
 
 ### Architecture Reference
@@ -83,7 +85,7 @@ Read and analyze the Technical Design Document to extract:
 
 ## Phase 3: Task Decomposition
 
-Transform TDD elements into explicit, actionable tasks following these principles:
+Transform TDD elements into explicit, actionable tasks following these principles (aligned with @docs/guides/lean-task-generation-guide.md):
 
 ### Task Clarity Standards (from LLM Task Description Guide)
 - **Specific**: Each task has one clear objective
@@ -112,11 +114,13 @@ Generate the task list with this structure:
 - **Generated**: [timestamp]
 - **Total Tasks**: [count]
 
-## Phase 1: Foundation Setup
+## Phase 1: First User-Visible Feature (Per @docs/guides/lean-task-generation-guide.md)
 *Duration: [X] days | Priority: P0 | Prerequisites: None*
 
-### Task 1.1: [STATUS] Initialize Project Repository
-**ROLE**: You are a senior DevOps engineer setting up a new project
+**LEAN PRINCIPLE**: First task MUST deliver working functionality a user can interact with. NO infrastructure-only tasks.
+
+### Task 1.1: [STATUS] Implement Simplest Working Feature
+**ROLE**: You are a senior developer implementing the first user-visible feature
 
 **CONTEXT**: Based on the TDD architecture requirements at [TDD section reference]
 
@@ -443,6 +447,75 @@ test('should [next specific behavior]', async () => {
   // This test should fail initially
 });
 ```
+
+**UI/VISUAL SPECIFICATIONS** (when applicable):
+Use YAML format for visual requirements:
+```yaml
+visual_requirements:
+  component_name: "[ComponentName]"
+
+  dimensions:
+    min_width: "44px"  # Accessibility minimum
+    min_height: "44px"
+    responsive: true
+
+  colors:
+    primary: "#FFD700"  # Gold/Yellow
+    secondary: "#FF0000"
+    states:
+      hover: "#FFA500"
+      active: "#FF8C00"
+      disabled: "#808080"
+
+  typography:
+    font_family: "System Default"
+    font_size: "16px"
+    font_weight: "400"
+    line_height: "1.5"
+
+  spacing:
+    padding: "8px"
+    margin: "4px"
+    gap: "12px"
+
+  animations:
+    type: "pulse"
+    duration: "300ms"
+    easing: "ease-in-out"
+    iterations: "infinite"
+
+  interactions:
+    tap_target_size: "44x44px minimum"
+    feedback: "haptic + visual"
+    response_time: "<100ms"
+
+  accessibility:
+    min_contrast_ratio: "4.5:1"
+    screen_reader_label: "[descriptive label]"
+    focusable: true
+    keyboard_navigable: true
+```
+
+Or use Markdown table format for simpler requirements:
+```markdown
+### Visual Requirements
+
+| Property | Value | Notes |
+|----------|-------|-------|
+| **Size** | 44x44px minimum | WCAG touch target |
+| **Color** | Glowing yellow/gold (#FFD700) | High contrast |
+| **Animation** | Pulsing glow | 2-3 second duration |
+| **Position** | Random on enemy | Constrained to body |
+| **Feedback** | Flash on hit | 200ms duration |
+| **Opacity** | 0.8 default, 1.0 on hover | Smooth transition |
+```
+
+**VISUAL REQUIREMENTS FORMAT GUIDELINES**:
+- Use YAML format for complex UI components with multiple states and properties
+- Use Markdown tables for simple visual requirements (5 or fewer properties)
+- NEVER use pseudo-TypeScript or invalid JSON formats
+- Always include accessibility requirements (WCAG compliance)
+- Include actual color values (hex/rgb) not just descriptions
 
 **TDD CHECKLIST** (for each feature/component):
 - [ ] Write failing test for first requirement
@@ -807,6 +880,16 @@ Add authentication to the system
 ```
 - [ ] Authentication works
 ```
+
+## Lean Task Validation Checklist (from @docs/guides/lean-task-generation-guide.md)
+
+Before finalizing the task list, verify:
+- [ ] Task 1 delivers user-visible functionality (NOT just setup)
+- [ ] Every task allows user to DO something new
+- [ ] Files/folders created only when needed for the current feature
+- [ ] Dependencies installed only when used in the current task
+- [ ] Each task is independently demo-able
+- [ ] NO infrastructure-only tasks (those are created just-in-time)
 
 ## Output
 

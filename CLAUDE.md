@@ -27,8 +27,25 @@ Before accepting any task, verify:
 ❌ **BAD**: "Install all project dependencies"
 ✅ **GOOD**: "Add floating damage numbers (installing react-native-reanimated for animations)"
 
-See `/docs/guides/lean-task-generation-guide.md` for complete guide.
-
 ## Project Specific
-- When using npm, don't install specific versions unless its to fix a known compatibilty issue or to use a stable beta version thats recommended by the vendor (like with legend-state)
-- 
+- When using npm, don't install specific versions unless its to fix a known compatibilty issue or to use a stable beta version thats recommended by the vendor
+
+
+## Testing and Configuration Files
+- NEVER remove or replace code from test setup files (jest.setup.js, setupTests.js, etc.) without understanding its purpose
+- When you see mock configurations or polyfills in setup files,
+assume they're fixing framework-specific issues
+- If you need to add mocks, ADD them to existing setup code, don't replace it
+- Before modifying any configuration file, explain what the existing code does and why you're changing it
+
+## Code Modification Guidelines
+- When encountering code you don't fully understand (especially configuration/setup code), either:
+  1. Leave it unchanged and work around it
+  2. Ask the user about its purpose before modifying
+  3. Add your changes without removing existing code
+  - Be especially careful with:
+  - jest.setup.js / setupTests.js
+  - babel.config.js
+  - webpack.config.js
+  - tsconfig.json
+  - Package.json scripts and configurations
