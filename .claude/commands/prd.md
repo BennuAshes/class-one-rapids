@@ -137,7 +137,7 @@ The PRD must be:
 
 Generate the complete PRD and save to:
 - Filename: `prd_[feature_name_snake_case]_[YYYYMMDD].md`
-- Location: `/docs/prd/` if it exists, otherwise project root
+- Location: Same directory as the feature description file
 - Include generation timestamp at bottom
 
 The PRD should be immediately actionable for a development team while remaining flexible for iteration based on feedback and learning.
