@@ -30,7 +30,8 @@
       "Bash(adb:*)",
       "Bash(source ~/.bashrc)",
       "Bash(echo:*)",
-      "Bash(npx expo:*)"
+      "Bash(npx expo:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []

@@ -12,6 +12,13 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  TimeTrackerService,
+  calculateOfflineRewards,
+  WelcomeBackModal,
+  type PlayerState,
+  type OfflineRewards
+} from './src/modules/offline-progression';
 
 interface DamageNumber {
   id: number;
@@ -19,6 +26,7 @@ interface DamageNumber {
   x: number;
   y: number;
 }
+
 
 const AnimatedDamageNumber = ({ damage, onComplete }: { damage: DamageNumber; onComplete: () => void }) => {
   const translateY = useSharedValue(0);
@@ -59,6 +67,7 @@ const AnimatedDamageNumber = ({ damage, onComplete }: { damage: DamageNumber; on
   );
 };
 
+
 export default function App() {
   const [enemyHealth, setEnemyHealth] = useState(1000);
   const [damageNumbers, setDamageNumbers] = useState<DamageNumber[]>([]);
@@ -73,8 +82,13 @@ export default function App() {
   // Level System state
   const [level, setLevel] = useState(1);
   const [showLevelUp, setShowLevelUp] = useState(false);
+  // Offline Time Tracking state
+  const [timeAway, setTimeAway] = useState<number>(0);
+  const [offlineRewards, setOfflineRewards] = useState<OfflineRewards | null>(null);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const damageIdRef = useRef(0);
   const soundRef = useRef<Audio.Sound | null>(null);
+  const timeTrackerRef = useRef<TimeTrackerService>(new TimeTrackerService());
 
   // Load progression data on mount
   useEffect(() => {
@@ -86,10 +100,54 @@ export default function App() {
           setLevel(progression.level || 1);
           setPower(progression.power || 1);
           setCurrentXP(progression.currentXP || 0);
+
+          // Check for offline time with loaded progression data
+          const minutesAway = await timeTrackerRef.current.calculateTimeAway();
+          if (minutesAway >= 1) {
+            const playerState: PlayerState = {
+              power: progression.power || 1,
+              level: progression.level || 1,
+              xp: progression.currentXP || 0,
+              pyreal: 0 // Not needed for calculation
+            };
+            const rewards = calculateOfflineRewards(minutesAway, playerState);
+            setTimeAway(minutesAway);
+            setOfflineRewards(rewards);
+            setShowWelcomeModal(true);
+          }
+        } else {
+          // Check offline time with default values
+          const minutesAway = await timeTrackerRef.current.calculateTimeAway();
+          if (minutesAway >= 1) {
+            const playerState: PlayerState = {
+              power: 1,
+              level: 1,
+              xp: 0,
+              pyreal: 0
+            };
+            const rewards = calculateOfflineRewards(minutesAway, playerState);
+            setTimeAway(minutesAway);
+            setOfflineRewards(rewards);
+            setShowWelcomeModal(true);
+          }
         }
       } catch (error) {
         // Handle corrupted data gracefully - use defaults
         console.log('Failed to load progression:', error);
+        // Still check offline time with defaults
+        const minutesAway = await timeTrackerRef.current.calculateTimeAway();
+        if (minutesAway >= 1) {
+          const playerState: PlayerState = {
+            power: 1,
+            level: 1,
+            xp: 0,
+            pyreal: 0
+          };
+          const rewards = calculateOfflineRewards(minutesAway, playerState);
+          setTimeAway(minutesAway);
+          setOfflineRewards(rewards);
+          setShowWelcomeModal(true);
+        }
       }
     };
 
@@ -145,6 +203,30 @@ export default function App() {
       }
     };
   }, []);
+
+  // Offline Time Tracking - TimeTracker service
+  useEffect(() => {
+    const handleTimeTracking = (minutesAway: number) => {
+      if (minutesAway >= 1) {
+        const playerState: PlayerState = {
+          power,
+          level,
+          xp: currentXP,
+          pyreal: totalPyreal
+        };
+        const rewards = calculateOfflineRewards(minutesAway, playerState);
+        setTimeAway(minutesAway);
+        setOfflineRewards(rewards);
+        setShowWelcomeModal(true);
+      }
+    };
+
+    timeTrackerRef.current.startTracking(handleTimeTracking);
+
+    return () => {
+      timeTrackerRef.current.stopTracking();
+    };
+  }, [power, level, currentXP, totalPyreal]);
 
 
   const handleEnemyTap = async () => {
@@ -261,6 +343,24 @@ export default function App() {
         </Text>
         <Text style={styles.pyrealLabel}>Pyreal</Text>
       </View>
+
+      {/* Welcome Back Modal */}
+      <WelcomeBackModal
+        rewards={offlineRewards}
+        isVisible={showWelcomeModal}
+        timeAway={timeAway}
+        onCollect={() => {
+          if (offlineRewards) {
+            // Apply rewards
+            setCurrentXP(prev => prev + offlineRewards.xpGained);
+            setTotalPyreal(prev => prev + offlineRewards.pyrealGained);
+          }
+          // Close modal
+          setShowWelcomeModal(false);
+          setOfflineRewards(null);
+          setTimeAway(0);
+        }}
+      />
 
       {/* Power Display */}
       <View style={styles.powerContainer}>

@@ -1,0 +1,1 @@
+Read CLAUDE.md, and the files within the .claude/commands/ - prd.md, design.md, tasks.md, and execute-tasks.md. Think longer about $ARGUMENTS and what we may need to change to resolve these issues in the files above.
