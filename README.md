@@ -37,9 +37,15 @@ There are many CLI systems and now IDEs that let you build an app by creating re
 - hard time giving up, or realizing something isn't their fault
 - data flow, architecture
 - it doesn't know modern tooling doesn't need special typescript versions like ts-jest
+- refactors into weird folders/subfolders
+- uses "services" instead of hooks - hooks should be used
+- in react(-native): uses classes instead of preferring functional paradigms
+- code examples that depend on a file structure default to styles that suite small apps using global folders for the types of files being created (components, hooks, etc) - research "by feature", "vertical slicing", "lean software development" early on so they can influence future commands and research
+- not sure the best way to reference this research we do early that a lot, but maybe not all, of the commands need.
+- we guess in these first passes but we could document them in a table that shows the commands and which benefit from which research, and the types of research you may want to do
 
 ### PRD specific issues
-- This is a web game, so it seems odd it has this requirement of 60 FPS. It is coming from the PRD generation process.
+- This is a mobile/web game, so it seems odd it has this requirement of 60 FPS. It is coming from the PRD generation process.
 
 ### Expo - Configuring a New Project
 - Had lots of issues with react-test-renderer existing and conflicting with
@@ -75,8 +81,7 @@ jest.mock('expo-av', () => ({
     },
   },
 }));
-
-console.log('=== JEST SETUP: Complete ===')
+```
 
 ## package.json
 ```
@@ -107,3 +112,20 @@ console.log('=== JEST SETUP: Complete ===')
     }
 }
 ```
+
+
+# Known Todos
+- 1000 hp isn't useful or fun
+- the docs folder needs to be organized
+
+# Flow
+- Create a high level feature document/mvp/poc
+- create a base project and testing manually
+- use "/next-feature" to create a description of the next uncompleted feature based on what is done and what is in the high level doc
+- run /prd, then /design, then /tasks
+- run /execute-task on the task list
+- manually test + validate tests created and results
+- if not valid, record what was wrong
+- use /reflect to update commands and claude.md to avoid repeating issues in the future 
+- can also analyze your conversations
+- if you don't have the time/energy to run reflection stategies, you can "vibe code" corrections aka use conersational prompting to resolve remaining issues

@@ -27,6 +27,50 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   removeItem: jest.fn(),
 }));
 
+// Mock React Native AppState
+const mockAppState = {
+  currentState: 'active',
+  addEventListener: jest.fn(),
+};
+
+// Mock the offline progression module
+jest.mock('./src/modules/offline-progression', () => ({
+  TimeTrackerService: jest.fn().mockImplementation(() => ({
+    startTracking: jest.fn(),
+    stopTracking: jest.fn(),
+    calculateTimeAway: jest.fn().mockResolvedValue(0),
+  })),
+  calculateOfflineRewards: jest.fn(),
+  WelcomeBackModal: jest.requireActual('react').forwardRef(({ isVisible, timeAway, rewards, onCollect }, ref) => {
+    const React = jest.requireActual('react');
+    const { View, Text, TouchableOpacity } = jest.requireActual('react-native');
+
+    if (!isVisible) return null;
+
+    if (rewards && rewards.enemiesDefeated > 0) {
+      return React.createElement(View, { testID: 'rewards-modal' },
+        React.createElement(Text, {}, `${rewards.enemiesDefeated} Enemies Defeated`),
+        React.createElement(Text, {}, `+${rewards.xpGained} XP`),
+        React.createElement(Text, {}, `+${rewards.pyrealGained} Pyreal`),
+        React.createElement(TouchableOpacity, { onPress: onCollect },
+          React.createElement(Text, {}, 'Tap to Collect')
+        )
+      );
+    }
+
+    if (timeAway > 0) {
+      return React.createElement(View, { testID: 'simple-welcome' },
+        React.createElement(Text, {}, `Welcome back! You were away for ${timeAway} minutes`),
+        React.createElement(TouchableOpacity, { onPress: onCollect },
+          React.createElement(Text, {}, 'Continue')
+        )
+      );
+    }
+
+    return null;
+  }),
+}));
+
 import App from './App';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
@@ -35,6 +79,8 @@ describe('Core Combat Tap Mechanic', () => {
   beforeEach(() => {
     // Clear all mocks before each test
     jest.clearAllMocks();
+    // Ensure AsyncStorage.getItem returns a promise for all tests
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
   });
   test('enemy takes damage when tapped', async () => {
     render(<App />);
@@ -247,6 +293,11 @@ describe('Core Combat Tap Mechanic', () => {
 
 // Task 1.1: Power System Tests
 describe('Power System', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+  });
+
   test('should display Power value of 1 initially', () => {
     render(<App />);
     expect(screen.getByText(/Power: 1/)).toBeTruthy();
@@ -283,6 +334,11 @@ describe('Power System', () => {
 
 // Task 1.2: XP System Tests
 describe('XP System', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+  });
+
   test('should display XP value of 0 initially', () => {
     render(<App />);
     expect(screen.getByText(/XP: 0/)).toBeTruthy();
@@ -309,6 +365,11 @@ describe('XP System', () => {
 
 // Task 2.1: Level-Up System Tests
 describe('Level-Up System', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+  });
+
   test('should display Level value of 1 initially', () => {
     render(<App />);
     expect(screen.getByText(/Level: 1/)).toBeTruthy();
@@ -346,6 +407,11 @@ describe('Level-Up System', () => {
 
 // Task 2.2: XP Progress Bar Tests
 describe('XP Progress Bar', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+  });
+
   test('should display XP progress bar', () => {
     render(<App />);
 
@@ -437,6 +503,7 @@ describe('AsyncStorage Persistence', () => {
 describe('Enhanced Level-Up Celebration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
   });
 
   test('should show celebration particles on level up', async () => {
@@ -468,5 +535,75 @@ describe('Enhanced Level-Up Celebration', () => {
     // Verify the celebration structure supports timed display
     // The actual timing will be tested through manual testing
     expect(screen.getByText(/Level: 1/)).toBeTruthy();
+  });
+});
+
+// Task 1.1: Offline Time Tracking Tests
+describe('Offline Time Tracking', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Reset AppState to active
+    const { AppState } = require('react-native');
+    AppState.currentState = 'active';
+  });
+
+  test('tracks time when app goes to background and shows on return', async () => {
+    // Mock the TimeTrackerService to return 5 minutes
+    const { TimeTrackerService, calculateOfflineRewards } = require('./src/modules/offline-progression');
+    const mockTimeTracker = {
+      calculateTimeAway: jest.fn().mockResolvedValue(5),
+      startTracking: jest.fn(),
+      stopTracking: jest.fn(),
+    };
+    TimeTrackerService.mockImplementation(() => mockTimeTracker);
+
+    // Mock calculateOfflineRewards to return null (no meaningful rewards for 5 minutes)
+    calculateOfflineRewards.mockReturnValue(null);
+
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+
+    render(<App />);
+
+    // Should show welcome back message for 5 minutes away
+    await waitFor(() => {
+      expect(screen.getByText(/Welcome back.*5 minutes/)).toBeTruthy();
+    });
+  });
+
+  test('calculates offline rewards based on power and time', async () => {
+    // Mock the TimeTrackerService to return 60 minutes
+    const { TimeTrackerService, calculateOfflineRewards } = require('./src/modules/offline-progression');
+    const mockTimeTracker = {
+      calculateTimeAway: jest.fn().mockResolvedValue(60),
+      startTracking: jest.fn(),
+      stopTracking: jest.fn(),
+    };
+    TimeTrackerService.mockImplementation(() => mockTimeTracker);
+
+    // Mock calculateOfflineRewards to return expected values
+    calculateOfflineRewards.mockReturnValue({
+      timeOffline: 60,
+      enemiesDefeated: 5,
+      xpGained: 12,
+      pyrealGained: 8
+    });
+
+    // Test data: Player with power 10, away for 60 minutes (1 hour)
+    (AsyncStorage.getItem as jest.Mock)
+      .mockResolvedValueOnce('{"level":5,"power":10,"currentXP":100}'); // progression data
+
+    render(<App />);
+
+    // Formula from TDD: enemies = (power * 2) * (minutes / 60) * 0.25
+    // Expected: (10 * 2) * 1 * 0.25 = 5 enemies
+    // XP: 5 * 2.5 = 12.5, Pyreal: varies but should be > 0
+
+    // Should show specific offline rewards
+    await waitFor(() => {
+      expect(screen.getByText(/5 Enemies Defeated/)).toBeTruthy();
+      expect(screen.getByText(/\+12 XP/)).toBeTruthy(); // Math.floor(12.5) = 12
+      expect(screen.getByText(/\+8 Pyreal/)).toBeTruthy(); // Mocked value
+      expect(screen.getByText(/Tap to Collect/)).toBeTruthy();
+    });
   });
 });

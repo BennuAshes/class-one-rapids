@@ -1,1 +1,0 @@
-Read $ARGUMENTS and apply the fixes recommended in the files.
