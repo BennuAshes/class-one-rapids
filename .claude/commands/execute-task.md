@@ -11,6 +11,17 @@ Target: $2 (optional: specific task ID or phase name)
 
 **IMPORTANT**: Follow @docs/guides/lean-task-generation-guide.md principles - prioritize user-visible features, create infrastructure only when needed.
 
+## CRITICAL: Architecture and Path Rules
+**MANDATORY**: Read and follow these guides before ANY file operations:
+1. @docs/architecture/working-directory-context.md - Working directory and path rules
+2. @docs/architecture/file-organization-patterns.md - File patterns (NO barrel exports, co-located tests)
+
+**Key Rules**:
+- You are in `c:\dev\class-one-rapids\frontend\`
+- NEVER create `frontend/frontend/` nested structures
+- NO barrel exports (index.ts files)
+- Tests ALWAYS co-located with implementation
+
 ## Phase 1: Initialize Execution Context
 
 First, I'll set up the execution environment and understand the task requirements.
@@ -49,12 +60,13 @@ For the identified tasks:
 
 **Pre-execution Check**: For each task, verify it's not already implemented:
 ```bash
-# Check if component/service exists
-test -f src/components/ComponentName/ComponentName.tsx
-test -f src/services/ServiceName.ts
+# Check if component/hook exists (NO services - use hooks!)
+test -f src/modules/[feature]/ComponentName.tsx
+test -f src/modules/[feature]/useFeatureName.ts
 
-# Check for existing tests
-test -f src/__tests__/components/ComponentName.test.tsx
+# Check for existing tests (co-located, NOT in __tests__)
+test -f src/modules/[feature]/ComponentName.test.tsx
+test -f src/modules/[feature]/useFeatureName.test.ts
 ```
 
 For each task in the execution sequence:
@@ -85,9 +97,15 @@ Actions:
 
 **RULE**: Write ONLY enough code to make the test pass
 
+**State Management Priority**:
+1. Start with `useState` for component-local state
+2. Extract to custom hooks (e.g., `useEnemy()`) when logic gets complex
+3. Use Legend-State ONLY when state needs sharing across features
+4. NEVER create service classes - use hooks for stateful logic
+
 Actions:
 
-1. Implement minimal solution
+1. Implement minimal solution (prefer hooks over services)
 2. No extra features or optimization
 3. Run test to confirm it passes
 4. Keep all existing tests passing
@@ -162,8 +180,8 @@ task_id:
   completed:
     - List of implemented features
   evidence:
-    - src/path/to/implementation.ts
-    - src/__tests__/path/to/tests.test.ts
+    - src/modules/[feature]/implementation.ts
+    - src/modules/[feature]/implementation.test.ts  # Co-located test
   completed_at: 2025-09-24T10:30:00Z
 ```
 
@@ -292,10 +310,10 @@ For each completed task:
    src/modules/[feature]/
    ├── ComponentName.tsx
    ├── ComponentName.test.tsx      # Test co-located with component
-   ├── useFeature.ts
+   ├── useFeature.ts               # Hook (NOT service)
    ├── useFeature.test.ts          # Test co-located with hook
-   ├── featureService.ts
-   └── featureService.test.ts      # Test co-located with service
+   ├── feature.types.ts            # TypeScript types
+   └── feature.store.ts            # Legend-State store (only if needed)
    ```
 
 3. **Test Placement Rule**:
