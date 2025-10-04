@@ -14,12 +14,13 @@ There are many CLI systems and now IDEs that let you build an app by creating re
 
 - Claude Code
 - Opus4.1
-- Windows 11 WSL 2 (Ubuntu)
+- Windows 11 WSL 2 (Debian)
 
 ## How this was created
 
 ### Conversation Summary
 [summary from LLM anaylzing conversation]
+- first part and last part are in windows. theres duplicate parts in wsl ~/.claude and also new parts that need to be merged with the windows parts for a complete history.
 
 ### General Issues I'm Running Into
 - folder organization: organizing by feature is not super common for react apps as the apps tend to be small
@@ -56,31 +57,27 @@ There are many CLI systems and now IDEs that let you build an app by creating re
 npx create-expo-app frontend --template blank-typescript@sdk-54
 npx expo install jest-expo jest @types/jest "--" --dev
 # manually updated versions for anything related react, react-native, then manually added react-test-renderer, then 'npm install', OR likely just:
-npm update
-npm install react-test-renderer@19.1.1 --dev
+npm install react-test-renderer --dev
 npx expo install @testing-library/react-native "--" --dev
 npx expo install react-dom react-native-web
+npx npm-check-updates -u
+npm install
 ```
 
 ## jest.setup.js
 ```
-// Mock expo modules
-jest.mock('expo-haptics', () => ({
-  impactAsync: jest.fn(),
-  ImpactFeedbackStyle: {
-    Light: 'Light',
-    Medium: 'Medium',
-    Heavy: 'Heavy',
-  },
-}));
-
-jest.mock('expo-av', () => ({
-  Audio: {
-    Sound: {
-      createAsync: jest.fn(),
+// Fix for Expo module import issues
+jest.mock('expo/src/winter/ImportMetaRegistry', () => ({
+  ImportMetaRegistry: {
+    get url() {
+      return null;
     },
   },
 }));
+
+if (typeof global.structuredClone === 'undefined') {
+  global.structuredClone = (object) => JSON.parse(JSON.stringify(object));
+}
 ```
 
 ## package.json
@@ -129,3 +126,8 @@ jest.mock('expo-av', () => ({
 - use /reflect to update commands and claude.md to avoid repeating issues in the future 
 - can also analyze your conversations
 - if you don't have the time/energy to run reflection stategies, you can "vibe code" corrections aka use conersational prompting to resolve remaining issues
+
+
+  ## Expo
+  - expo-av is being deprecated, use expo-audio or expo-video instead
+  - react-reanimated lib needs react worklet library  

@@ -10,15 +10,21 @@ Generate a comprehensive, executable task list from the TDD at: **$ARGUMENTS**
 
 **IMPORTANT**: Follow @docs/guides/lean-task-generation-guide.md principles throughout - focus on user-visible functionality, not infrastructure.
 
+## CRITICAL: Working Directory Context
+**MANDATORY**: Read and follow @docs/architecture/working-directory-context.md for all path operations.
+- You are in `c:\dev\class-one-rapids\frontend\`
+- All paths are relative to frontend directory
+- NEVER create nested `frontend/frontend/` structures
+
 ## Phase 1: Check Existing Implementations & Architecture
 
-### Architecture Reference
-**IMPORTANT**: Follow the feature-based organization pattern from:
-`/docs/architecture/organizing_expo_apps_by_feature_20250921_113000.md`
+### Architecture References
+**MANDATORY**: Follow these architecture guides:
+1. @docs/architecture/organizing_expo_apps_by_feature_20250921_113000.md - Feature-based organization
+2. @docs/architecture/file-organization-patterns.md - File patterns and anti-patterns (NO barrel exports!)
+3. @docs/architecture/working-directory-context.md - Path and directory rules
 
 ### Required Folder Structure
-
-**Organization Rule**: If a feature module has fewer than 10 total items (components + services + hooks + types), keep them flat in the feature folder without subdirectories.
 
 ```
 src/
@@ -29,20 +35,23 @@ src/
 ├── modules/               # Feature Modules
 │   ├── [feature]/        # When < 10 items: flat structure
 │   │   ├── Enemy.tsx     # Component
-│   │   ├── useEnemy.ts   # Hook
-│   │   ├── enemyService.ts # Service
+│   │   ├── Enemy.test.tsx # Test co-located
+│   │   ├── useEnemy.ts   # Hook (NOT service)
+│   │   ├── useEnemy.test.ts # Test co-located
 │   │   └── enemy.types.ts  # Types
 │   ├── [large-feature]/  # When ≥ 10 items: organized by type
 │   │   ├── components/   # Feature-specific UI
-│   │   ├── hooks/        # Feature-specific hooks
-│   │   ├── services/     # API calls & business logic
-│   │   ├── stores/       # State management
+│   │   │   ├── Component.tsx
+│   │   │   └── Component.test.tsx # Co-located test
+│   │   ├── hooks/        # Feature-specific hooks (NOT services)
+│   │   │   ├── useFeature.ts
+│   │   │   └── useFeature.test.ts # Co-located test
+│   │   ├── stores/       # State management (Legend-State preferred)
 │   │   └── types/        # TypeScript interfaces
 │   └── ...
 ├── shared/                # Cross-cutting Concerns
 │   ├── components/        # Reusable UI components
-│   ├── services/         # Shared services (api, i18n, theme)
-│   ├── hooks/            # Shared custom hooks
+│   ├── hooks/            # Shared custom hooks (NOT services)
 │   └── utils/            # Utility functions
 ├── assets/               # Images, fonts, etc.
 ├── constants/            # App-wide constants
