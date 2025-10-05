@@ -4,12 +4,11 @@
 
 ### Directory Layout
 ```
-c:\dev\class-one-rapids\              # Project root
-├── frontend\                         # All React Native/Expo code
-│   ├── src\                         # Source code
-│   │   ├── app\                    # Expo Router pages
-│   │   ├── modules\                # Feature modules
-│   │   └── shared\                 # Shared utilities
+c:\dev\class-one-rapids\             # Project root
+├── frontend\                        # All React Native/Expo code
+│   ├── app\                         # Expo Router pages
+│   ├── modules\                     # Feature modules
+│   ├── shared\                      # Shared utilities
 │   ├── package.json                 # Frontend dependencies
 │   └── ...                          # Other frontend config
 ├── docs\                            # Documentation
@@ -26,35 +25,25 @@ c:\dev\class-one-rapids\              # Project root
 
 ### Path Resolution
 - When instructions say `src/modules/[feature]/`
-  - ✅ CORRECT: Create at `c:\dev\class-one-rapids\frontend\src\modules\[feature]\`
-  - ❌ WRONG: Create at `c:\dev\class-one-rapids\frontend\frontend\src\modules\[feature]\`
+  - ✅ CORRECT: Create at `c:\dev\class-one-rapids\frontend\modules\[feature]\`
 
 ### Before ANY File Creation
 1. **Verify working directory**: Run `pwd` to confirm you're in the frontend directory
 2. **Check parent directories**: Use `ls` to verify parent directories exist
-3. **Use correct paths**: Create files at `src/modules/[feature]/` NOT `frontend/src/modules/[feature]/`
+3. **Use correct paths**: Create files at `frontend/modules/[feature]/` NOT `frontend/modules/[feature]/`
 
 ## Common Path Mistakes to Avoid
 
-### Nested Frontend Directories
-❌ **NEVER DO THIS**:
-```
-frontend/
-└── frontend/          # Duplicate nesting
-    └── src/
-        └── modules/
-```
 
 ✅ **ALWAYS DO THIS**:
 ```
 frontend/
-└── src/              # Direct child of frontend
-    └── modules/
+└── modules/ # Direct child of frontend
 ```
 
 ### Absolute vs Relative Paths
-- **From project root**: Use `frontend/src/modules/[feature]/`
-- **From frontend directory**: Use `src/modules/[feature]/`
+- **From project root**: Use `frontend/modules/[feature]/`
+- **From frontend directory**: Use `modules/[feature]/`
 - **In commands**: Always clarify which directory you're in
 
 ## Directory Verification Commands
@@ -68,18 +57,18 @@ pwd
 ### Verify Structure Before Creating Files
 ```bash
 # From frontend directory
-ls -la src/modules/
+ls -la modules/
 # Should show existing feature modules
 
 # Check if a specific module exists
-test -d src/modules/[feature] && echo "exists" || echo "not found"
+test -d modules/[feature] && echo "exists" || echo "not found"
 ```
 
 ### Create New Feature Module
 ```bash
 # From frontend directory (c:\dev\class-one-rapids\frontend\)
-mkdir -p src/modules/[feature]
-# Creates: frontend/src/modules/[feature]/
+mkdir -p modules/[feature]
+# Creates: frontend/modules/[feature]/
 # NOT: frontend/frontend/src/modules/[feature]/
 ```
 
@@ -87,7 +76,7 @@ mkdir -p src/modules/[feature]
 
 ### Within Feature Modules
 ```typescript
-// From src/modules/combat/Enemy.tsx
+// From modules/combat/Enemy.tsx
 import { useEnemy } from './useEnemy';  // Same directory
 import { Button } from '@/shared/components/Button';  // Shared components
 import { CombatStats } from './types';  // Local types
@@ -95,13 +84,13 @@ import { CombatStats } from './types';  // Local types
 
 ### Cross-Feature Imports
 ```typescript
-// From src/modules/inventory/Item.tsx
+// From modules/inventory/Item.tsx
 import { usePlayer } from '@/modules/player/usePlayer';  // Another feature
 ```
 
 ### From App Routes
 ```typescript
-// From src/app/game.tsx
+// From app/game.tsx
 import { Enemy } from '@/modules/combat/Enemy';  // Feature component
 ```
 
@@ -113,10 +102,10 @@ import { Enemy } from '@/modules/combat/Enemy';  // Feature component
 # Task: Create Enemy component in combat module
 
 # CORRECT:
-echo "export const Enemy = () => {}" > src/modules/combat/Enemy.tsx
+echo "export const Enemy = () => {}" > modules/combat/Enemy.tsx
 
 # WRONG (creates nested structure):
-echo "export const Enemy = () => {}" > frontend/src/modules/combat/Enemy.tsx
+echo "export const Enemy = () => {}" > frontend/modules/combat/Enemy.tsx
 ```
 
 ### Creating Tests (Co-located)
@@ -125,10 +114,10 @@ echo "export const Enemy = () => {}" > frontend/src/modules/combat/Enemy.tsx
 # Task: Create test for Enemy component
 
 # CORRECT (co-located):
-echo "describe('Enemy', () => {})" > src/modules/combat/Enemy.test.tsx
+echo "describe('Enemy', () => {})" > modules/combat/Enemy.test.tsx
 
 # WRONG (separate test directory):
-echo "describe('Enemy', () => {})" > src/__tests__/combat/Enemy.test.tsx
+echo "describe('Enemy', () => {})" > __tests__/combat/Enemy.test.tsx
 ```
 
 ## Troubleshooting
@@ -140,22 +129,8 @@ echo "describe('Enemy', () => {})" > src/__tests__/combat/Enemy.test.tsx
 4. **Move files to correct location** if needed
 5. **Remove empty nested directories**
 
-### Recovery from Wrong Structure
-```bash
-# If you accidentally created frontend/frontend/
-# From project root (c:\dev\class-one-rapids\)
-
-# Move files to correct location
-mv frontend/frontend/src/* frontend/src/
-
-# Remove empty nested directory
-rmdir frontend/frontend/src
-rmdir frontend/frontend
-```
-
 ## Remember
 - **Always verify your working directory first**
 - **Frontend work happens in `c:\dev\class-one-rapids\frontend\`**
-- **All src/ paths are relative to the frontend directory**
 - **No barrel exports (index.ts)**
 - **Tests are co-located with implementation files**
