@@ -1,1 +1,0 @@
-Using @research/claude_code_commands_guide_20250916_060309.md think longer about this information and``` how it could be used to create a new claude code command that $ARGUMENTS

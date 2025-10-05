@@ -31,7 +31,9 @@
       "Bash(source ~/.bashrc)",
       "Bash(echo:*)",
       "Bash(npx expo:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []
