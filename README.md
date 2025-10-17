@@ -1,5 +1,5 @@
-# Class One Rapids (v2)
-Teaching the creation of AI code generation processes
+# Class One Rapids
+Spec-driven development system using modern context engineering techniques
 
 ## Description
 There are many CLI systems and now IDEs that let you build an app by creating requirements, design, and tasks for an agent. This repo answers the question, "How do I make my own PRP (Product Document Prompt), or spec-driven development style system using modern context engineering techniques? What commands do I need? How do I know what to put in them?"
@@ -9,11 +9,11 @@ There are many CLI systems and now IDEs that let you build an app by creating re
 - Opus4.1
 - Windows 11 WSL 2 (Debian)
 
-## How this was created
+## Project History
 
-### Conversation Summary
-[summary from LLM anaylzing conversation]
-- first part and last part are in windows. theres duplicate parts in wsl ~/.claude and also new parts that need to be merged with the windows parts for a complete history.
+- **v1 (August 3-20, 2025)**: Initial experiments and learnings documented in [V1_HISTORY.md](V1_HISTORY.md)
+- **v2 (September 20 - Present)**: Current spec-driven approach with command-based workflow
+- **Full Evolution**: Comprehensive breakdown in [PROJECT_EVOLUTION.md](PROJECT_EVOLUTION.md)
 
 
 
@@ -121,4 +121,20 @@ if (typeof global.structuredClone === 'undefined') {
 
 ## Expo
 - expo-av is being deprecated, use expo-audio or expo-video instead
-- react-reanimated lib needs react worklet library  
+- react-reanimated lib needs react worklet library
+
+
+# Thoughts
+- I want a /plan command to replace /prp and / - 1 human in the loop for the plan that includes both product and tech overview.
+
+# Patterns
+## Architecture Needed
+- state management including how to do fine-grained by-feature state/hooks
+- folder structure
+- setting up the project
+- best practices for react as far as separating out features into comonents and sub-components for UX clarity. UX is a function of behavior
+
+
+# Making your own /plan command (as well as context/prompting techniques for executing that plan)
+- pros and cons to roles to narrow focus
+-

@@ -9,22 +9,6 @@
 3. **Single source of truth** - Stores are private, hooks are the public API
 4. **Type-safe throughout** - Full TypeScript with no compromises
 
-## 📁 Project Structure
-
-```
-src/
-├── state/
-│   ├── stores/              # Private observable stores
-│   │   ├── todos.store.ts   # Internal todo state
-│   │   └── user.store.ts    # Internal user state
-│   ├── hooks/               # Public API hooks
-│   │   ├── useTodos.ts      # Todo state hook
-│   │   └── useUser.ts       # User state hook
-│   └── config/              # Storage configuration
-│       └── persistence.ts   # Persistence setup
-└── components/              # UI Components (only use hooks)
-    └── TodoList.tsx         # Uses useTodos hook
-```
 
 ## 🔧 Storage Configuration
 
@@ -773,6 +757,128 @@ const styles = StyleSheet.create({
 
 ## 🔄 Advanced Hook Patterns
 
+### Effect Hooks Pattern
+
+**Rule: Extract useEffect logic into custom hooks in separate files**
+
+Effects should be encapsulated in their own hooks for:
+- **Reusability**: Use the same effect across multiple components
+- **Testability**: Test effect logic independently
+- **Clarity**: Keep components focused on rendering
+- **Composition**: Combine multiple effect hooks cleanly
+
+```typescript
+// ❌ BAD - Effect logic in component
+function TodoList() {
+  const { items$ } = useTodos()
+
+  // Auto-save effect cluttering component
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem('todos', JSON.stringify(items$.get()))
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [items$])
+
+  // Sync effect cluttering component
+  useEffect(() => {
+    const ws = new WebSocket('ws://api.example.com')
+    ws.onmessage = (msg) => items$.set(JSON.parse(msg.data))
+    return () => ws.close()
+  }, [items$])
+
+  return <View>...</View>
+}
+
+// ✅ GOOD - Effects extracted to hooks
+// shared/hooks/useAutoSave.ts
+export function useAutoSave<T>(
+  data$: Observable<T>,
+  key: string,
+  delay = 1000
+) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem(key, JSON.stringify(data$.get()))
+    }, delay)
+    return () => clearTimeout(timer)
+  }, [data$, key, delay])
+}
+
+// shared/hooks/useWebSocketSync.ts
+export function useWebSocketSync<T>(
+  data$: Observable<T>,
+  url: string
+) {
+  useEffect(() => {
+    const ws = new WebSocket(url)
+    ws.onmessage = (msg) => data$.set(JSON.parse(msg.data))
+    return () => ws.close()
+  }, [data$, url])
+}
+
+// components/TodoList.tsx
+function TodoList() {
+  const { items$ } = useTodos()
+
+  // Clean, declarative, reusable
+  useAutoSave(items$, 'todos')
+  useWebSocketSync(items$, 'ws://api.example.com')
+
+  return <View>...</View>
+}
+```
+
+### Common Effect Hook Patterns
+
+```typescript
+// hooks/useInterval.ts
+export function useInterval(callback: () => void, delay: number | null) {
+  useEffect(() => {
+    if (delay === null) return
+    const id = setInterval(callback, delay)
+    return () => clearInterval(id)
+  }, [callback, delay])
+}
+
+// hooks/useDocumentTitle.ts
+export function useDocumentTitle(title$: Observable<string>) {
+  useEffect(() => {
+    document.title = title$.get()
+  }, [title$])
+}
+
+// hooks/useKeyboardShortcut.ts
+export function useKeyboardShortcut(
+  key: string,
+  callback: () => void,
+  modifiers?: { ctrl?: boolean; shift?: boolean }
+) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === key) {
+        if (modifiers?.ctrl && !e.ctrlKey) return
+        if (modifiers?.shift && !e.shiftKey) return
+        callback()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [key, callback, modifiers])
+}
+
+// Usage in component
+function TodoApp() {
+  const { actions, stats$ } = useTodos()
+
+  useDocumentTitle(computed(() => `Todos (${stats$.pending.get()})`))
+  useKeyboardShortcut('n', actions.add, { ctrl: true })
+  useInterval(() => actions.syncWithServer(), 30000)
+
+  return <View>...</View>
+}
+```
+
 ### Async Operations Hook
 
 ```typescript
@@ -1006,6 +1112,27 @@ describe('useTodos Hook', () => {
    }
    ```
 
+5. **Extract useEffect logic into custom hooks**
+   ```tsx
+   // Good - useEffect in separate file
+   // hooks/useAutoSave.ts
+   export function useAutoSave(data$: Observable<Data>) {
+     useEffect(() => {
+       const timer = setTimeout(() => {
+         saveToServer(data$.get())
+       }, 1000)
+       return () => clearTimeout(timer)
+     }, [data$])
+   }
+
+   // Component.tsx
+   function Component() {
+     const { data$ } = useData()
+     useAutoSave(data$) // Clean and reusable
+     return <View>...</View>
+   }
+   ```
+
 ### ❌ DON'T
 
 1. **Never import stores directly in components**
@@ -1030,6 +1157,29 @@ describe('useTodos Hook', () => {
    ```tsx
    // Bad
    const localState$ = observable({ value: 0 })
+   ```
+
+5. **Don't keep useEffect logic in components**
+   ```tsx
+   // Bad - useEffect clutter in component
+   function Component() {
+     const { data$ } = useData()
+
+     useEffect(() => {
+       const timer = setTimeout(() => {
+         saveToServer(data$.get())
+       }, 1000)
+       return () => clearTimeout(timer)
+     }, [data$])
+
+     useEffect(() => {
+       const subscription = subscribeToUpdates()
+       return () => subscription.unsubscribe()
+     }, [])
+
+     // Component becomes cluttered with effects
+     return <View>...</View>
+   }
    ```
 
 ## 🎯 Benefits of This Architecture

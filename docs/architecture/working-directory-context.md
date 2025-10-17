@@ -82,54 +82,23 @@ import { Button } from '@/shared/components/Button';  // Shared components
 import { CombatStats } from './types';  // Local types
 ```
 
-### Cross-Feature Imports
+### From Shared Utilities
 ```typescript
 // From modules/inventory/Item.tsx
-import { usePlayer } from '@/modules/player/usePlayer';  // Another feature
+import { usePlayerStats } from '@/shared/hooks/usePlayerStats';  // Shared hook
+import { formatCurrency } from '@/shared/utils/formatting';  // Shared utility
 ```
 
-### From App Routes
+**Avoid cross-feature imports** (e.g., `modules/inventory` importing from `modules/player`). Instead, extract common logic into `shared/hooks/` or `shared/utils/` for composition.
+
+### From Expo Router Pages (app/ directory)
 ```typescript
-// From app/game.tsx
+// From app/game.tsx (route page)
 import { Enemy } from '@/modules/combat/Enemy';  // Feature component
+import { Inventory } from '@/modules/inventory/Inventory';  // Another feature
 ```
 
-## File Creation Examples
-
-### Creating a New Feature Component
-```bash
-# Current directory: c:\dev\class-one-rapids\frontend\
-# Task: Create Enemy component in combat module
-
-# CORRECT:
-echo "export const Enemy = () => {}" > modules/combat/Enemy.tsx
-
-# WRONG (creates nested structure):
-echo "export const Enemy = () => {}" > frontend/modules/combat/Enemy.tsx
-```
-
-### Creating Tests (Co-located)
-```bash
-# Current directory: c:\dev\class-one-rapids\frontend\
-# Task: Create test for Enemy component
-
-# CORRECT (co-located):
-echo "describe('Enemy', () => {})" > modules/combat/Enemy.test.tsx
-
-# WRONG (separate test directory):
-echo "describe('Enemy', () => {})" > __tests__/combat/Enemy.test.tsx
-```
-
-## Troubleshooting
-
-### If You See Nested Directories
-1. **Stop immediately** - Don't create more files
-2. **Check your current directory** with `pwd`
-3. **List the structure** with `tree -L 3` or `ls -la`
-4. **Move files to correct location** if needed
-5. **Remove empty nested directories**
-
-## Remember
+ ## Remember
 - **Always verify your working directory first**
 - **Frontend work happens in `c:\dev\class-one-rapids\frontend\`**
 - **No barrel exports (index.ts)**
