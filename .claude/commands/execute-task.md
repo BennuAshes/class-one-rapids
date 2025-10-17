@@ -11,6 +11,32 @@ Target: $2 (optional: specific task ID or phase name)
 
 **IMPORTANT**: Follow @docs/guides/lean-task-generation-guide.md principles - prioritize user-visible features, create infrastructure only when needed.
 
+---
+
+## 🚀 QUICK DECISION REFERENCE
+
+### Before Writing Any Code
+
+**State Management Decision:**
+- **Single component?** → `useState` in component
+- **Complex logic?** → Custom hook (`useFeatureName.ts`)
+- **Multiple features?** → **Legend-State store** (`featureStore.ts`)
+
+**File Organization:**
+- ✅ Tests co-located with implementation (`.test.tsx`)
+- ✅ No barrel exports (`index.ts`)
+- ❌ No `__tests__` folders
+- ❌ No React Context for state
+
+**Testing:**
+- ✅ Write test FIRST (RED)
+- ✅ Implement minimal code (GREEN)
+- ✅ Refactor with tests passing (REFACTOR)
+
+**Legend-State Guide**: See `/docs/research/expo_legend_state_v3_guide_20250917_225656.md`
+
+---
+
 ## CRITICAL: Architecture and Path Rules
 **MANDATORY**: Read and follow these guides before ANY file operations:
 1. @docs/architecture/working-directory-context.md - Working directory and path rules
@@ -21,6 +47,121 @@ Target: $2 (optional: specific task ID or phase name)
 - NEVER create `frontend/frontend/` nested structures
 - NO barrel exports (index.ts files)
 - Tests ALWAYS co-located with implementation
+
+## ⚠️ COMMON STATE MANAGEMENT PITFALLS TO AVOID
+
+### Anti-Patterns (What NOT to do)
+
+1. **DON'T use React Context** for cross-feature state
+   ```typescript
+   // ❌ WRONG
+   const AttributeContext = createContext();
+
+   // ✅ RIGHT - Legend-State v3 store with hook
+   // attributesStore.ts
+   import { observable } from '@legendapp/state';
+   export const attributes$ = observable({ strength: 0 });
+
+   // useAttributes.ts - Hook to use the store (Legend-State v3)
+   import { use$ } from '@legendapp/state/react';
+   import { attributes$ } from './attributesStore';
+
+   export const useAttributes = () => {
+     const attributes = use$(attributes$);
+     return {
+       ...attributes,
+       allocatePoint: (attr: string) => {
+         attributes$[attr].set(prev => prev + 1);
+       }
+     };
+   };
+   ```
+
+2. **DON'T create service classes** for state management
+   ```typescript
+   // ❌ WRONG
+   class AttributeService {
+     private strength = 0;
+     getAllocate() { ... }
+   }
+
+   // ✅ RIGHT
+   export const useAttributes = () => {
+     const [strength, setStrength] = useState(0);
+     // ...
+   };
+   ```
+
+3. **DON'T pass callbacks through multiple components** (prop drilling)
+   ```typescript
+   // ❌ WRONG
+   <App>
+     <GameScreen onDamage={handleDamage}>
+       <Enemy onHit={onDamage}>
+         <HealthBar />
+       </Enemy>
+     </GameScreen>
+   </App>
+
+   // ✅ RIGHT - Use Legend-State v3 with hook
+   // combatStore.ts
+   import { observable } from '@legendapp/state';
+   export const combat$ = observable({ damage: 0 });
+
+   // useCombat.ts
+   import { use$ } from '@legendapp/state/react';
+   export const useCombat = () => {
+     const damage = use$(() => combat$.damage);
+     return {
+       damage,
+       dealDamage: (amount: number) => combat$.damage.set(amount)
+     };
+   };
+   ```
+
+4. **DON'T lift state up unnecessarily**
+   ```typescript
+   // ❌ WRONG - Lifting everything to App
+   function App() {
+     const [enemyHealth, setEnemyHealth] = useState(1000);
+     const [attributes, setAttributes] = useState({...});
+     const [inventory, setInventory] = useState([]);
+     // Passing all as props...
+   }
+
+   // ✅ RIGHT - Use stores for shared state
+   // Each module manages its own store
+   ```
+
+### Red Flags That You Need Legend-State
+
+You should use Legend-State when you observe any of these:
+
+- ⚠️ Multiple components need to read the same state
+- ⚠️ State changes in one component must affect another component
+- ⚠️ You're considering creating a React Context
+- ⚠️ You're passing callbacks through 2+ component levels
+- ⚠️ Different features need to coordinate based on shared data
+- ⚠️ You type `createContext` or `useContext`
+
+### When NOT to Use Legend-State
+
+Keep it simple with hooks/useState when:
+
+- ✅ State is only used within a single component
+- ✅ State doesn't need to persist
+- ✅ No other components care about this state
+- ✅ Logic is simple and doesn't need extraction
+
+### Real Examples from This Project
+
+| Feature | State Type | Solution | Why |
+|---------|------------|----------|-----|
+| **Attributes** (strength/coord/end) | Cross-feature | Legend-State store | Combat, UI, offline all need access |
+| **Enemy health** | Component-local | useState | Only Enemy component cares |
+| **Weakness spot position** | Component-local | useState | Only WeaknessSpot component |
+| **Player inventory** | Cross-feature | Legend-State store | Multiple screens access |
+| **Form input** | Component-local | useState | Single form component |
 
 ## Phase 1: Initialize Execution Context
 
@@ -56,6 +197,84 @@ For the identified tasks:
    - Determine testing tools and frameworks
    - Plan test file structure
 
+## CRITICAL: State Management Architecture Decision
+
+Before implementing ANY stateful feature, follow this decision tree:
+
+### State Management Hierarchy (MANDATORY)
+
+**Decision Flow:**
+1. **Is state used by only one component?**
+   - YES → Use `useState` in component
+   - NO → Continue to step 2
+
+2. **Is the logic complex or reusable?**
+   - YES → Continue to step 3
+   - NO → Use `useState` with inline logic
+
+3. **Is state shared across multiple features/modules?**
+   - YES → Use **Legend-State store** (`featureStore.ts`)
+   - NO → Use **Custom Hook** (`useFeatureName.ts`)
+
+### State Management Hierarchy Table
+
+| State Type | Example | Solution | File |
+|------------|---------|----------|------|
+| Component-local, simple | Button clicked state | `useState` | In component |
+| Component-local, complex | Form validation logic | Custom hook | `useFormValidation.ts` |
+| Cross-feature shared | Attributes affecting damage | Legend-State | `attributesStore.ts` |
+| Global app config | Theme, settings | Legend-State | `settingsStore.ts` |
+
+### NEVER Use
+- ❌ React Context API for state management (use Legend-State)
+- ❌ Service classes (use hooks or stores)
+- ❌ Redux, MobX, or other state libraries (use Legend-State)
+
+### Example Scenarios
+
+**Attributes System** (affects damage, crits, offline progression):
+```typescript
+// ✅ CORRECT: Legend-State v3 store
+// frontend/modules/attributes/attributesStore.ts
+import { observable } from '@legendapp/state';
+
+export const attributes$ = observable({
+  strength: 0,
+  coordination: 0,
+  endurance: 0
+});
+
+// frontend/modules/attributes/useAttributes.ts
+import { use$ } from '@legendapp/state/react';
+import { attributes$ } from './attributesStore';
+
+export const useAttributes = () => {
+  const strength = use$(attributes$.strength);
+  const getDamageBonus = () => attributes$.strength.get() * 5;
+  return { strength, getDamageBonus };
+};
+```
+
+**Enemy Health** (single component):
+```typescript
+// ✅ CORRECT: useState
+function Enemy() {
+  const [health, setHealth] = useState(1000);
+  // ...
+}
+```
+
+**Complex Animation** (isolated but complex):
+```typescript
+// ✅ CORRECT: Custom hook
+// frontend/modules/combat/useEnemyAnimation.ts
+export const useEnemyAnimation = () => {
+  const [isAnimating, setIsAnimating] = useState(false);
+  // Complex animation logic
+  return { isAnimating, triggerAnimation };
+};
+```
+
 ## Phase 3: Test-Driven Development Execution
 
 **Pre-execution Check**: For each task, verify it's not already implemented:
@@ -67,7 +286,35 @@ test -f src/modules/[feature]/useFeatureName.ts
 # Check for existing tests (co-located, NOT in __tests__)
 test -f src/modules/[feature]/ComponentName.test.tsx
 test -f src/modules/[feature]/useFeatureName.test.ts
+
+# Check for existing state management (BEFORE creating new files)
+echo "Checking for existing state management patterns..."
+
+# Check for Legend-State stores
+find src/modules/*/[feature]Store.ts 2>/dev/null
+
+# Check for custom hooks
+find src/modules/*/use*.ts 2>/dev/null
+
+# Check for React Context (should be avoided for state)
+grep -r "createContext" src/modules/ 2>/dev/null && echo "⚠️ WARNING: Context found - consider Legend-State instead"
 ```
+
+### Pre-implementation State Management Check
+
+BEFORE writing any code, answer:
+
+1. **Will this state be accessed by multiple components?**
+   - If YES → Plan for Legend-State store
+   - If NO → Can use hooks or useState
+
+2. **Does existing state management exist for this feature?**
+   - Check: `src/modules/[feature]/*Store.ts`
+   - Check: `src/modules/[feature]/use*.ts`
+
+3. **What features will consume this state?**
+   - List all components/modules that need access
+   - If list > 1 feature → Legend-State required
 
 For each task in the execution sequence:
 
@@ -310,11 +557,73 @@ For each completed task:
    src/modules/[feature]/
    ├── ComponentName.tsx
    ├── ComponentName.test.tsx      # Test co-located with component
-   ├── useFeature.ts               # Hook (NOT service)
-   ├── useFeature.test.ts          # Test co-located with hook
-   ├── feature.types.ts            # TypeScript types
-   └── feature.store.ts            # Legend-State store (only if needed)
+   ├── useFeature.ts               # Hook (for complex local logic)
+   ├── useFeature.test.ts          # Hook test (co-located)
+   ├── featureStore.ts             # Legend-State store (when shared across features)
+   ├── featureStore.test.ts        # Store test (co-located)
+   └── feature.types.ts            # TypeScript types
    ```
+
+### When to Create Each File Type
+
+#### featureStore.ts (Legend-State Store)
+**Create when:**
+- Multiple features/modules need access to this state
+- State affects behavior of unrelated components
+- State needs persistence across app lifecycle
+
+**Examples from this project:**
+```typescript
+// attributesStore.ts - Used by combat, UI, offline progression
+import { observable } from '@legendapp/state';
+export const attributes$ = observable({
+  strength: 0,
+  coordination: 0,
+  endurance: 0,
+  unallocatedPoints: 0
+});
+
+// inventoryStore.ts - Used by inventory screen, combat, shop
+export const inventory$ = observable({
+  items: [],
+  gold: 0
+});
+
+// settingsStore.ts - Used by all screens
+export const settings$ = observable({
+  soundEnabled: true,
+  theme: 'dark'
+});
+```
+
+#### useFeature.ts (Custom Hook)
+**Create when:**
+- Logic is complex but only used in one feature
+- You want to extract reusable logic from components
+- State is local but calculations are complex
+
+**Examples:**
+```typescript
+// useEnemyAnimation.ts - Complex but isolated to combat
+export const useEnemyAnimation = () => {
+  const [state, setState] = useState('idle');
+  // Complex animation logic
+};
+
+// useFormValidation.ts - Complex validation, single form
+export const useFormValidation = (schema) => {
+  const [errors, setErrors] = useState({});
+  // Validation logic
+};
+```
+
+### Quick Reference: State Management Files
+
+| Pattern | When to Use | Example |
+|---------|-------------|---------|
+| `featureStore.ts` | Shared across features | `attributesStore.ts` (combat + UI + offline) |
+| `useFeature.ts` | Complex logic, single feature | `useEnemyAnimation.ts` (combat only) |
+| `useState` in component | Simple, component-local | Button click states |
 
 3. **Test Placement Rule**:
    - Tests ALWAYS go next to the file they test

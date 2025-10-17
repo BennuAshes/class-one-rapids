@@ -10,6 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@legendapp/state": "^3.0.0-beta.35",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "30.0.0",

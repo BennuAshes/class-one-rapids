@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -11,14 +11,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-audio';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { WeaknessSpot } from './src/modules/combat/WeaknessSpot';
-import {
-  TimeTrackerService,
-  calculateOfflineRewards,
-  WelcomeBackModal,
-  OfflineRewards
-} from './src/modules/offline-progression';
+import { WeaknessSpot } from './modules/combat/WeaknessSpot';
+import { AttributesDisplay } from './modules/attributes/AttributesDisplay';
+import { getDamageBonus, grantAttributePoints, getCriticalChance, migrateFromPower } from './modules/attributes/attributesStore';
 
 interface DamageNumber {
   id: number;
@@ -69,59 +64,40 @@ const AnimatedDamageNumber = ({ damage, onComplete }: { damage: DamageNumber; on
 
 
 export default function App() {
-  const [enemyHealth, setEnemyHealth] = useState(1000);
+  const [enemyHealth, setEnemyHealth] = useState(10);
   const [damageNumbers, setDamageNumbers] = useState<DamageNumber[]>([]);
   const [isDefeated, setIsDefeated] = useState(false);
   const [respawnTimer, setRespawnTimer] = useState(0);
   const [totalPyreal, setTotalPyreal] = useState(0);
   const [pyrealDrops, setPyrealDrops] = useState<Array<{id: number, amount: number}>>([]);
-  // Power System state
-  const [power, setPower] = useState(1);
   // XP System state
   const [currentXP, setCurrentXP] = useState(0);
   // Level System state
   const [level, setLevel] = useState(1);
   const [showLevelUp, setShowLevelUp] = useState(false);
-  // Offline Progression state
-  const [offlineRewards, setOfflineRewards] = useState<OfflineRewards | null>(null);
-  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
-  const [timeAwayMinutes, setTimeAwayMinutes] = useState(0);
   const damageIdRef = useRef(0);
   const soundRef = useRef<Audio.Sound | null>(null);
-  const timeTracker = useRef(new TimeTrackerService());
 
-  // Offline Progression tracking
+  // Handle migration from Power system to Attributes
   useEffect(() => {
-    // Start time tracking when app loads
-    timeTracker.current.startTracking((minutesAway) => {
-      if (minutesAway > 0) {
-        // Calculate offline rewards
-        const rewards = calculateOfflineRewards(minutesAway, {
-          power,
-          xp: currentXP,
-          pyreal: totalPyreal,
-          level
-        });
+    const migrated = migrateFromPower(level);
+    if (migrated) {
+      console.log(`Migrated from Power system: granted ${level} attribute points`);
+    }
+  }, []); // Run once on mount
 
-        if (rewards && rewards.enemiesDefeated > 0) {
-          setOfflineRewards(rewards);
-        } else {
-          // Show simple welcome message for short time away
-          setTimeAwayMinutes(minutesAway);
-        }
-        setShowWelcomeBack(true);
-      }
-    });
-
-    // Cleanup on unmount
-    return () => {
-      timeTracker.current.stopTracking();
-    };
-  }, []);
-
-  const handleEnemyTap = async (isCritical: boolean = false) => {
+  const handleEnemyTap = async (isWeaknessSpot: boolean = false) => {
     // Don't allow tapping defeated enemy
     if (isDefeated) return;
+
+    // Determine if it's a critical hit
+    // Weakness spot always crits, otherwise check coordination-based chance
+    let isCritical = isWeaknessSpot;
+    if (!isWeaknessSpot) {
+      const critChance = getCriticalChance(); // Base 10% + (Coordination × 2)%
+      const roll = Math.random() * 100;
+      isCritical = roll < critChance;
+    }
 
     // Trigger haptic feedback immediately (within 20ms requirement)
     // Use Heavy impact for critical hits, Medium for normal
@@ -139,11 +115,12 @@ export default function App() {
       }
     }
 
-    // Power-based damage calculation: Power × (10-15 base damage)
-    const baseDamage = Math.floor(Math.random() * 6) + 10; // 10-15 base damage
-    // Apply 2x multiplier for critical hits
+    // Attribute-based damage calculation: Base (1-2) + Strength bonus
+    const baseDamage = Math.floor(Math.random() * 2) + 1; // 1-2 base damage
+    const strengthBonus = getDamageBonus(); // Strength × 1
+    // Apply 2x multiplier for critical hits (makes it 2-4 for weakness spots)
     const criticalMultiplier = isCritical ? 2 : 1;
-    const damage = power * baseDamage * criticalMultiplier;
+    const damage = (baseDamage + strengthBonus) * criticalMultiplier;
     const newHealth = Math.max(0, enemyHealth - damage);
     setEnemyHealth(newHealth);
 
@@ -153,18 +130,17 @@ export default function App() {
       // Start respawn timer (2 seconds)
       setRespawnTimer(2);
 
-      // Award XP (enemy level × 10, for now enemy level = 1)
-      const enemyLevel = 1;
-      const xpGained = enemyLevel * 10;
+      // Award XP (10 XP per enemy, ~5 mobs per level at 50 XP threshold)
+      const xpGained = 10;
       setCurrentXP(prev => {
         const newXP = prev + xpGained;
 
-        // Check for level-up (level × 100 XP required)
-        const xpThreshold = level * 100;
+        // Check for level-up (50 XP required per level)
+        const xpThreshold = 50;
         if (newXP >= xpThreshold) {
           // Level up!
           setLevel(level + 1);
-          setPower(level + 1); // Power equals level
+          grantAttributePoints(1); // Grant 1 attribute point per level
           setShowLevelUp(true);
 
           // Trigger haptic feedback for level-up celebration
@@ -206,41 +182,6 @@ export default function App() {
     setDamageNumbers(prev => prev.filter(d => d.id !== id));
   };
 
-  const handleCollectOfflineRewards = () => {
-    if (offlineRewards) {
-      // Apply offline rewards
-      setTotalPyreal(prev => prev + offlineRewards.pyrealGained);
-
-      // Handle XP gain with level up check
-      setCurrentXP(prev => {
-        let newXP = prev + offlineRewards.xpGained;
-        let currentLevel = level;
-
-        // Check for level ups
-        while (newXP >= currentLevel * 100) {
-          newXP -= currentLevel * 100;
-          currentLevel++;
-        }
-
-        // Update level and power if leveled up
-        if (currentLevel > level) {
-          setLevel(currentLevel);
-          setPower(currentLevel);
-          setShowLevelUp(true);
-          setTimeout(() => setShowLevelUp(false), 1500);
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-        }
-
-        return newXP;
-      });
-    }
-
-    // Hide modal
-    setShowWelcomeBack(false);
-    setOfflineRewards(null);
-    setTimeAwayMinutes(0);
-  };
-
   // Respawn timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -251,7 +192,7 @@ export default function App() {
           if (prev <= 1) {
             // Respawn enemy
             setIsDefeated(false);
-            setEnemyHealth(1000);
+            setEnemyHealth(10);
             return 0;
           }
           return prev - 1;
@@ -274,13 +215,6 @@ export default function App() {
         <Text style={styles.pyrealLabel}>Pyreal</Text>
       </View>
 
-      {/* Power Display */}
-      <View style={styles.powerContainer}>
-        <Text testID="power-display" style={styles.powerText}>
-          Power: {power}
-        </Text>
-      </View>
-
       {/* XP Display */}
       <View style={styles.xpContainer}>
         <Text testID="xp-display" style={styles.xpText}>
@@ -298,14 +232,14 @@ export default function App() {
       {/* XP Progress Bar */}
       <View testID="xp-progress-container" style={styles.xpProgressContainer}>
         <Text style={styles.xpProgressText}>
-          {currentXP}/{level * 100}
+          {currentXP}/50
         </Text>
         <View style={styles.xpProgressBarBackground}>
           <View
             testID="xp-progress-bar"
             style={[
               styles.xpProgressBarFill,
-              { width: `${Math.min((currentXP / (level * 100)) * 100, 100)}%` }
+              { width: `${Math.min((currentXP / 50) * 100, 100)}%` }
             ]}
           />
         </View>
@@ -314,13 +248,13 @@ export default function App() {
       {/* Health Bar */}
       <View style={styles.healthContainer}>
         <Text testID="health-text" style={styles.healthText}>
-          HP: {enemyHealth}/1000
+          HP: {enemyHealth}/10
         </Text>
         <View style={styles.healthBar}>
           <View
             style={[
               styles.healthFill,
-              { width: `${(enemyHealth / 1000) * 100}%` }
+              { width: `${(enemyHealth / 10) * 100}%` }
             ]}
           />
         </View>
@@ -348,6 +282,11 @@ export default function App() {
           )}
         </View>
       )}
+
+      {/* Attributes Display */}
+      <View style={{ marginTop: 20, width: '90%' }}>
+        <AttributesDisplay />
+      </View>
 
       {/* Floating Damage Numbers */}
       {damageNumbers.map((damage) => (
@@ -386,14 +325,6 @@ export default function App() {
           </View>
         </View>
       )}
-
-      {/* Offline Progression Modal */}
-      <WelcomeBackModal
-        rewards={offlineRewards}
-        isVisible={showWelcomeBack}
-        onCollect={handleCollectOfflineRewards}
-        timeAway={timeAwayMinutes}
-      />
 
       <StatusBar style="auto" />
     </View>
@@ -496,17 +427,6 @@ const styles = StyleSheet.create({
     color: '#00FF00',
     top: 400,
     left: 150,
-  },
-  powerContainer: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    alignItems: 'center',
-  },
-  powerText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FF6B35',
   },
   xpContainer: {
     position: 'absolute',

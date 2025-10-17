@@ -504,7 +504,7 @@ const todos$ = observable({
 ## 🔍 Testing Patterns
 
 ```typescript
-// __tests__/store.test.ts
+// store.test.ts
 import { observable } from '@legendapp/state'
 import { todoActions, store$ } from '../store'
 

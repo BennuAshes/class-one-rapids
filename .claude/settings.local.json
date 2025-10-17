@@ -17,7 +17,6 @@
       "WebFetch(domain:stackoverflow.com)",
       "Bash(cat:*)",
       "WebFetch(domain:www.npmjs.com)",
-      "Bash(rm:*)",
       "Bash(time npm test:*)",
       "Bash(sudo apt:*)",
       "Bash(sudo apt install:*)",
@@ -33,7 +32,11 @@
       "Bash(npx expo:*)",
       "Bash(tree:*)",
       "Bash(netstat:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(dir:*)",
+      "Bash(rm:*)",
+      "SlashCommand(/next-feature)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []
