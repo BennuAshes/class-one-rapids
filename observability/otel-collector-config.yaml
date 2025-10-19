@@ -1,0 +1,64 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+
+  # Add resource attributes
+  resource:
+    attributes:
+      - key: service.name
+        value: claude-code
+        action: upsert
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+
+exporters:
+  # Export to Langfuse
+  otlphttp/langfuse:
+    endpoint: http://langfuse-web:3000/api/public/otel
+    headers:
+      # You'll need to get these from Langfuse after first login
+      # Format: Authorization: Basic base64(public_key:secret_key)
+      # For now, this is a placeholder - update after Langfuse setup
+      authorization: "Basic ${LANGFUSE_AUTH}"
+
+  # Export metrics to Prometheus
+  prometheus:
+    endpoint: "0.0.0.0:8888"
+    namespace: claude_code
+
+  # Debug logging (useful for troubleshooting)
+  logging:
+    loglevel: info
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [otlphttp/langfuse, logging]
+
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [prometheus, logging]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [otlphttp/langfuse, logging]
+
+  telemetry:
+    logs:
+      level: "info"

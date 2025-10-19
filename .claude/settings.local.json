@@ -41,7 +41,9 @@
       "Bash(python3 /tmp/analyze_conversations.py)",
       "Bash(python3 /tmp/deep_pattern_analysis.py)",
       "Bash(python3 /tmp/extract_key_conversations.py)",
-      "Bash(python3 /tmp/extract_user_quotes.py)"
+      "Bash(python3 /tmp/extract_user_quotes.py)",
+      "Bash(chmod +x /mnt/c/dev/class-one-rapids/scripts/next-feature-full-flow-observable.sh)",
+      "Bash(chmod +x /mnt/c/dev/class-one-rapids/observability/start.sh)"
     ],
     "deny": [],
     "ask": []
