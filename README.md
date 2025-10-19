@@ -1,101 +1,53 @@
 # Class One Rapids
+
 Spec-driven development system using modern context engineering techniques
 
 ## Description
+
 There are many CLI systems and now IDEs that let you build an app by creating requirements, design, and tasks for an agent. This repo answers the question, "How do I make my own PRP (Product Document Prompt), or spec-driven development style system using modern context engineering techniques? What commands do I need? How do I know what to put in them?"
 
+## How This System Was Built
+
+**The Process:**
+
+1. **Built the `/research` command** - Created a tool for deep research and knowledge synthesis
+2. **Used research to build more commands** - Created `/prd`, `/design`, and `/tasks` commands informed by research
+3. **Used commands to generate features** - Generated complete feature specifications in minutes vs. hours or days
+
+**Key Insight:** Research → Command Creation → Feature Development creates a compounding advantage where each tool makes building the next tool easier.
+
+📖 **[Full Development Journey](HOW_THIS_WAS_MADE/README.md)** - Complete chronological breakdown of phases, patterns, and lessons learned
+
 ## Tools
+
 - Claude Code
 - Opus4.1
 - Windows 11 WSL 2 (Debian)
 
-## Project History
-
-- **v1 (August 3-20, 2025)**: Initial experiments and learnings documented in [V1_HISTORY.md](V1_HISTORY.md)
-- **v2 (September 20 - Present)**: Current spec-driven approach with command-based workflow
-- **Full Evolution**: Comprehensive breakdown in [PROJECT_EVOLUTION.md](PROJECT_EVOLUTION.md)
-
-
-
-### Expo - Configuring a New Project
-- Had lots of issues with react-test-renderer existing and conflicting with
-- Suggestion was to add react-test-renderer for your exact version, but it wouldn't even let me install that.
-- This is how I got it working finally:
-
-```
-npx create-expo-app frontend --template blank-typescript@sdk-54
-npx expo install jest-expo jest @types/jest "--" --dev
-# manually updated versions for anything related react, react-native, then manually added react-test-renderer, then 'npm install', OR likely just:
-npm install react-test-renderer --dev
-npx expo install @testing-library/react-native "--" --dev
-npx expo install react-dom react-native-web
-npx npm-check-updates -u
-npm install
-```
-
-## jest.setup.js
-```
-// Fix for Expo module import issues
-jest.mock('expo/src/winter/ImportMetaRegistry', () => ({
-  ImportMetaRegistry: {
-    get url() {
-      return null;
-    },
-  },
-}));
-
-if (typeof global.structuredClone === 'undefined') {
-  global.structuredClone = (object) => JSON.parse(JSON.stringify(object));
-}
-```
-
-## package.json
-```
-"jest": {
-    "preset": "jest-expo",
-    "setupFilesAfterEnv": [
-      "<rootDir>/jest.setup.js"
-    ],
-    "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)"
-    ],
-    "moduleDirectories": [
-      "node_modules"
-    ],
-    "testPathIgnorePatterns": [
-      "/node_modules/"
-    ],
-    "watchPathIgnorePatterns": [
-      "/node_modules/"
-    ],
-    "haste": {
-      "defaultPlatform": "ios",
-      "platforms": [
-        "ios",
-        "android",
-        "native"
-      ]
-    }
-}
-```
 
 # Flow for Creating Your Own
-- Create a high level feature document/mvp/poc
+
+- Create a high level poc or mvp document with long term goals
 - create a base project and testing setup manually (see below to see how to do this with expo)
 - use "/next-feature" to create a description of the next uncompleted feature based on what is done and what is in the high level doc
 - run /prd, then /design, then /tasks
 - run /execute-task on the task list
 - manually test + validate tests created and results
 - if not valid, record what was wrong
-- use /reflect to update commands and claude.md to avoid repeating issues in the future 
+- use /reflect to update commands and claude.md to avoid repeating issues in the future
 - can also analyze your conversations
 - if you don't have the time/energy to run reflection stategies, you can "vibe code" corrections aka use conersational prompting to resolve remaining issues
 
+## Setup Base Project and Testing
+
+For Expo and Jest configuration details, see [EXPO_JEST_SETUP.md](EXPO_JEST_SETUP.md)
+
 ### Known Todos
-- 1000 hp isn't useful or fun
+
 - the docs folder needs to be organized
 
 ### General Issues I'm Running Into
+
 - folder organization: organizing by feature is not super common for react apps as the apps tend to be small
 - fine-grained state management for non-established
 - starting new projects (don't let it overthink)
@@ -119,22 +71,16 @@ if (typeof global.structuredClone === 'undefined') {
 - we guess in these first passes but we could document them in a table that shows the commands and which benefit from which research, and the types of research you may want to do
 - This is a mobile/web game, so it seems odd it has this requirement of 60 FPS. It is coming from the PRD generation process.
 
-## Expo
+## Expo Specific Notes
+
 - expo-av is being deprecated, use expo-audio or expo-video instead
 - react-reanimated lib needs react worklet library
 
-
-# Thoughts
-- I want a /plan command to replace /prp and / - 1 human in the loop for the plan that includes both product and tech overview.
-
 # Patterns
+
 ## Architecture Needed
-- state management including how to do fine-grained by-feature state/hooks
-- folder structure
+
+- state management including how to do fine-grained by-feature state/hooks (it likes to use services and groups things together often)
+- folder structure - common for simple react apps to be organized by type rather than by feature
 - setting up the project
 - best practices for react as far as separating out features into comonents and sub-components for UX clarity. UX is a function of behavior
-
-
-# Making your own /plan command (as well as context/prompting techniques for executing that plan)
-- pros and cons to roles to narrow focus
--
