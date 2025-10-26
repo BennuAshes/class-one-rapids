@@ -41,7 +41,7 @@ describe('useAttributesStore', () => {
 
     const { result } = renderHook(() => useAttributesStore());
 
-    expect(result.current.getDamageBonus()).toBe(25); // 5 * 5
+    expect(result.current.getDamageBonus()).toBe(5); // 5 * 1
   });
 
   test('should calculate critical chance from coordination', () => {

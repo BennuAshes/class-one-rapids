@@ -28,36 +28,33 @@ exporters:
   otlphttp/langfuse:
     endpoint: http://langfuse-web:3000/api/public/otel
     headers:
-      # You'll need to get these from Langfuse after first login
-      # Format: Authorization: Basic base64(public_key:secret_key)
-      # For now, this is a placeholder - update after Langfuse setup
-      authorization: "Basic ${LANGFUSE_AUTH}"
+      authorization: "Basic cGstbGYtZTdiMjViOWMtMzU2Zi00MjY4LTk2Y2YtMDczMThhNGE1ZWU0OnNrLWxmLTk4MGJjZGU3LWZmODQtNDBiMi1iMTI3LTFlNjhhMGI2YzQwNg=="
 
   # Export metrics to Prometheus
   prometheus:
-    endpoint: "0.0.0.0:8888"
+    endpoint: "0.0.0.0:8889"
     namespace: claude_code
 
   # Debug logging (useful for troubleshooting)
-  logging:
-    loglevel: info
+  debug:
+    verbosity: normal
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch, resource]
-      exporters: [otlphttp/langfuse, logging]
+      exporters: [otlphttp/langfuse, debug]
 
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch, resource]
-      exporters: [prometheus, logging]
+      exporters: [prometheus, debug]
 
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch, resource]
-      exporters: [otlphttp/langfuse, logging]
+      exporters: [debug] # Langfuse doesn't support OTLP logs, only traces
 
   telemetry:
     logs:

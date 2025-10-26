@@ -84,3 +84,7 @@ For Expo and Jest configuration details, see [EXPO_JEST_SETUP.md](EXPO_JEST_SETU
 - folder structure - common for simple react apps to be organized by type rather than by feature
 - setting up the project
 - best practices for react as far as separating out features into comonents and sub-components for UX clarity. UX is a function of behavior
+
+# Thoughts
+- I want to have LLM automatically analyze each prompt/response and subsquent followup/response until the chain stops with an LLM response only.
+- replace human approval method in new full flow script w/ telemtry to be apart of a UX we build just for this
