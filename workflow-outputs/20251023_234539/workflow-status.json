@@ -1,0 +1,15 @@
+{
+  "execution_id": "20251023_234539",
+  "feature_source": "command line",
+  "approval_mode": "",
+  "status": "initializing",
+  "started_at": "2025-10-23T23:45:39-04:00",
+  "working_directory": "/mnt/c/dev/class-one-rapids/workflow-outputs/20251023_234539",
+  "steps": [
+    {"name": "Generate PRD", "status": "pending"},
+    {"name": "Generate Technical Design", "status": "pending"},
+    {"name": "Generate Task List", "status": "pending"},
+    {"name": "Execute Tasks", "status": "pending"},
+    {"name": "Generate Summary", "status": "pending"}
+  ]
+}

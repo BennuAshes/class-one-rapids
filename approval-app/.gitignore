@@ -1,0 +1,52 @@
+# Expo
+.expo/
+dist/
+web-build/
+
+# Dependencies
+node_modules/
+
+# Build artifacts
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Debug logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# TypeScript
+*.tsbuildinfo
+
+# iOS
+ios/Pods/
+ios/.xcode.env.local
+
+# Android
+android/app/build/
+android/build/
+*.apk
+*.aab
+
+# Temporary files
+*.log
+*.tmp

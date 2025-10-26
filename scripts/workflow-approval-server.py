@@ -1,0 +1,502 @@
+#!/usr/bin/env python3
+"""
+Workflow Approval API Server
+Provides REST API for workflow approval management
+
+Usage:
+    python3 workflow-approval-server.py [port]
+
+API Endpoints:
+    GET  /workflows                     - List all workflows
+    GET  /workflows/{id}                - Get workflow details
+    GET  /workflows/{id}/approvals      - Get pending approvals for workflow
+    POST /approvals/approve             - Approve a request (body: {file_path: "..."})
+    POST /approvals/reject              - Reject a request (body: {file_path: "...", reason: "..."})
+    GET  /approvals/pending             - Get all pending approvals
+    GET  /events                        - SSE endpoint for real-time updates
+"""
+
+import json
+import os
+import sys
+import time
+from pathlib import Path
+from datetime import datetime
+from typing import Dict, List, Optional
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import urlparse
+import threading
+
+# Default configuration
+PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
+WORKFLOW_DIR = Path("./workflow-outputs")
+CACHE_TTL = 1.0  # Cache time-to-live in seconds
+
+class CachedResult:
+    """Simple cache with TTL"""
+    def __init__(self, ttl: float = CACHE_TTL):
+        self.ttl = ttl
+        self.cache = {}
+        self.timestamps = {}
+        self.lock = threading.Lock()
+    
+    def get(self, key: str):
+        """Get cached value if not expired"""
+        with self.lock:
+            if key in self.cache:
+                if time.time() - self.timestamps[key] < self.ttl:
+                    return self.cache[key]
+                else:
+                    # Expired - remove from cache
+                    del self.cache[key]
+                    del self.timestamps[key]
+            return None
+    
+    def set(self, key: str, value):
+        """Set cached value"""
+        with self.lock:
+            self.cache[key] = value
+            self.timestamps[key] = time.time()
+    
+    def invalidate(self, key: str = None):
+        """Invalidate cache entry or entire cache"""
+        with self.lock:
+            if key:
+                self.cache.pop(key, None)
+                self.timestamps.pop(key, None)
+            else:
+                self.cache.clear()
+                self.timestamps.clear()
+
+# Global cache instance
+_cache = CachedResult(ttl=CACHE_TTL)
+
+class WorkflowManager:
+    """Manages workflow and approval operations"""
+
+    @staticmethod
+    def list_workflows() -> List[Dict]:
+        """List all workflows with their status (cached)"""
+        # Check cache first
+        cached = _cache.get("workflows_list")
+        if cached is not None:
+            return cached
+        
+        workflows = []
+
+        if not WORKFLOW_DIR.exists():
+            return workflows
+
+        for exec_dir in WORKFLOW_DIR.iterdir():
+            if exec_dir.is_dir():
+                status_file = exec_dir / "workflow-status.json"
+                if status_file.exists():
+                    try:
+                        with open(status_file, encoding='utf-8') as f:
+                            status_data = json.load(f)
+                            status = status_data.get("status", "unknown")
+                            
+                            # If status is "awaiting_approval", check if there are actually pending approvals
+                            if status == "awaiting_approval":
+                                has_pending = False
+                                for approval_file in exec_dir.glob(".approval_*.json"):
+                                    response_file = Path(str(approval_file) + ".response")
+                                    if not response_file.exists():
+                                        # Found an approval without a response
+                                        has_pending = True
+                                        break
+                                
+                                # If no actual pending approvals, mark as processing
+                                if not has_pending:
+                                    status = "processing"
+                            
+                            workflows.append({
+                                "execution_id": exec_dir.name,
+                                "status": status,
+                                "started_at": status_data.get("started_at"),
+                                "current_step": status_data.get("current_step"),
+                                "approval_mode": status_data.get("approval_mode"),
+                                "directory": str(exec_dir)
+                            })
+                    except json.JSONDecodeError as e:
+                        # Skip malformed JSON files silently
+                        pass
+                    except Exception as e:
+                        # Log other errors but continue
+                        pass
+
+        # Sort by started_at, handling None values (put them at the end)
+        result = sorted(workflows, key=lambda x: x["started_at"] or "", reverse=True)
+        
+        # Cache the result
+        _cache.set("workflows_list", result)
+        return result
+
+    @staticmethod
+    def get_workflow(execution_id: str) -> Optional[Dict]:
+        """Get detailed workflow information"""
+        exec_dir = WORKFLOW_DIR / execution_id
+
+        if not exec_dir.exists():
+            return None
+
+        workflow = {"execution_id": execution_id}
+
+        # Load status
+        status_file = exec_dir / "workflow-status.json"
+        if status_file.exists():
+            try:
+                with open(status_file, encoding='utf-8') as f:
+                    workflow["status"] = json.load(f)
+            except (json.JSONDecodeError, Exception):
+                workflow["status"] = {"error": "Failed to load status"}
+
+        # Load approvals
+        workflow["approvals"] = []
+        for approval_file in exec_dir.glob(".approval_*.json"):
+            try:
+                with open(approval_file, encoding='utf-8') as f:
+                    approval_data = json.load(f)
+                    approval_data["file_path"] = str(approval_file)
+                    workflow["approvals"].append(approval_data)
+            except (json.JSONDecodeError, Exception):
+                # Skip malformed approval files
+                pass
+
+        # List generated files
+        workflow["files"] = []
+        for md_file in exec_dir.glob("*.md"):
+            workflow["files"].append({
+                "name": md_file.name,
+                "size": md_file.stat().st_size,
+                "path": str(md_file)
+            })
+
+        return workflow
+
+    @staticmethod
+    def get_pending_approvals() -> List[Dict]:
+        """Get all pending approval requests (cached)"""
+        # Check cache first
+        cached = _cache.get("pending_approvals")
+        if cached is not None:
+            return cached
+        
+        pending = []
+
+        if not WORKFLOW_DIR.exists():
+            return pending
+
+        # Use a more efficient approach on Windows - iterate directories first
+        try:
+            for exec_dir in WORKFLOW_DIR.iterdir():
+                if not exec_dir.is_dir():
+                    continue
+                # Look for approval files in this specific directory
+                for approval_file in exec_dir.glob(".approval_*.json"):
+                    try:
+                        # Check if a response file exists - if so, skip this approval
+                        response_file = Path(str(approval_file) + ".response")
+                        if response_file.exists():
+                            continue  # Already has a response, not pending
+                        
+                        with open(approval_file, encoding='utf-8') as f:
+                            data = json.load(f)
+                            if data.get("status") == "pending":
+                                data["file_path"] = str(approval_file)
+                                data["execution_id"] = exec_dir.name
+                                pending.append(data)
+                    except json.JSONDecodeError as e:
+                        # Log malformed JSON files for debugging
+                        print(f"[WARNING] Malformed approval file: {approval_file} - {e}")
+                    except Exception as e:
+                        # Log other errors
+                        print(f"[WARNING] Error reading approval file {approval_file}: {e}")
+        except Exception:
+            pass
+
+        # Cache the result
+        _cache.set("pending_approvals", pending)
+        return pending
+
+    @staticmethod
+    def approve_request(approval_file: str) -> bool:
+        """Approve a pending request"""
+        try:
+            approval_path = Path(approval_file)
+            print(f"[APPROVE] Processing: {approval_path}")
+
+            # Check if file exists
+            if not approval_path.exists():
+                print(f"[APPROVE] ERROR: File not found: {approval_path}")
+                return False
+
+            # Check if request is pending
+            with open(approval_path, encoding='utf-8') as f:
+                data = json.load(f)
+                status = data.get("status")
+                print(f"[APPROVE] Current status: {status}")
+                if status != "pending":
+                    print(f"[APPROVE] ERROR: Request is not pending (status: {status})")
+                    return False
+
+            # Create response file - append .response to full filename
+            response_file = Path(str(approval_path) + ".response")
+            print(f"[APPROVE] Creating response file: {response_file}")
+            
+            with open(response_file, 'w', encoding='utf-8') as f:
+                json.dump({
+                    "status": "approved",
+                    "timestamp": datetime.now().isoformat()
+                }, f)
+
+            print(f"[APPROVE] ✓ Successfully created: {response_file}")
+
+            # Invalidate caches since approval state changed
+            _cache.invalidate("pending_approvals")
+            _cache.invalidate("workflows_list")
+
+            return True
+        except Exception as e:
+            print(f"[APPROVE] ERROR: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    @staticmethod
+    def reject_request(approval_file: str, reason: str = "Rejected via API") -> bool:
+        """Reject a pending request"""
+        try:
+            approval_path = Path(approval_file)
+            print(f"[REJECT] Processing: {approval_path}")
+
+            # Check if file exists
+            if not approval_path.exists():
+                print(f"[REJECT] ERROR: File not found: {approval_path}")
+                return False
+
+            # Check if request is pending
+            with open(approval_path, encoding='utf-8') as f:
+                data = json.load(f)
+                status = data.get("status")
+                print(f"[REJECT] Current status: {status}")
+                if status != "pending":
+                    print(f"[REJECT] ERROR: Request is not pending (status: {status})")
+                    return False
+
+            # Create response file - append .response to full filename
+            response_file = Path(str(approval_path) + ".response")
+            print(f"[REJECT] Creating response file: {response_file}")
+            
+            with open(response_file, 'w', encoding='utf-8') as f:
+                json.dump({
+                    "status": "rejected",
+                    "reason": reason,
+                    "timestamp": datetime.now().isoformat()
+                }, f)
+
+            print(f"[REJECT] ✓ Successfully created: {response_file}")
+
+            # Invalidate caches since approval state changed
+            _cache.invalidate("pending_approvals")
+            _cache.invalidate("workflows_list")
+
+            return True
+        except Exception as e:
+            print(f"[REJECT] ERROR: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+class ApprovalAPIHandler(BaseHTTPRequestHandler):
+    """HTTP request handler for the approval API"""
+
+    def send_json_response(self, data: any, status: int = 200):
+        """Send JSON response"""
+        try:
+            self.send_response(status)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(data, default=str).encode())
+        except (ConnectionAbortedError, BrokenPipeError, ConnectionResetError):
+            # Client closed connection - this is normal for polling clients
+            pass
+
+    def send_error_response(self, message: str, status: int = 400):
+        """Send error response"""
+        self.send_json_response({"error": message}, status)
+
+    def do_GET(self):
+        """Handle GET requests"""
+        parsed_path = urlparse(self.path)
+        path = parsed_path.path
+
+        # List all workflows
+        if path == "/workflows":
+            workflows = WorkflowManager.list_workflows()
+            self.send_json_response(workflows)
+
+        # Get specific workflow
+        elif path.startswith("/workflows/") and not path.endswith("/approvals"):
+            execution_id = path.split("/")[2]
+            workflow = WorkflowManager.get_workflow(execution_id)
+            if workflow:
+                self.send_json_response(workflow)
+            else:
+                self.send_error_response("Workflow not found", 404)
+
+        # Get workflow approvals
+        elif path.endswith("/approvals") and path.startswith("/workflows/"):
+            execution_id = path.split("/")[2]
+            workflow = WorkflowManager.get_workflow(execution_id)
+            if workflow:
+                self.send_json_response(workflow.get("approvals", []))
+            else:
+                self.send_error_response("Workflow not found", 404)
+
+        # Get all pending approvals
+        elif path == "/approvals/pending":
+            pending = WorkflowManager.get_pending_approvals()
+            self.send_json_response(pending)
+
+        # Server-Sent Events for real-time updates
+        elif path == "/events":
+            try:
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/event-stream')
+                self.send_header('Cache-Control', 'no-cache')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+
+                # Send updates every 2 seconds
+                while True:
+                    pending = WorkflowManager.get_pending_approvals()
+                    event_data = json.dumps({
+                        "pending_count": len(pending),
+                        "pending": pending[:5]  # Send first 5 pending
+                    })
+                    self.wfile.write(f"data: {event_data}\n\n".encode())
+                    self.wfile.flush()
+                    time.sleep(2)
+            except (ConnectionAbortedError, BrokenPipeError, ConnectionResetError):
+                pass  # Client disconnected - this is normal
+
+        # Health check
+        elif path == "/health":
+            self.send_json_response({"status": "healthy", "port": PORT})
+
+        else:
+            self.send_error_response("Not found", 404)
+
+    def do_POST(self):
+        """Handle POST requests"""
+        parsed_path = urlparse(self.path)
+        path = parsed_path.path
+
+        # Read request body
+        content_length = int(self.headers.get('Content-Length', 0))
+        body = None
+        if content_length > 0:
+            try:
+                body = self.rfile.read(content_length).decode('utf-8')
+                body = json.loads(body)
+            except Exception as e:
+                self.send_error_response(f"Invalid JSON body: {e}", 400)
+                return
+
+        # Approve request
+        if path == "/approvals/approve":
+            if not body or 'file_path' not in body:
+                self.send_error_response("Missing 'file_path' in request body", 400)
+                return
+                
+            file_path = body['file_path']
+            print(f"\n[API] Approve request received for: {file_path}")
+            
+            if WorkflowManager.approve_request(file_path):
+                self.send_json_response({"success": True, "message": "Request approved"})
+            else:
+                self.send_error_response(f"Failed to approve request: {file_path}", 400)
+
+        # Reject request
+        elif path == "/approvals/reject":
+            if not body or 'file_path' not in body:
+                self.send_error_response("Missing 'file_path' in request body", 400)
+                return
+                
+            file_path = body['file_path']
+            reason = body.get('reason', 'Rejected via API')
+            print(f"\n[API] Reject request received for: {file_path}")
+            print(f"[API] Reason: {reason}")
+
+            if WorkflowManager.reject_request(file_path, reason):
+                self.send_json_response({"success": True, "message": "Request rejected"})
+            else:
+                self.send_error_response(f"Failed to reject request: {file_path}", 400)
+
+        else:
+            self.send_error_response("Not found", 404)
+
+    def do_OPTIONS(self):
+        """Handle CORS preflight requests"""
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+
+    def log_message(self, format, *args):
+        """Override to customize logging"""
+        sys.stderr.write(f"[{datetime.now().strftime('%H:%M:%S')}] {format % args}\n")
+    
+    def handle(self):
+        """Handle requests with proper connection error handling"""
+        try:
+            super().handle()
+        except (ConnectionAbortedError, BrokenPipeError, ConnectionResetError):
+            # Client closed connection - ignore silently
+            pass
+
+def main():
+    """Start the API server"""
+    print(f"""
+╔════════════════════════════════════════╗
+║   Workflow Approval API Server        ║
+║   (Multi-threaded with caching)       ║
+╠════════════════════════════════════════╣
+║   Port: {PORT:<30} ║
+║   URL:  http://localhost:{PORT:<14} ║
+║   Cache TTL: {CACHE_TTL}s{" " * 22} ║
+╚════════════════════════════════════════╝
+
+API Endpoints:
+  GET  /workflows                  - List all workflows
+  GET  /workflows/{{id}}             - Get workflow details
+  GET  /workflows/{{id}}/approvals   - Get workflow approvals
+  GET  /approvals/pending          - Get all pending approvals
+  POST /approvals/approve          - Approve a request (JSON body)
+  POST /approvals/reject           - Reject a request (JSON body)
+  GET  /events                     - Real-time updates (SSE)
+  GET  /health                     - Health check
+
+Performance optimizations:
+  - Multi-threaded request handling
+  - Response caching with {CACHE_TTL}s TTL
+  - Optimized file system operations for Windows
+
+Press Ctrl+C to stop the server.
+    """)
+
+    # Use ThreadingHTTPServer for multi-threaded request handling
+    server = ThreadingHTTPServer(('', PORT), ApprovalAPIHandler)
+    server.daemon_threads = True  # Allow server to exit even with active threads
+
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nShutting down server...")
+        server.shutdown()
+
+if __name__ == "__main__":
+    main()

@@ -1,5 +1,19 @@
 # Claude Code Observability Stack
 
+Complete observability setup for tracking Claude Code workflows.
+
+## 📌 Which Stack Should I Use?
+
+**⭐ RECOMMENDED: Langfuse Stack** (`./start.sh`) - See [WHICH_STACK.md](./WHICH_STACK.md) for comparison
+
+**Alternative: Grafana Stack** (`./start-grafana.sh`) - For those who prefer Grafana interface
+
+**Both are 100% FOSS!** Langfuse is just better for LLM workflows.
+
+---
+
+## Langfuse Stack (Primary Option)
+
 Complete observability setup for tracking Claude Code workflows with Langfuse, Grafana, and Prometheus.
 
 ## Architecture
@@ -118,12 +132,18 @@ The script will:
 The workflow script sets these automatically:
 
 ```bash
+# OpenTelemetry (Claude Code native telemetry)
 export CLAUDE_CODE_ENABLE_TELEMETRY=1
 export OTEL_METRICS_EXPORTER="otlp"
 export OTEL_LOGS_EXPORTER="otlp"
 export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318"
-export OTEL_RESOURCE_ATTRIBUTES="service.name=next-feature-full-flow,execution.id=<id>"
+export OTEL_RESOURCE_ATTRIBUTES="service.name=feature-to-code,execution.id=<id>"
+
+# Langfuse SDK (for direct tracing in your code)
+export LANGFUSE_PUBLIC_KEY="pk-lf-e7b25b9c-356f-4268-96cf-07318a4a5ee4"
+export LANGFUSE_SECRET_KEY="sk-lf-980bcde7-ff84-40b2-b127-1e68a0b6c406"
+export LANGFUSE_HOST="http://localhost:3000"
 ```
 
 ## What Gets Tracked
@@ -135,6 +155,7 @@ export OTEL_RESOURCE_ATTRIBUTES="service.name=next-feature-full-flow,execution.i
 - ✅ **Costs**: Calculated per execution
 - ✅ **Timing**: Latency for each step
 - ✅ **Metadata**: Execution ID, feature description
+- ✅ **Custom Tracing**: Your own code with Langfuse SDK
 
 ### In Prometheus/Grafana:
 - ✅ **Request counts** by service
@@ -142,6 +163,67 @@ export OTEL_RESOURCE_ATTRIBUTES="service.name=next-feature-full-flow,execution.i
 - ✅ **Error rates** and failures
 - ✅ **Latency percentiles** (p50, p95, p99)
 - ✅ **Resource usage** of observability stack
+
+## Using Langfuse SDK for Direct Tracing
+
+In addition to automatic OTLP tracing from Claude Code, you can use the Langfuse SDK directly in your code:
+
+### Quick Start
+
+**Python:**
+```bash
+pip install langfuse
+```
+
+```python
+from langfuse.decorators import observe
+
+@observe()
+def my_workflow_step():
+    # Your code here - automatically traced!
+    pass
+```
+
+**TypeScript/JavaScript:**
+```bash
+npm install langfuse
+```
+
+```typescript
+import { Langfuse } from "langfuse";
+
+const langfuse = new Langfuse({
+  publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+  secretKey: process.env.LANGFUSE_SECRET_KEY,
+  baseUrl: process.env.LANGFUSE_HOST,
+});
+
+const trace = langfuse.trace({
+  name: "my-workflow",
+  sessionId: execution_id,
+});
+```
+
+### Examples
+
+See detailed examples in [examples/](./examples/):
+- [Python SDK Examples](./examples/langfuse-tracing-python.py)
+- [TypeScript SDK Examples](./examples/langfuse-tracing-typescript.ts)
+- [Examples README](./examples/README.md)
+
+### Use Cases for Direct SDK Tracing
+
+1. **Custom automation scripts** - Track your own workflow steps
+2. **React Native app monitoring** - Monitor user actions and performance
+3. **LLM API calls** - Track Claude API calls with detailed token usage
+4. **Complex workflows** - Create nested spans for detailed visibility
+
+### Benefits of Dual Tracking
+
+With both OTLP and Langfuse SDK:
+- **OTLP**: Automatic tracking of Claude Code commands
+- **Langfuse SDK**: Manual tracking of your custom code
+- **Combined View**: Everything in one Langfuse dashboard!
 
 ## Troubleshooting
 

@@ -1,5 +1,5 @@
 # Research
-Read the md files in the folder /docs/specs/ and the file at /docs/research/gamedev/asherons-call-idler-mvp.md
+Read all the files in the folder /docs/specs/ and the file at /docs/research/gamedev/asherons-call-idler-mvp.md
 
 # Steps
 Think carefully about what the next feature might be. Then follow these instructions:

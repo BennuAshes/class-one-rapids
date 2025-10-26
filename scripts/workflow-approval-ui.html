@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Workflow Approval Dashboard</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        color: white;
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 2.5rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .dashboard {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 20px;
+      }
+
+      @media (max-width: 968px) {
+        .dashboard {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .panel {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      }
+
+      .panel h2 {
+        margin-bottom: 20px;
+        color: #333;
+        border-bottom: 2px solid #667eea;
+        padding-bottom: 10px;
+      }
+
+      .workflow-list {
+        max-height: 500px;
+        overflow-y: auto;
+      }
+
+      .workflow-item {
+        padding: 15px;
+        margin-bottom: 10px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .workflow-item:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .workflow-item.selected {
+        background: #f0f4ff;
+        border-color: #667eea;
+      }
+
+      .status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .status.pending {
+        background: #fff3cd;
+        color: #856404;
+      }
+      .status.awaiting_approval {
+        background: #ffe0b2;
+        color: #e65100;
+      }
+      .status.processing {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
+      .status.approved {
+        background: #d4edda;
+        color: #155724;
+      }
+      .status.rejected {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .status.completed {
+        background: #cce5ff;
+        color: #004085;
+      }
+
+      .approval-item {
+        padding: 15px;
+        margin-bottom: 15px;
+        border: 2px solid #ffc107;
+        border-radius: 8px;
+        background: #fffbf0;
+      }
+
+      .approval-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .btn-approve {
+        background: #28a745;
+        color: white;
+      }
+
+      .btn-approve:hover {
+        background: #218838;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+      }
+
+      .btn-reject {
+        background: #dc3545;
+        color: white;
+      }
+
+      .btn-reject:hover {
+        background: #c82333;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+      }
+
+      .btn-view {
+        background: #007bff;
+        color: white;
+      }
+
+      .btn-view:hover {
+        background: #0069d9;
+      }
+
+      .preview-box {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 15px;
+        margin: 15px 0;
+        font-family: "Courier New", monospace;
+        font-size: 0.9rem;
+        max-height: 300px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+      }
+
+      .file-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        margin-bottom: 10px;
+      }
+
+      .connection-status {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-weight: 600;
+        color: white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      .connection-status.connected {
+        background: #28a745;
+      }
+
+      .connection-status.disconnected {
+        background: #dc3545;
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s ease-in-out infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+      }
+
+      .timestamp {
+        font-size: 0.85rem;
+        color: #666;
+        margin-top: 5px;
+      }
+
+      .settings-panel {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      .settings-panel input {
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        width: 150px;
+        margin-right: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🚀 Workflow Approval Dashboard</h1>
+
+      <div id="connectionStatus" class="connection-status disconnected">
+        Disconnected
+      </div>
+
+      <div class="dashboard">
+        <div class="panel">
+          <h2>Workflows</h2>
+          <div id="workflowList" class="workflow-list">
+            <div class="empty-state">Loading workflows...</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Pending Approvals</h2>
+          <div id="approvalList">
+            <div class="empty-state">No pending approvals</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-panel">
+        <label>API Server:</label>
+        <input
+          type="text"
+          id="apiUrl"
+          value="http://localhost:8080"
+          placeholder="http://localhost:8080"
+        />
+        <button class="btn btn-view" onclick="connect()">Connect</button>
+      </div>
+    </div>
+
+    <script>
+      let apiUrl = "http://localhost:8080";
+      let eventSource = null;
+      let currentWorkflow = null;
+      window.currentApprovals = [];
+
+      // Initialize on page load
+      window.onload = function () {
+        const savedUrl = localStorage.getItem("apiUrl");
+        if (savedUrl) {
+          document.getElementById("apiUrl").value = savedUrl;
+          apiUrl = savedUrl;
+        }
+        connect();
+      };
+
+      function connect() {
+        apiUrl = document.getElementById("apiUrl").value;
+        localStorage.setItem("apiUrl", apiUrl);
+
+        // Close existing connection
+        if (eventSource) {
+          eventSource.close();
+        }
+
+        // Test connection
+        fetch(`${apiUrl}/health`)
+          .then((response) => response.json())
+          .then((data) => {
+            updateConnectionStatus(true);
+            loadWorkflows();
+            loadPendingApprovals();
+            setupEventStream();
+          })
+          .catch((error) => {
+            console.error("Connection failed:", error);
+            updateConnectionStatus(false);
+          });
+      }
+
+      function updateConnectionStatus(connected) {
+        const status = document.getElementById("connectionStatus");
+        if (connected) {
+          status.className = "connection-status connected";
+          status.innerHTML = "✓ Connected";
+        } else {
+          status.className = "connection-status disconnected";
+          status.innerHTML = "✗ Disconnected";
+        }
+      }
+
+      function setupEventStream() {
+        eventSource = new EventSource(`${apiUrl}/events`);
+
+        eventSource.onmessage = function (event) {
+          const data = JSON.parse(event.data);
+          updatePendingCount(data.pending_count);
+          if (data.pending_count > 0) {
+            loadPendingApprovals();
+          }
+        };
+
+        eventSource.onerror = function (error) {
+          console.error("EventSource error:", error);
+          updateConnectionStatus(false);
+          setTimeout(connect, 5000); // Reconnect after 5 seconds
+        };
+      }
+
+      function loadWorkflows() {
+        fetch(`${apiUrl}/workflows`)
+          .then((response) => response.json())
+          .then((workflows) => {
+            const list = document.getElementById("workflowList");
+            if (workflows.length === 0) {
+              list.innerHTML =
+                '<div class="empty-state">No workflows found</div>';
+              return;
+            }
+
+            list.innerHTML = workflows
+              .map(
+                (w) => `
+                        <div class="workflow-item" onclick="selectWorkflow('${
+                          w.execution_id
+                        }')">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong>${w.execution_id}</strong>
+                                <span class="status ${w.status}">${
+                  w.status
+                }</span>
+                            </div>
+                            <div class="timestamp">Started: ${formatDate(
+                              w.started_at
+                            )}</div>
+                            ${
+                              w.current_step
+                                ? `<div class="timestamp">Current Step: ${w.current_step}</div>`
+                                : ""
+                            }
+                        </div>
+                    `
+              )
+              .join("");
+          })
+          .catch((error) => console.error("Error loading workflows:", error));
+      }
+
+      function loadPendingApprovals() {
+        fetch(`${apiUrl}/approvals/pending`)
+          .then((response) => response.json())
+          .then((approvals) => {
+            const list = document.getElementById("approvalList");
+            if (approvals.length === 0) {
+              list.innerHTML =
+                '<div class="empty-state">✓ No pending approvals</div>';
+              return;
+            }
+
+            list.innerHTML = approvals
+              .map(
+                (a, idx) => `
+                        <div class="approval-item" data-approval-idx="${idx}">
+                            <h3>📋 ${a.checkpoint}</h3>
+                            <div class="timestamp">Execution: ${
+                              a.execution_id
+                            }</div>
+                            <div class="timestamp">Created: ${formatDate(
+                              a.timestamp
+                            )}</div>
+                            <div class="timestamp">Timeout: ${
+                              a.timeout_seconds
+                            }s</div>
+
+                            ${
+                              a.preview
+                                ? `
+                                <div class="preview-box">${escapeHtml(
+                                  a.preview.substring(0, 500)
+                                )}${a.preview.length > 500 ? "..." : ""}</div>
+                            `
+                                : ""
+                            }
+
+                            <div class="approval-actions">
+                                <button class="btn btn-approve" data-action="approve" data-idx="${idx}">
+                                    ✓ Approve
+                                </button>
+                                <button class="btn btn-reject" data-action="reject" data-idx="${idx}">
+                                    ✗ Reject
+                                </button>
+                                <button class="btn btn-view" data-action="view" data-idx="${idx}">
+                                    👁 View Full File
+                                </button>
+                            </div>
+                        </div>
+                    `
+              )
+              .join("");
+
+            // Store approvals data for button handlers
+            window.currentApprovals = approvals;
+          })
+          .catch((error) => console.error("Error loading approvals:", error));
+      }
+
+      function selectWorkflow(executionId) {
+        // Update UI selection
+        document.querySelectorAll(".workflow-item").forEach((item) => {
+          item.classList.remove("selected");
+        });
+        event.currentTarget.classList.add("selected");
+
+        // Load workflow details
+        fetch(`${apiUrl}/workflows/${executionId}`)
+          .then((response) => response.json())
+          .then((workflow) => {
+            currentWorkflow = workflow;
+            // You could show more details here
+            console.log("Selected workflow:", workflow);
+          })
+          .catch((error) =>
+            console.error("Error loading workflow details:", error)
+          );
+      }
+
+      function approveRequest(filePath) {
+        if (!confirm("Are you sure you want to approve this request?")) return;
+
+        fetch(`${apiUrl}/approvals/approve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ file_path: filePath }),
+        })
+          .then((response) => response.json())
+          .then((result) => {
+            if (result.success) {
+              showNotification("✓ Request approved successfully", "success");
+              loadPendingApprovals();
+              loadWorkflows();
+            } else {
+              showNotification(
+                `Failed: ${result.error || "Unknown error"}`,
+                "error"
+              );
+            }
+          })
+          .catch((error) => {
+            console.error("Error approving request:", error);
+            showNotification("Error approving request", "error");
+          });
+      }
+
+      function rejectRequest(filePath) {
+        const reason = prompt("Please provide a reason for rejection:");
+        if (!reason) return;
+
+        fetch(`${apiUrl}/approvals/reject`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ file_path: filePath, reason: reason }),
+        })
+          .then((response) => response.json())
+          .then((result) => {
+            if (result.success) {
+              showNotification("✗ Request rejected", "warning");
+              loadPendingApprovals();
+              loadWorkflows();
+            } else {
+              showNotification(
+                `Failed: ${result.error || "Unknown error"}`,
+                "error"
+              );
+            }
+          })
+          .catch((error) => {
+            console.error("Error rejecting request:", error);
+            showNotification("Error rejecting request", "error");
+          });
+      }
+
+      function viewFile(filePath) {
+        // In a real implementation, this would open the file viewer
+        window.open(`file://${filePath}`, "_blank");
+      }
+
+      function updatePendingCount(count) {
+        // Update title with pending count
+        document.title =
+          count > 0 ? `(${count}) Workflow Approvals` : "Workflow Approvals";
+      }
+
+      function formatDate(dateString) {
+        if (!dateString) return "Unknown";
+        const date = new Date(dateString);
+        return date.toLocaleString();
+      }
+
+      function escapeHtml(text) {
+        const map = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;",
+        };
+        return text.replace(/[&<>"']/g, (m) => map[m]);
+      }
+
+      function showNotification(message, type) {
+        // Create a simple notification
+        const notification = document.createElement("div");
+        notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                padding: 15px 25px;
+                background: ${
+                  type === "success"
+                    ? "#28a745"
+                    : type === "error"
+                    ? "#dc3545"
+                    : "#ffc107"
+                };
+                color: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                font-weight: 600;
+                z-index: 1000;
+                animation: slideIn 0.3s ease-out;
+            `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+          notification.style.animation = "slideOut 0.3s ease-out";
+          setTimeout(() => notification.remove(), 300);
+        }, 3000);
+      }
+
+      // Add animation styles
+      const style = document.createElement("style");
+      style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+      document.head.appendChild(style);
+
+      // Event delegation for approval buttons
+      document
+        .getElementById("approvalList")
+        .addEventListener("click", function (e) {
+          const button = e.target.closest("button[data-action]");
+          if (!button) return;
+
+          const idx = parseInt(button.dataset.idx);
+          const action = button.dataset.action;
+          const approval = window.currentApprovals[idx];
+
+          if (!approval) {
+            console.error("Approval not found for index:", idx);
+            return;
+          }
+
+          if (action === "approve") {
+            approveRequest(approval.file_path);
+          } else if (action === "reject") {
+            rejectRequest(approval.file_path);
+          } else if (action === "view") {
+            viewFile(approval.file);
+          }
+        });
+
+      // Auto-refresh every 30 seconds as backup
+      setInterval(() => {
+        if (document.visibilityState === "visible") {
+          loadWorkflows();
+          loadPendingApprovals();
+        }
+      }, 30000);
+    </script>
+  </body>
+</html>

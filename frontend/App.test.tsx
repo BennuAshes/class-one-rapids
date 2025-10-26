@@ -42,14 +42,14 @@ describe("Core Combat Tap Mechanic", () => {
     // Tap the enemy
     fireEvent.press(enemy);
 
-    // Should show damage number (with Power=1, damage is 10-15)
+    // Should show damage number (with Strength=0, damage is 1-2 base or 2-4 crit)
     await waitFor(() => {
-      // Look for damage numbers specifically (10-15 range with Power=1)
+      // Look for damage numbers specifically (1-4 range with Strength=0)
       const allTexts = screen.getAllByText(/^\d+$/);
       // Filter for damage numbers (not HP text)
       const damageNumber = allTexts.find((element) => {
         const value = parseInt(element.props.children);
-        return value >= 10 && value <= 15;
+        return value >= 1 && value <= 4;
       });
       expect(damageNumber).toBeTruthy();
     });
@@ -58,7 +58,7 @@ describe("Core Combat Tap Mechanic", () => {
   test("enemy health bar decreases when damaged", async () => {
     render(<App />);
 
-    // Get initial health text - it contains "HP: 1000/1000"
+    // Get initial health text - it contains "HP: 10/10"
     const healthText = screen.getByTestId("health-text");
     // Extract the text content properly
     const getHealthValue = (element: any) => {
@@ -68,7 +68,7 @@ describe("Core Combat Tap Mechanic", () => {
     };
 
     const initialHealth = getHealthValue(healthText);
-    expect(initialHealth).toBe(1000);
+    expect(initialHealth).toBe(10);
 
     // Tap the enemy
     const enemy = screen.getByTestId("enemy");
@@ -255,10 +255,10 @@ describe("Strength System", () => {
       const newHealth = getHealthValue(healthText);
       const damage = initialHealth - newHealth;
 
-      // With Strength = 0, damage should be 10-15 base (or 20-30 if crit)
+      // With Strength = 0, damage should be 1-2 base (or 2-4 if crit)
       // Since we have 10% base crit chance, we need to account for both
-      expect(damage).toBeGreaterThanOrEqual(10);
-      expect(damage).toBeLessThanOrEqual(30); // Max crit damage
+      expect(damage).toBeGreaterThanOrEqual(1);
+      expect(damage).toBeLessThanOrEqual(4); // Max crit damage
     });
   });
 });
@@ -350,8 +350,8 @@ describe("XP Progress Bar", () => {
   test("should show XP progress text", () => {
     render(<App />);
 
-    // Should show XP text (0/100 for level 1) - use getAllByText to handle multiple matches
-    const xpTexts = screen.getAllByText(/0\/100/);
+    // Should show XP text (0/50 for level 1) - use getAllByText to handle multiple matches
+    const xpTexts = screen.getAllByText(/0\/50/);
     expect(xpTexts.length).toBeGreaterThan(0);
   });
 
@@ -420,15 +420,15 @@ describe("Weakness Spot - Basic Critical Hit", () => {
 
     fireEvent.press(weaknessSpot);
 
-    // With power=1, base damage is ~10-15
-    // Critical should be 2x, so 20-30 range
+    // With Strength=0, base damage is 1-2
+    // Critical should be 2x, so 2-4 range
     // We'll check for damage numbers that indicate critical hit
     const damageNumbers = await findByTestId(/damage-number-/);
     const damageText = damageNumbers.props.children;
     const damage = parseInt(damageText);
 
-    // Critical damage should be at least 20 (2x minimum base damage of 10)
-    expect(damage).toBeGreaterThanOrEqual(20);
+    // Critical damage should be at least 2 (2x minimum base damage of 1)
+    expect(damage).toBeGreaterThanOrEqual(2);
   });
 
   test("should deal normal damage when tapping outside weakness spot", async () => {
