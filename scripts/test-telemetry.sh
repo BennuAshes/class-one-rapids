@@ -57,7 +57,7 @@ echo ""
 
 echo "   Running test Claude command..."
 TEST_ID="test_$(date +%Y%m%d_%H%M%S)"
-claude -p "Say 'Hello from telemetry test'" --output-format stream-json > "/tmp/telemetry-test-$TEST_ID.txt" 2>&1 || true
+claude -p "Say 'Hello from telemetry test'" --verbose --output-format stream-json > "/tmp/telemetry-test-$TEST_ID.txt" 2>&1 || true
 
 echo ""
 echo "===================================="

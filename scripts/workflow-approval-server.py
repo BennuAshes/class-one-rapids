@@ -27,6 +27,25 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 import threading
 
+# Try to import Langfuse for tracking approvals
+try:
+    from langfuse import Langfuse
+    LANGFUSE_AVAILABLE = True
+    
+    # Initialize Langfuse client if env vars are set
+    if all(os.getenv(key) for key in ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY"]):
+        langfuse_client = Langfuse(
+            public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
+            secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
+            host=os.getenv("LANGFUSE_HOST", "http://localhost:3000"),
+        )
+    else:
+        langfuse_client = None
+        LANGFUSE_AVAILABLE = False
+except ImportError:
+    LANGFUSE_AVAILABLE = False
+    langfuse_client = None
+
 # Default configuration
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
 WORKFLOW_DIR = Path("./workflow-outputs")
@@ -70,6 +89,57 @@ class CachedResult:
 
 # Global cache instance
 _cache = CachedResult(ttl=CACHE_TTL)
+
+def track_approval_in_langfuse(execution_id: str, checkpoint: str, status: str, duration_seconds: float, reason: Optional[str] = None):
+    """
+    Track approval decision in Langfuse
+    
+    Args:
+        execution_id: Workflow execution ID
+        checkpoint: Name of checkpoint (e.g., "PRD", "Design")
+        status: "approved" or "rejected"
+        duration_seconds: Time spent in approval
+        reason: Optional rejection reason
+    """
+    if not LANGFUSE_AVAILABLE or not langfuse_client:
+        return
+    
+    try:
+        # Get trace for this execution
+        trace = langfuse_client.trace(
+            name="workflow-approval",
+            session_id=execution_id,
+        )
+        
+        # Create span for approval checkpoint
+        span = trace.span(
+            name=f"Approval: {checkpoint}",
+            metadata={
+                "checkpoint": checkpoint,
+                "status": status,
+                "duration_seconds": duration_seconds,
+                "reason": reason,
+                "timestamp": datetime.now().isoformat(),
+                "tracked_by": "approval-server"
+            }
+        )
+        
+        span.end()
+        
+        # Also add a score for the approval decision
+        langfuse_client.score(
+            trace_id=execution_id,
+            name=f"approval_{checkpoint.lower().replace(' ', '_')}",
+            value=1.0 if status == "approved" else 0.0,
+            comment=reason if reason else f"{checkpoint} {status}",
+            data_type="NUMERIC"
+        )
+        
+        langfuse_client.flush()
+        print(f"[LANGFUSE] Tracked approval: {checkpoint} = {status}")
+    except Exception as e:
+        print(f"[LANGFUSE] Warning: Failed to track approval: {e}")
+
 
 class WorkflowManager:
     """Manages workflow and approval operations"""
@@ -231,7 +301,7 @@ class WorkflowManager:
                 print(f"[APPROVE] ERROR: File not found: {approval_path}")
                 return False
 
-            # Check if request is pending
+            # Check if request is pending and extract metadata
             with open(approval_path, encoding='utf-8') as f:
                 data = json.load(f)
                 status = data.get("status")
@@ -239,6 +309,18 @@ class WorkflowManager:
                 if status != "pending":
                     print(f"[APPROVE] ERROR: Request is not pending (status: {status})")
                     return False
+                
+                # Extract metadata for Langfuse tracking
+                execution_id = data.get("execution_id", "unknown")
+                checkpoint = data.get("checkpoint", "Unknown")
+                created_at = data.get("timestamp", datetime.now().isoformat())
+
+            # Calculate duration
+            try:
+                created_time = datetime.fromisoformat(created_at)
+                duration_seconds = (datetime.now() - created_time).total_seconds()
+            except:
+                duration_seconds = 0.0
 
             # Create response file - append .response to full filename
             response_file = Path(str(approval_path) + ".response")
@@ -251,6 +333,14 @@ class WorkflowManager:
                 }, f)
 
             print(f"[APPROVE] ✓ Successfully created: {response_file}")
+
+            # Track in Langfuse
+            track_approval_in_langfuse(
+                execution_id=execution_id,
+                checkpoint=checkpoint,
+                status="approved",
+                duration_seconds=duration_seconds
+            )
 
             # Invalidate caches since approval state changed
             _cache.invalidate("pending_approvals")
@@ -275,7 +365,7 @@ class WorkflowManager:
                 print(f"[REJECT] ERROR: File not found: {approval_path}")
                 return False
 
-            # Check if request is pending
+            # Check if request is pending and extract metadata
             with open(approval_path, encoding='utf-8') as f:
                 data = json.load(f)
                 status = data.get("status")
@@ -283,6 +373,18 @@ class WorkflowManager:
                 if status != "pending":
                     print(f"[REJECT] ERROR: Request is not pending (status: {status})")
                     return False
+                
+                # Extract metadata for Langfuse tracking
+                execution_id = data.get("execution_id", "unknown")
+                checkpoint = data.get("checkpoint", "Unknown")
+                created_at = data.get("timestamp", datetime.now().isoformat())
+
+            # Calculate duration
+            try:
+                created_time = datetime.fromisoformat(created_at)
+                duration_seconds = (datetime.now() - created_time).total_seconds()
+            except:
+                duration_seconds = 0.0
 
             # Create response file - append .response to full filename
             response_file = Path(str(approval_path) + ".response")
@@ -296,6 +398,15 @@ class WorkflowManager:
                 }, f)
 
             print(f"[REJECT] ✓ Successfully created: {response_file}")
+
+            # Track in Langfuse
+            track_approval_in_langfuse(
+                execution_id=execution_id,
+                checkpoint=checkpoint,
+                status="rejected",
+                duration_seconds=duration_seconds,
+                reason=reason
+            )
 
             # Invalidate caches since approval state changed
             _cache.invalidate("pending_approvals")
