@@ -42,4 +42,5 @@ android
 coverage/
 .git.bak/
 
-convos/
+convos
+venv/

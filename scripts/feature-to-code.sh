@@ -1,15 +1,34 @@
 #!/bin/bash
 #
-# Feature to Code Workflow
-# Automated workflow from feature description/spec to executable code
-# Uses Claude Code's native OpenTelemetry support to track the entire workflow
+# Feature to Code Workflow - DEPRECATED
+# This script has been replaced with feature-to-code-unified.sh
 #
-# Usage:
-#   ./feature-to-code.sh "feature description"
-#   ./feature-to-code.sh /path/to/feature/spec.md
+# The new unified script fixes the JSON output issue and adds optional telemetry
+# See scripts/FEATURE_TO_CODE_MIGRATION.md for details
 #
 
-set -e  # Exit on error
+echo "========================================="
+echo "NOTICE: This script has been deprecated"
+echo "========================================="
+echo ""
+echo "Please use the new unified script instead:"
+echo "  ./scripts/feature-to-code-unified.sh"
+echo ""
+echo "The new script (best practices enabled by default):"
+echo "  ✓ Fixes the JSON output issue (auto-extracts readable documents)"
+echo "  ✓ Preserves valuable metadata in JSON format"
+echo "  ✓ Tracks workflow in Langfuse (telemetry enabled)"
+echo "  ✓ Copies docs to docs/specs/[execution_id]/"
+echo "  ✓ All features can be disabled with env vars"
+echo ""
+echo "For details, see: scripts/README.md"
+echo ""
+echo "Redirecting to new script in 3 seconds..."
+echo ""
+sleep 3
+
+# Redirect to new script with all arguments
+exec "$(dirname "$0")/feature-to-code-unified.sh" "$@"
 
 # Colors for output
 RED='\033[0;31m'
@@ -20,35 +39,66 @@ NC='\033[0m' # No Color
 
 # Configuration
 INPUT="$1"
-EXECUTION_ID=$(date +%Y%m%d_%H%M%S)
-WORK_DIR="$(pwd)/workflow-outputs/$EXECUTION_ID"
+RESUME_MODE=false
+EXECUTION_ID=""
+WORK_DIR=""
 TIMESTAMP=$(date -Iseconds)
 
 # Validate input
 if [ -z "$INPUT" ]; then
-  echo -e "${RED}Error: Feature description or file path is required${NC}"
+  echo -e "${RED}Error: Feature description, file path, or workflow folder is required${NC}"
   echo "Usage: $0 \"feature description\""
   echo "       $0 /path/to/feature/spec.md"
+  echo "       $0 workflow-outputs/YYYYMMDD_HHMMSS  # Resume existing workflow"
   exit 1
 fi
 
+# Check if input is an existing workflow directory to resume
+if [ -d "$INPUT" ] && [ -f "$INPUT/workflow-status.json" ]; then
+  echo -e "${YELLOW}Resuming existing workflow from: $INPUT${NC}"
+  RESUME_MODE=true
+  WORK_DIR="$(realpath "$INPUT")"
+
+  # Extract execution ID from workflow status
+  if command -v python3 &>/dev/null; then
+    EXECUTION_ID=$(python3 -c "import json; print(json.load(open('$WORK_DIR/workflow-status.json')).get('execution_id', ''))" 2>/dev/null || echo "")
+  fi
+
+  if [ -z "$EXECUTION_ID" ]; then
+    # Fallback: extract from directory name
+    EXECUTION_ID=$(basename "$WORK_DIR")
+  fi
+
+  # Try to read feature source from existing workflow
+  if command -v python3 &>/dev/null; then
+    FEATURE_SOURCE=$(python3 -c "import json; print(json.load(open('$WORK_DIR/workflow-status.json')).get('feature_source', 'resumed'))" 2>/dev/null || echo "resumed")
+  else
+    FEATURE_SOURCE="resumed"
+  fi
+
+  echo -e "${GREEN}✓ Found workflow: $EXECUTION_ID${NC}"
+
 # Check if input is a file or a feature description
-if [ -f "$INPUT" ]; then
+elif [ -f "$INPUT" ]; then
   echo -e "${BLUE}Reading feature specification from file: $INPUT${NC}"
   FEATURE_DESC=$(cat "$INPUT")
   FEATURE_SOURCE="file: $(basename "$INPUT")"
+  EXECUTION_ID=$(date +%Y%m%d_%H%M%S)
+  WORK_DIR="$(pwd)/workflow-outputs/$EXECUTION_ID"
+  mkdir -p "$WORK_DIR"
 else
   FEATURE_DESC="$INPUT"
   FEATURE_SOURCE="command line"
+  EXECUTION_ID=$(date +%Y%m%d_%H%M%S)
+  WORK_DIR="$(pwd)/workflow-outputs/$EXECUTION_ID"
+  mkdir -p "$WORK_DIR"
 fi
-
-# Create working directory
-mkdir -p "$WORK_DIR"
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}Feature to Code Workflow${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo -e "Execution ID: ${GREEN}$EXECUTION_ID${NC}"
+echo -e "Mode: ${GREEN}$([ "$RESUME_MODE" = true ] && echo "RESUME" || echo "NEW")${NC}"
 echo -e "Feature Source: ${GREEN}$FEATURE_SOURCE${NC}"
 echo -e "Working Directory: ${GREEN}$WORK_DIR${NC}"
 echo -e "Timestamp: ${GREEN}$TIMESTAMP${NC}"
@@ -65,8 +115,92 @@ if [ -n "$WEBHOOK_URL" ]; then
 fi
 echo -e "${BLUE}========================================${NC}\n"
 
-# Create initial workflow status file
-cat > "$WORK_DIR/workflow-status.json" << EOF
+# Function to check if a step is completed
+check_step_completed() {
+  local step_name="$1"
+  local file_path="$2"
+
+  # First check if the file exists
+  if [ -f "$file_path" ] && [ -s "$file_path" ]; then
+    # If we have python3, also check workflow status
+    if command -v python3 &>/dev/null && [ -f "$WORK_DIR/workflow-status.json" ]; then
+      local status=$(python3 -c "
+import json
+try:
+    data = json.load(open('$WORK_DIR/workflow-status.json'))
+    for step in data.get('steps', []):
+        if step.get('name') == '$step_name':
+            print(step.get('status', 'pending'))
+            break
+    else:
+        print('pending')
+except:
+    print('pending')
+" 2>/dev/null || echo "pending")
+      [ "$status" = "completed" ]
+    else
+      # File exists and has content, consider it completed
+      true
+    fi
+  else
+    false
+  fi
+}
+
+# Function to update step status in workflow file
+update_step_status() {
+  local step_name="$1"
+  local new_status="$2"
+
+  if command -v python3 &>/dev/null && [ -f "$WORK_DIR/workflow-status.json" ]; then
+    python3 -c "
+import json
+try:
+    data = json.load(open('$WORK_DIR/workflow-status.json'))
+    for step in data.get('steps', []):
+        if step.get('name') == '$step_name':
+            step['status'] = '$new_status'
+            step['updated_at'] = '$(date -Iseconds)'
+            break
+    json.dump(data, open('$WORK_DIR/workflow-status.json', 'w'), indent=2)
+except:
+    pass
+" 2>/dev/null || true
+  fi
+}
+
+# Create or update workflow status file
+if [ "$RESUME_MODE" = true ]; then
+  echo -e "${YELLOW}Checking existing workflow status...${NC}"
+
+  # List completed steps
+  if [ -f "$WORK_DIR/prd_"*.md ]; then
+    PRD_EXISTS=true
+    echo -e "  ${GREEN}✓ PRD found${NC}"
+  else
+    PRD_EXISTS=false
+    echo -e "  ${YELLOW}○ PRD not found${NC}"
+  fi
+
+  if [ -f "$WORK_DIR/tdd_"*.md ]; then
+    TDD_EXISTS=true
+    echo -e "  ${GREEN}✓ Technical Design found${NC}"
+  else
+    TDD_EXISTS=false
+    echo -e "  ${YELLOW}○ Technical Design not found${NC}"
+  fi
+
+  if [ -f "$WORK_DIR/tasks_"*.md ]; then
+    TASKS_EXISTS=true
+    echo -e "  ${GREEN}✓ Task List found${NC}"
+  else
+    TASKS_EXISTS=false
+    echo -e "  ${YELLOW}○ Task List not found${NC}"
+  fi
+  echo ""
+else
+  # Create initial workflow status file for new workflow
+  cat > "$WORK_DIR/workflow-status.json" << EOF
 {
   "execution_id": "$EXECUTION_ID",
   "feature_source": "$FEATURE_SOURCE",
@@ -83,6 +217,7 @@ cat > "$WORK_DIR/workflow-status.json" << EOF
   ]
 }
 EOF
+fi
 
 # Configure OpenTelemetry for Claude Code
 echo -e "${YELLOW}Configuring OpenTelemetry...${NC}"
@@ -331,97 +466,188 @@ EOF
 }
 
 # Step 1: Generate PRD
-log_step 1 "Generate Product Requirements Document" "start"
 PRD_FILE="$WORK_DIR/prd_$(date +%Y%m%d).md"
 
-claude -p "Generate a comprehensive PRD following the template in .claude/commands/prd.md for the following feature specification:
+# Check if PRD already exists when resuming
+if [ "$RESUME_MODE" = true ] && [ -f "$WORK_DIR/prd_"*.md ]; then
+  PRD_FILE=$(ls "$WORK_DIR/prd_"*.md | head -1)
+  echo -e "${GREEN}[1/5] ✓ Skipping: Generate Product Requirements Document (already exists)${NC}"
+  echo -e "  Using existing: $(basename "$PRD_FILE")"
+  echo -e "  Size: $(wc -c < "$PRD_FILE") bytes\n"
+  update_step_status "Generate PRD" "completed"
+else
+  log_step 1 "Generate Product Requirements Document" "start"
+
+  # Need feature description for PRD generation
+  if [ "$RESUME_MODE" = true ] && [ -z "$FEATURE_DESC" ]; then
+    # Try to extract feature from existing files or prompt user
+    echo -e "${YELLOW}Warning: Resuming but no feature description found${NC}"
+    echo -e "${YELLOW}Please provide the feature description:${NC}"
+    read -p "Feature: " FEATURE_DESC
+  fi
+
+  claude -p "Generate a comprehensive PRD following the template in .claude/commands/prd.md for the following feature specification:
 
 $FEATURE_DESC" \
-  --verbose --output-format stream-json > "$PRD_FILE"
+    --verbose --output-format stream-json > "$PRD_FILE"
 
-if [ $? -eq 0 ]; then
-  log_step 1 "Generate Product Requirements Document" "complete"
-  echo -e "  Output: $PRD_FILE"
-  echo -e "  Size: $(wc -c < "$PRD_FILE") bytes"
-else
-  log_step 1 "Generate Product Requirements Document" "error"
-  exit 1
+  if [ $? -eq 0 ]; then
+    log_step 1 "Generate Product Requirements Document" "complete"
+    echo -e "  Output: $PRD_FILE"
+    echo -e "  Size: $(wc -c < "$PRD_FILE") bytes"
+    update_step_status "Generate PRD" "completed"
+  else
+    log_step 1 "Generate Product Requirements Document" "error"
+    exit 1
+  fi
+
+  # Approval checkpoint
+  request_approval "PRD" "$PRD_FILE"
 fi
 
-# Approval checkpoint
-request_approval "PRD" "$PRD_FILE"
-
 # Step 2: Generate Technical Design
-log_step 2 "Generate Technical Design Document" "start"
 DESIGN_FILE="$WORK_DIR/tdd_$(date +%Y%m%d).md"
 
-TEMP_PROMPT=$(mktemp)
-cat > "$TEMP_PROMPT" <<EOF
+# Check if Technical Design already exists when resuming
+if [ "$RESUME_MODE" = true ] && [ -f "$WORK_DIR/tdd_"*.md ]; then
+  DESIGN_FILE=$(ls "$WORK_DIR/tdd_"*.md | head -1)
+  echo -e "${GREEN}[2/5] ✓ Skipping: Generate Technical Design Document (already exists)${NC}"
+  echo -e "  Using existing: $(basename "$DESIGN_FILE")"
+  echo -e "  Size: $(wc -c < "$DESIGN_FILE") bytes\n"
+  update_step_status "Generate Technical Design" "completed"
+else
+  log_step 2 "Generate Technical Design Document" "start"
+
+  TEMP_PROMPT=$(mktemp)
+  cat > "$TEMP_PROMPT" <<EOF
 Read the PRD below and generate a comprehensive Technical Design Document following the template in .claude/commands/design.md.
 
 PRD:
 $(cat "$PRD_FILE")
 EOF
 
-cat "$TEMP_PROMPT" | claude -p --verbose --output-format stream-json > "$DESIGN_FILE"
-rm -f "$TEMP_PROMPT"
+  cat "$TEMP_PROMPT" | claude -p --verbose --output-format stream-json > "$DESIGN_FILE"
+  rm -f "$TEMP_PROMPT"
 
-if [ $? -eq 0 ]; then
-  log_step 2 "Generate Technical Design Document" "complete"
-  echo -e "  Output: $DESIGN_FILE"
-  echo -e "  Size: $(wc -c < "$DESIGN_FILE") bytes"
-else
-  log_step 2 "Generate Technical Design Document" "error"
-  exit 1
+  if [ $? -eq 0 ]; then
+    log_step 2 "Generate Technical Design Document" "complete"
+    echo -e "  Output: $DESIGN_FILE"
+    echo -e "  Size: $(wc -c < "$DESIGN_FILE") bytes"
+    update_step_status "Generate Technical Design" "completed"
+  else
+    log_step 2 "Generate Technical Design Document" "error"
+    exit 1
+  fi
+
+  # Approval checkpoint
+  request_approval "Technical Design" "$DESIGN_FILE"
 fi
 
-# Approval checkpoint
-request_approval "Technical Design" "$DESIGN_FILE"
-
 # Step 3: Generate Task List
-log_step 3 "Generate Task List" "start"
 TASKS_FILE="$WORK_DIR/tasks_$(date +%Y%m%d).md"
 
-TEMP_PROMPT=$(mktemp)
-cat > "$TEMP_PROMPT" <<EOF
+# Check if Task List already exists when resuming
+if [ "$RESUME_MODE" = true ] && [ -f "$WORK_DIR/tasks_"*.md ]; then
+  TASKS_FILE=$(ls "$WORK_DIR/tasks_"*.md | head -1)
+  echo -e "${GREEN}[3/5] ✓ Skipping: Generate Task List (already exists)${NC}"
+  echo -e "  Using existing: $(basename "$TASKS_FILE")"
+  echo -e "  Size: $(wc -c < "$TASKS_FILE") bytes\n"
+  update_step_status "Generate Task List" "completed"
+else
+  log_step 3 "Generate Task List" "start"
+
+  TEMP_PROMPT=$(mktemp)
+  cat > "$TEMP_PROMPT" <<EOF
 Read the Technical Design Document below and generate an executable task list following the template in .claude/commands/tasks.md.
 
 TDD:
 $(cat "$DESIGN_FILE")
 EOF
 
-cat "$TEMP_PROMPT" | claude -p --verbose --output-format stream-json > "$TASKS_FILE"
-rm -f "$TEMP_PROMPT"
+  cat "$TEMP_PROMPT" | claude -p --verbose --output-format stream-json > "$TASKS_FILE"
+  rm -f "$TEMP_PROMPT"
 
-if [ $? -eq 0 ]; then
-  log_step 3 "Generate Task List" "complete"
-  echo -e "  Output: $TASKS_FILE"
-  echo -e "  Size: $(wc -c < "$TASKS_FILE") bytes"
-else
-  log_step 3 "Generate Task List" "error"
-  exit 1
+  if [ $? -eq 0 ]; then
+    log_step 3 "Generate Task List" "complete"
+    echo -e "  Output: $TASKS_FILE"
+    echo -e "  Size: $(wc -c < "$TASKS_FILE") bytes"
+    update_step_status "Generate Task List" "completed"
+  else
+    log_step 3 "Generate Task List" "error"
+    exit 1
+  fi
+
+  # Approval checkpoint
+  request_approval "Task List" "$TASKS_FILE"
 fi
 
-# Approval checkpoint
-request_approval "Task List" "$TASKS_FILE"
-
-# Step 4: Execute Tasks (optional - user can run separately)
+# Step 4: Execute Tasks
 log_step 4 "Execute Tasks" "start"
-echo -e "${YELLOW}Task execution is optional. You can:${NC}"
-echo -e "  1. Review tasks manually: $TASKS_FILE"
-echo -e "  2. Execute tasks: /execute-tasks $TASKS_FILE"
-echo ""
-read -p "Execute tasks now? (y/n): " execute_now
+
+# If AUTO_EXECUTE is not set, default to true (execute automatically)
+AUTO_EXECUTE="${AUTO_EXECUTE:-true}"
+
+if [ "$AUTO_EXECUTE" = "false" ]; then
+  echo -e "${YELLOW}Task execution is optional. You can:${NC}"
+  echo -e "  1. Review tasks manually: $TASKS_FILE"
+  echo -e "  2. Execute tasks now"
+  echo -e "  3. Skip and execute later: claude /execute-task $TASKS_FILE"
+  echo ""
+  read -p "Execute tasks now? (y/n): " execute_now
+
+  if [ "$execute_now" != "y" ] && [ "$execute_now" != "Y" ]; then
+    echo -e "${YELLOW}Skipping task execution${NC}"
+    log_step 4 "Execute Tasks" "complete"
+    update_step_status "Execute Tasks" "skipped"
+    # Continue to summary
+  else
+    execute_now="y"
+  fi
+else
+  echo -e "${GREEN}Auto-executing approved task list...${NC}"
+  execute_now="y"
+fi
 
 if [ "$execute_now" = "y" ] || [ "$execute_now" = "Y" ]; then
-  echo -e "${BLUE}Executing tasks...${NC}"
-  # This would call the execute-tasks command
-  # For now, we'll skip actual execution to avoid unintended changes
-  echo -e "${YELLOW}Note: Task execution integration pending${NC}"
-  log_step 4 "Execute Tasks" "complete"
-else
-  echo -e "${YELLOW}Skipping task execution${NC}"
-  log_step 4 "Execute Tasks" "complete"
+  echo -e "${BLUE}Executing tasks from: $TASKS_FILE${NC}"
+  echo ""
+
+  # Execute the task list using Claude Code's /execute-task command
+  # Note: This assumes the /execute-task command exists in .claude/commands/
+  if [ -f ".claude/commands/execute-task.md" ]; then
+    claude /execute-task "$TASKS_FILE"
+
+    if [ $? -eq 0 ]; then
+      log_step 4 "Execute Tasks" "complete"
+      update_step_status "Execute Tasks" "completed"
+    else
+      log_step 4 "Execute Tasks" "error"
+      echo -e "${RED}Task execution failed. Check the output above.${NC}"
+      echo -e "${YELLOW}You can resume later with: claude /execute-task $TASKS_FILE${NC}"
+      update_step_status "Execute Tasks" "failed"
+    fi
+  else
+    echo -e "${YELLOW}Warning: /execute-task command not found in .claude/commands/${NC}"
+    echo -e "${YELLOW}Falling back to manual prompt...${NC}"
+
+    TEMP_PROMPT=$(mktemp)
+    cat > "$TEMP_PROMPT" <<EOF
+Execute the tasks defined in this task list. Follow Test-Driven Development (TDD) methodology:
+1. Write tests first for each task
+2. Implement the code to make tests pass
+3. Refactor as needed
+4. Mark each task as complete when done
+
+Task List:
+$(cat "$TASKS_FILE")
+EOF
+
+    cat "$TEMP_PROMPT" | claude -p
+    rm -f "$TEMP_PROMPT"
+
+    log_step 4 "Execute Tasks" "complete"
+    update_step_status "Execute Tasks" "completed"
+  fi
 fi
 
 # Step 5: Workflow Summary

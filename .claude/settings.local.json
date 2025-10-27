@@ -75,7 +75,16 @@
       "Bash(docker inspect langfuse/langfuse:3)",
       "WebFetch(domain:langfuse.com)",
       "Bash(docker inspect:*)",
-      "Bash(docker pull:*)"
+      "Bash(docker pull:*)",
+      "Bash(bash -n:*)",
+      "Bash(/mnt/c/dev/class-one-rapids/scripts/feature-to-code-unified.sh:*)",
+      "Bash(timeout 5 /mnt/c/dev/class-one-rapids/scripts/feature-to-code-unified.sh:*)",
+      "Bash(pip3 --version:*)",
+      "Bash(python3:*)",
+      "Bash(source venv/bin/activate)",
+      "Bash(pip install:*)",
+      "Bash(source:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []
