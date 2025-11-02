@@ -12,6 +12,7 @@ API Endpoints:
     GET  /workflows/{id}/approvals      - Get pending approvals for workflow
     POST /approvals/approve             - Approve a request (body: {file_path: "..."})
     POST /approvals/reject              - Reject a request (body: {file_path: "...", reason: "..."})
+    POST /approvals/feedback            - Submit feedback (body: {file_path: "...", feedback: {...}})
     GET  /approvals/pending             - Get all pending approvals
     GET  /events                        - SSE endpoint for real-time updates
 """
@@ -354,8 +355,8 @@ class WorkflowManager:
             return False
 
     @staticmethod
-    def reject_request(approval_file: str, reason: str = "Rejected via API") -> bool:
-        """Reject a pending request"""
+    def reject_request(approval_file: str, reason: str = "Rejected via API", feedback: Optional[Dict] = None) -> bool:
+        """Reject a pending request with optional structured feedback"""
         try:
             approval_path = Path(approval_file)
             print(f"[REJECT] Processing: {approval_path}")
@@ -373,7 +374,7 @@ class WorkflowManager:
                 if status != "pending":
                     print(f"[REJECT] ERROR: Request is not pending (status: {status})")
                     return False
-                
+
                 # Extract metadata for Langfuse tracking
                 execution_id = data.get("execution_id", "unknown")
                 checkpoint = data.get("checkpoint", "Unknown")
@@ -389,24 +390,55 @@ class WorkflowManager:
             # Create response file - append .response to full filename
             response_file = Path(str(approval_path) + ".response")
             print(f"[REJECT] Creating response file: {response_file}")
-            
+
+            response_data = {
+                "status": "rejected",
+                "reason": reason,
+                "timestamp": datetime.now().isoformat()
+            }
+
+            # Add structured feedback if provided
+            if feedback:
+                response_data["feedback"] = feedback
+                response_data["specific_issues"] = feedback.get("specific_issues")
+                response_data["missing_elements"] = feedback.get("missing_elements")
+                response_data["suggested_improvements"] = feedback.get("suggested_improvements")
+                response_data["rating"] = feedback.get("rating")
+                print(f"[REJECT] Including structured feedback: {list(feedback.keys())}")
+
             with open(response_file, 'w', encoding='utf-8') as f:
-                json.dump({
-                    "status": "rejected",
-                    "reason": reason,
-                    "timestamp": datetime.now().isoformat()
-                }, f)
+                json.dump(response_data, f, indent=2)
 
             print(f"[REJECT] ✓ Successfully created: {response_file}")
 
-            # Track in Langfuse
+            # Track in Langfuse with enhanced metadata if feedback provided
+            langfuse_metadata = {
+                "reason": reason
+            }
+            if feedback:
+                langfuse_metadata["has_feedback"] = True
+                langfuse_metadata["rating"] = feedback.get("rating")
+                langfuse_metadata["feedback_type"] = "structured"
+
             track_approval_in_langfuse(
                 execution_id=execution_id,
                 checkpoint=checkpoint,
                 status="rejected",
                 duration_seconds=duration_seconds,
-                reason=reason
+                reason=str(langfuse_metadata)
             )
+
+            # Save separate feedback file for easier processing
+            if feedback:
+                feedback_file = approval_path.parent / f".feedback_{checkpoint.replace(' ', '_')}.json"
+                with open(feedback_file, 'w', encoding='utf-8') as f:
+                    json.dump({
+                        "checkpoint": checkpoint,
+                        "execution_id": execution_id,
+                        "timestamp": datetime.now().isoformat(),
+                        "feedback": feedback
+                    }, f, indent=2)
+                print(f"[REJECT] Saved feedback to: {feedback_file}")
 
             # Invalidate caches since approval state changed
             _cache.invalidate("pending_approvals")
@@ -535,16 +567,46 @@ class ApprovalAPIHandler(BaseHTTPRequestHandler):
             if not body or 'file_path' not in body:
                 self.send_error_response("Missing 'file_path' in request body", 400)
                 return
-                
+
             file_path = body['file_path']
             reason = body.get('reason', 'Rejected via API')
+            feedback = body.get('feedback', None)
             print(f"\n[API] Reject request received for: {file_path}")
             print(f"[API] Reason: {reason}")
+            if feedback:
+                print(f"[API] With structured feedback: {list(feedback.keys())}")
 
-            if WorkflowManager.reject_request(file_path, reason):
-                self.send_json_response({"success": True, "message": "Request rejected"})
+            if WorkflowManager.reject_request(file_path, reason, feedback):
+                self.send_json_response({"success": True, "message": "Request rejected with feedback" if feedback else "Request rejected"})
             else:
                 self.send_error_response(f"Failed to reject request: {file_path}", 400)
+
+        # Submit feedback (similar to reject but with richer feedback data)
+        elif path == "/approvals/feedback":
+            if not body or 'file_path' not in body:
+                self.send_error_response("Missing 'file_path' in request body", 400)
+                return
+
+            if 'feedback' not in body:
+                self.send_error_response("Missing 'feedback' object in request body", 400)
+                return
+
+            file_path = body['file_path']
+            feedback = body['feedback']
+            reason = feedback.get('summary', 'Feedback provided via API')
+
+            print(f"\n[API] Feedback submission received for: {file_path}")
+            print(f"[API] Feedback fields: {list(feedback.keys())}")
+
+            # Use reject_request with structured feedback
+            if WorkflowManager.reject_request(file_path, reason, feedback):
+                self.send_json_response({
+                    "success": True,
+                    "message": "Feedback submitted successfully",
+                    "feedback_saved": True
+                })
+            else:
+                self.send_error_response(f"Failed to submit feedback: {file_path}", 400)
 
         else:
             self.send_error_response("Not found", 404)
@@ -588,6 +650,7 @@ API Endpoints:
   GET  /approvals/pending          - Get all pending approvals
   POST /approvals/approve          - Approve a request (JSON body)
   POST /approvals/reject           - Reject a request (JSON body)
+  POST /approvals/feedback         - Submit feedback (JSON body with feedback object)
   GET  /events                     - Real-time updates (SSE)
   GET  /health                     - Health check
 

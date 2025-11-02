@@ -1,1 +1,1 @@
-Use the documentation in /docs/guides/ and /docs/architecture/ to update $ARGUMENTS with appropriate documentation for what its doing. Don't read each file, just make a best guess based on the title. If you're unsure, ask.
+Use the documentation in /docs/guides/ and /docs/architecture/ to update $ARGUMENTS with appropriate documentation for what its doing. Don't read each file, just make a best guess based on the title.

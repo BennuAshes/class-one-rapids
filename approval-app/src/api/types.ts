@@ -69,6 +69,25 @@ export interface ApprovalResponse {
   message: string;
 }
 
+export interface FeedbackData {
+  specific_issues?: string;
+  missing_elements?: string;
+  suggested_improvements?: string;
+  rating?: number;
+  summary?: string;
+}
+
+export interface FeedbackSubmission {
+  file_path: string;
+  feedback: FeedbackData;
+}
+
+export interface FeedbackResponse {
+  success: boolean;
+  message: string;
+  feedback_saved?: boolean;
+}
+
 export interface HealthResponse {
   status: 'healthy' | 'unhealthy';
   port: number;

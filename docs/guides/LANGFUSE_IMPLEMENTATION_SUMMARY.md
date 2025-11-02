@@ -353,7 +353,7 @@ pytest tests/ --cov=scripts --cov-report=html
 export LANGFUSE_PUBLIC_KEY="pk-lf-..."
 export LANGFUSE_SECRET_KEY="sk-lf-..."
 export LANGFUSE_HOST="http://localhost:3000"
-export ANTHROPIC_API_KEY="sk-ant-..."
+# LLM-as-judge uses Claude CLI authentication (no API key needed)
 
 # Start Langfuse
 cd observability

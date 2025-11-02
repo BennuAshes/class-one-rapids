@@ -398,10 +398,10 @@ create_approval_request() {
   local checkpoint=$1
   local file=$2
   local approval_file="$WORK_DIR/.approval_${checkpoint// /_}.json"
-  
+
   local preview_text=$(head -n 20 "$file" 2>/dev/null || echo "")
   local preview_json=$(python3 -c "import json; print(json.dumps('''$preview_text'''))" 2>/dev/null || echo '""')
-  
+
   cat > "$approval_file" << EOF
 {
   "execution_id": "$EXECUTION_ID",
@@ -410,32 +410,144 @@ create_approval_request() {
   "timestamp": "$(date -Iseconds)",
   "status": "pending",
   "timeout_seconds": $APPROVAL_TIMEOUT,
-  "preview": $preview_json
+  "preview": $preview_json,
+  "feedback_requested": true,
+  "feedback_template": {
+    "specific_issues": "What specific issues did you find?",
+    "missing_elements": "What's missing or unclear?",
+    "suggested_improvements": "How should this be improved?",
+    "rating": "Rate the quality (1-5 stars)"
+  }
 }
 EOF
-  
+
   echo "$approval_file"
 }
 
-# Function to wait for approval (simplified version of original)
+# Function to invoke reflect command with feedback
+invoke_reflect_with_feedback() {
+  local checkpoint=$1
+  local feedback_file=$2
+
+  echo -e "${BLUE}========================================${NC}"
+  echo -e "${BLUE}Reflection & Improvement Phase${NC}"
+  echo -e "${BLUE}========================================${NC}"
+
+  # Extract feedback content
+  local feedback_content=$(cat "$feedback_file" 2>/dev/null || echo "{}")
+
+  # Map checkpoint to command file
+  local command_to_improve=""
+  case $checkpoint in
+    "PRD")
+      command_to_improve="prd"
+      ;;
+    "Technical Design")
+      command_to_improve="design"
+      ;;
+    "Task List")
+      command_to_improve="tasks"
+      ;;
+  esac
+
+  # Create a comprehensive feedback message
+  local reflect_input=$(cat <<EOF
+The $checkpoint was rejected with the following feedback:
+
+$feedback_content
+
+Please analyze:
+1. What went wrong in the $command_to_improve command
+2. How the command at .claude/commands/flow/$command_to_improve.md should be improved
+3. Specific changes needed to address the feedback
+
+Focus on making the $command_to_improve command better so it generates higher quality output next time.
+EOF
+)
+
+  # Save reflection input to temp file
+  local reflect_input_file="$WORK_DIR/.reflect_input_${checkpoint// /_}.txt"
+  echo "$reflect_input" > "$reflect_input_file"
+
+  # Call the reflect command
+  echo -e "${YELLOW}Running reflection analysis...${NC}"
+  local reflect_output_file="$WORK_DIR/reflection_${checkpoint// /_}_$(date +%Y%m%d_%H%M%S).md"
+
+  # Invoke reflect command via claude CLI
+  if claude /reflect "$reflect_input_file" > "$reflect_output_file" 2>&1; then
+    echo -e "${GREEN}✓ Reflection complete${NC}"
+    echo -e "  Output saved to: $reflect_output_file"
+
+    # Show summary of reflection
+    echo -e "\n${YELLOW}Reflection Summary:${NC}"
+    head -n 30 "$reflect_output_file"
+    echo -e "${BLUE}...${NC}"
+
+    # Ask if user wants to apply suggestions
+    if [ "$APPROVAL_MODE" = "interactive" ]; then
+      echo ""
+      read -p "Apply suggested improvements to the command? (y/n): " apply_improvements
+
+      if [ "$apply_improvements" = "y" ] || [ "$apply_improvements" = "Y" ]; then
+        echo -e "${YELLOW}Applying improvements...${NC}"
+        # Note: apply-suggestions command will be created later
+        # For now, just log the intent
+        echo "Would invoke: claude /apply-suggestions \"$checkpoint\" \"$reflect_output_file\""
+      fi
+    fi
+  else
+    echo -e "${RED}✗ Reflection command failed${NC}"
+    echo "Error output:"
+    cat "$reflect_output_file" 2>/dev/null || echo "No error output available"
+  fi
+
+  # Update workflow status with feedback information
+  if [ -n "$PYTHON_CMD" ] && [ -f "$WORK_DIR/workflow-status.json" ]; then
+    $PYTHON_CMD -c "
+import json
+try:
+    with open('$WORK_DIR/workflow-status.json', 'r') as f:
+        data = json.load(f)
+
+    # Find the step and add feedback info
+    for step in data.get('steps', []):
+        if step.get('name') == 'Generate $checkpoint':
+            step['feedback_received'] = True
+            step['feedback_file'] = '$feedback_file'
+            step['reflection_file'] = '$reflect_output_file'
+            step['feedback_timestamp'] = '$(date -Iseconds)'
+            break
+
+    with open('$WORK_DIR/workflow-status.json', 'w') as f:
+        json.dump(data, f, indent=2)
+except Exception as e:
+    print(f'Failed to update workflow status: {e}')
+" 2>/dev/null || true
+  fi
+
+  send_telemetry "Reflection" "completed" "{\"checkpoint\": \"$checkpoint\", \"feedback_processed\": true}"
+}
+
+# Function to wait for approval (enhanced with feedback support)
 wait_for_approval() {
   local approval_file=$1
   local checkpoint=$2
-  
+
   echo -e "${YELLOW}Waiting for approval...${NC}"
   echo -e "  Approval file: ${GREEN}$approval_file${NC}"
   echo -e "  To approve: echo '{\"status\":\"approved\"}' > ${approval_file}.response"
   echo -e "  To reject:  echo '{\"status\":\"rejected\"}' > ${approval_file}.response"
+  echo -e "  To reject with feedback: echo '{\"status\":\"rejected\", \"feedback\": {...}}' > ${approval_file}.response"
   echo ""
-  
+
   send_telemetry "Approval Request" "waiting" "{\"checkpoint\": \"$checkpoint\"}"
-  
+
   while true; do
     local response_file="${approval_file}.response"
-    
+
     if [ -f "$response_file" ]; then
       local status=$(python3 -c "import json; print(json.load(open('$response_file')).get('status', 'invalid'))" 2>/dev/null || echo "invalid")
-      
+
       case $status in
         approved)
           echo -e "${GREEN}✓ Approved - continuing workflow${NC}\n"
@@ -443,15 +555,41 @@ wait_for_approval() {
           return 0
           ;;
         rejected)
-          echo -e "${RED}✗ Rejected - workflow stopped${NC}"
-          send_telemetry "Approval" "rejected" "{\"checkpoint\": \"$checkpoint\"}"
+          # Check if feedback was provided
+          local has_feedback=$(python3 -c "import json; print('yes' if 'feedback' in json.load(open('$response_file')) else 'no')" 2>/dev/null || echo "no")
+
+          if [ "$has_feedback" = "yes" ]; then
+            echo -e "${YELLOW}✗ Rejected with feedback - processing feedback...${NC}"
+
+            # Extract and process feedback
+            local feedback=$(python3 -c "import json; print(json.dumps(json.load(open('$response_file')).get('feedback', {})))" 2>/dev/null || echo "{}")
+
+            # Save feedback to a file
+            local feedback_file="$WORK_DIR/.feedback_${checkpoint// /_}.json"
+            echo "$feedback" > "$feedback_file"
+
+            echo -e "${YELLOW}Feedback received:${NC}"
+            echo "$feedback" | python3 -m json.tool 2>/dev/null || echo "$feedback"
+
+            # Invoke reflect command with feedback
+            if [ -f "$feedback_file" ]; then
+              echo -e "\n${YELLOW}Invoking reflection on feedback...${NC}"
+              invoke_reflect_with_feedback "$checkpoint" "$feedback_file"
+            fi
+
+            send_telemetry "Approval" "rejected_with_feedback" "{\"checkpoint\": \"$checkpoint\", \"has_feedback\": true}"
+          else
+            echo -e "${RED}✗ Rejected - workflow stopped${NC}"
+            send_telemetry "Approval" "rejected" "{\"checkpoint\": \"$checkpoint\"}"
+          fi
+
           exit 1
           ;;
       esac
-      
+
       rm -f "$response_file"
     fi
-    
+
     sleep 1
   done
 }
@@ -495,13 +633,41 @@ request_approval() {
       head -n 20 "$file"
       echo -e "${BLUE}----------------------------------------${NC}"
       echo ""
-      
-      read -p "Approve and continue? (y/n): " approval
-      
+
+      read -p "Approve and continue? (y/n/f for feedback): " approval
+
       case $approval in
         y|Y)
           echo -e "${GREEN}✓ Approved - continuing workflow${NC}\n"
           return 0
+          ;;
+        f|F)
+          echo -e "${YELLOW}Please provide feedback:${NC}"
+          echo -n "Specific issues: "
+          read specific_issues
+          echo -n "Missing elements: "
+          read missing_elements
+          echo -n "Suggested improvements: "
+          read suggested_improvements
+          echo -n "Rating (1-5): "
+          read rating
+
+          # Create feedback JSON
+          local feedback_file="$WORK_DIR/.feedback_${checkpoint// /_}.json"
+          cat > "$feedback_file" << EOF
+{
+  "specific_issues": "$specific_issues",
+  "missing_elements": "$missing_elements",
+  "suggested_improvements": "$suggested_improvements",
+  "rating": "$rating",
+  "timestamp": "$(date -Iseconds)"
+}
+EOF
+
+          echo -e "${YELLOW}Processing feedback...${NC}"
+          invoke_reflect_with_feedback "$checkpoint" "$feedback_file"
+          echo -e "${RED}Workflow stopped for improvements${NC}"
+          exit 1
           ;;
         *)
           echo -e "${RED}✗ Rejected - workflow stopped${NC}"
@@ -544,14 +710,14 @@ else
   TEMP_FEATURE_FILE=$(mktemp)
   echo "$FEATURE_DESC" > "$TEMP_FEATURE_FILE"
   
-  # Invoke the /prd command with the feature description
+  # Invoke the /flow:prd command with the feature description
   # The command accepts either inline text or a file path
   if [ "$TELEMETRY_ENABLED" = true ] && [ -f "scripts/claude-with-telemetry.py" ]; then
     # For telemetry, invoke via claude CLI
-    claude /prd "$TEMP_FEATURE_FILE" --output-format stream-json > "$PRD_FILE"
+    claude /flow:prd "$TEMP_FEATURE_FILE" --output-format stream-json --verbose > "$PRD_FILE"
   else
     # Direct invocation of the prd command
-    claude /prd "$TEMP_FEATURE_FILE" --output-format stream-json > "$PRD_FILE"
+    claude /flow:prd "$TEMP_FEATURE_FILE" --output-format stream-json --verbose > "$PRD_FILE"
   fi
   
   rm -f "$TEMP_FEATURE_FILE"
@@ -598,13 +764,13 @@ else
     fi
   fi
   
-  # Use the /design command properly with file path argument
+  # Use the /flow:design command properly with file path argument
   if [ "$TELEMETRY_ENABLED" = true ] && [ -f "scripts/claude-with-telemetry.py" ]; then
     # For telemetry, we need to invoke the command via claude CLI
-    claude /design "$PRD_INPUT" --output-format stream-json > "$DESIGN_FILE"
+    claude /flow:design "$PRD_INPUT" --output-format stream-json --verbose > "$DESIGN_FILE"
   else
     # Direct invocation of the design command
-    claude /design "$PRD_INPUT" --output-format stream-json > "$DESIGN_FILE"
+    claude /flow:design "$PRD_INPUT" --output-format stream-json --verbose > "$DESIGN_FILE"
   fi
   
   if [ $? -eq 0 ]; then
@@ -648,13 +814,13 @@ else
     fi
   fi
   
-  # Use the /tasks command properly with file path argument
+  # Use the /flow:tasks command properly with file path argument
   if [ "$TELEMETRY_ENABLED" = true ] && [ -f "scripts/claude-with-telemetry.py" ]; then
     # For telemetry, we need to invoke the command via claude CLI
-    claude /tasks "$TDD_INPUT" --output-format stream-json > "$TASKS_FILE"
+    claude /flow:tasks "$TDD_INPUT" --output-format stream-json --verbose > "$TASKS_FILE"
   else
     # Direct invocation of the tasks command
-    claude /tasks "$TDD_INPUT" --output-format stream-json > "$TASKS_FILE"
+    claude /flow:tasks "$TDD_INPUT" --output-format stream-json --verbose > "$TASKS_FILE"
   fi
   
   if [ $? -eq 0 ]; then

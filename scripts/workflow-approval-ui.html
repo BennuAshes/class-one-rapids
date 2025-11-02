@@ -185,6 +185,70 @@
         white-space: pre-wrap;
       }
 
+      .feedback-form {
+        background: #f0f4ff;
+        border: 2px solid #667eea;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 15px;
+        display: none;
+      }
+
+      .feedback-form.active {
+        display: block;
+      }
+
+      .feedback-form h3 {
+        margin-bottom: 15px;
+        color: #667eea;
+      }
+
+      .feedback-form textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        font-family: inherit;
+        font-size: 0.95rem;
+        resize: vertical;
+        min-height: 60px;
+      }
+
+      .feedback-form label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #555;
+      }
+
+      .rating-container {
+        display: flex;
+        gap: 10px;
+        margin: 10px 0;
+        align-items: center;
+      }
+
+      .star-rating {
+        display: flex;
+        gap: 5px;
+      }
+
+      .star {
+        font-size: 24px;
+        color: #ddd;
+        cursor: pointer;
+        transition: color 0.2s;
+      }
+
+      .star.filled {
+        color: #ffc107;
+      }
+
+      .star:hover {
+        color: #ffc107;
+      }
+
       .file-info {
         display: flex;
         justify-content: space-between;
@@ -445,12 +509,46 @@
                                 <button class="btn btn-approve" data-action="approve" data-idx="${idx}">
                                     ✓ Approve
                                 </button>
-                                <button class="btn btn-reject" data-action="reject" data-idx="${idx}">
-                                    ✗ Reject
+                                <button class="btn btn-reject" data-action="toggle-feedback" data-idx="${idx}">
+                                    ✗ Reject with Feedback
                                 </button>
                                 <button class="btn btn-view" data-action="view" data-idx="${idx}">
                                     👁 View Full File
                                 </button>
+                            </div>
+
+                            <div class="feedback-form" id="feedback-form-${idx}">
+                                <h3>📝 Provide Feedback</h3>
+
+                                <label for="specific-issues-${idx}">Specific Issues:</label>
+                                <textarea id="specific-issues-${idx}" placeholder="What specific problems did you find?"></textarea>
+
+                                <label for="missing-elements-${idx}">Missing Elements:</label>
+                                <textarea id="missing-elements-${idx}" placeholder="What's missing or unclear?"></textarea>
+
+                                <label for="suggested-improvements-${idx}">Suggested Improvements:</label>
+                                <textarea id="suggested-improvements-${idx}" placeholder="How should this be improved?"></textarea>
+
+                                <label>Rating:</label>
+                                <div class="rating-container">
+                                    <div class="star-rating" data-idx="${idx}">
+                                        <span class="star" data-value="1">★</span>
+                                        <span class="star" data-value="2">★</span>
+                                        <span class="star" data-value="3">★</span>
+                                        <span class="star" data-value="4">★</span>
+                                        <span class="star" data-value="5">★</span>
+                                    </div>
+                                    <span id="rating-text-${idx}">Not rated</span>
+                                </div>
+
+                                <div class="approval-actions" style="margin-top: 15px;">
+                                    <button class="btn btn-reject" data-action="submit-feedback" data-idx="${idx}">
+                                        ✗ Submit Feedback & Reject
+                                    </button>
+                                    <button class="btn btn-view" data-action="cancel-feedback" data-idx="${idx}">
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     `
@@ -611,16 +709,92 @@
         `;
       document.head.appendChild(style);
 
+      // Store ratings
+      window.selectedRatings = {};
+
       // Event delegation for approval buttons
       document
         .getElementById("approvalList")
         .addEventListener("click", function (e) {
           const button = e.target.closest("button[data-action]");
+          const star = e.target.closest(".star");
+
+          // Handle star rating clicks
+          if (star) {
+            const starRating = star.parentElement;
+            const idx = parseInt(starRating.dataset.idx);
+            const value = parseInt(star.dataset.value);
+
+            // Update visual state
+            starRating.querySelectorAll(".star").forEach((s, i) => {
+              s.classList.toggle("filled", i < value);
+            });
+
+            // Store rating
+            window.selectedRatings[idx] = value;
+
+            // Update text
+            const ratingTexts = [
+              "Not rated",
+              "Poor",
+              "Fair",
+              "Good",
+              "Very Good",
+              "Excellent",
+            ];
+            document.getElementById(`rating-text-${idx}`).textContent =
+              ratingTexts[value];
+            return;
+          }
+
           if (!button) return;
 
           const idx = parseInt(button.dataset.idx);
           const action = button.dataset.action;
           const approval = window.currentApprovals[idx];
+
+          if (action === "toggle-feedback") {
+            // Toggle feedback form visibility
+            const feedbackForm = document.getElementById(`feedback-form-${idx}`);
+            feedbackForm.classList.toggle("active");
+            return;
+          }
+
+          if (action === "cancel-feedback") {
+            // Hide feedback form
+            const feedbackForm = document.getElementById(`feedback-form-${idx}`);
+            feedbackForm.classList.remove("active");
+            return;
+          }
+
+          if (action === "submit-feedback") {
+            // Collect feedback and submit
+            const feedback = {
+              specific_issues:
+                document.getElementById(`specific-issues-${idx}`).value || "",
+              missing_elements:
+                document.getElementById(`missing-elements-${idx}`).value || "",
+              suggested_improvements:
+                document.getElementById(`suggested-improvements-${idx}`).value ||
+                "",
+              rating: window.selectedRatings[idx] || 0,
+            };
+
+            if (
+              !feedback.specific_issues &&
+              !feedback.missing_elements &&
+              !feedback.suggested_improvements
+            ) {
+              showNotification(
+                "Please provide at least one feedback field",
+                "error"
+              );
+              return;
+            }
+
+            submitFeedback(approval.file_path, feedback);
+            return;
+          }
 
           if (!approval) {
             console.error("Approval not found for index:", idx);
@@ -635,6 +809,38 @@
             viewFile(approval.file);
           }
         });
+
+      // Function to submit feedback
+      function submitFeedback(filePath, feedback) {
+        fetch(`${apiUrl}/approvals/feedback`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            file_path: filePath,
+            feedback: feedback,
+          }),
+        })
+          .then((response) => response.json())
+          .then((result) => {
+            if (result.success) {
+              showNotification(
+                "✓ Feedback submitted - request rejected",
+                "success"
+              );
+              loadPendingApprovals();
+              loadWorkflows();
+            } else {
+              showNotification(
+                `Failed: ${result.error || "Unknown error"}`,
+                "error"
+              );
+            }
+          })
+          .catch((error) => {
+            console.error("Error submitting feedback:", error);
+            showNotification("Error submitting feedback", "error");
+          });
+      }
 
       // Auto-refresh every 30 seconds as backup
       setInterval(() => {

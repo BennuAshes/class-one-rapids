@@ -10,7 +10,7 @@ Demonstrates how to:
 Prerequisites:
 - Langfuse server running (docker-compose up in observability/)
 - Set LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_HOST env vars
-- Set ANTHROPIC_API_KEY for LLM-as-judge evaluations
+- Claude CLI authenticated (uses local `claude -p` for evaluations)
 """
 
 import sys
@@ -233,4 +233,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 

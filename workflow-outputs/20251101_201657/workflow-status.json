@@ -1,0 +1,18 @@
+{
+  "execution_id": "20251101_201657",
+  "feature_source": "command line",
+  "feature_description": "docsspecssalvage-tinkering-systemsalvage-tinkering-progressive-automation.md",
+  "approval_mode": "file",
+  "telemetry_enabled": true,
+  "auto_extract": true,
+  "status": "initializing",
+  "started_at": "2025-11-01T20:16:57-04:00",
+  "working_directory": "/mnt/c/dev/class-one-rapids/workflow-outputs/20251101_201657",
+  "steps": [
+    {"name": "Generate PRD", "status": "pending"},
+    {"name": "Generate Technical Design", "status": "pending"},
+    {"name": "Generate Task List", "status": "pending"},
+    {"name": "Execute Tasks", "status": "pending"},
+    {"name": "Generate Summary", "status": "pending"}
+  ]
+}

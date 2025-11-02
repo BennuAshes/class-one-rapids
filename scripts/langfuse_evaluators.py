@@ -2,13 +2,15 @@
 Langfuse evaluator functions for artifact quality assessment
 
 Uses LLM-as-judge to evaluate PRDs, Technical Designs, and Task Lists.
+Uses local Claude CLI instead of API keys for authentication.
 """
 
 import json
 import os
+import subprocess
+import tempfile
 from dataclasses import dataclass, asdict
 from typing import Dict, Any, Optional
-import anthropic
 
 from judge_prompts import (
     format_prd_judge_prompt,
@@ -63,58 +65,65 @@ class TasksScore:
 
 def call_llm_judge(prompt: str, model: str = "claude-3-5-sonnet-20241022") -> Dict[str, Any]:
     """
-    Call LLM to evaluate content based on prompt
+    Call LLM to evaluate content based on prompt using Claude CLI
+    
+    Uses the local `claude -p` command instead of API keys, consistent with
+    the feature-to-code workflow's approach.
     
     Args:
         prompt: The evaluation prompt with content
-        model: Model to use for evaluation
+        model: Model to use for evaluation (currently unused, relies on Claude CLI default)
         
     Returns:
         Dictionary with evaluation scores
         
     Raises:
-        Exception: If API call fails or response is invalid
+        Exception: If Claude CLI call fails or response is invalid
     """
-    # Get API key from environment
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise ValueError("ANTHROPIC_API_KEY environment variable not set")
-    
-    # Initialize client
-    client = anthropic.Anthropic(api_key=api_key)
-    
-    # Call API
+    # Use Claude CLI instead of API
     try:
-        message = client.messages.create(
-            model=model,
-            max_tokens=1024,
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3,  # Lower temperature for more consistent evaluations
-        )
+        # Write prompt to a temporary file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8') as f:
+            f.write(prompt)
+            temp_file = f.name
         
-        # Extract response text
-        response_text = message.content[0].text
-        
-        # Parse JSON response
-        # Try to extract JSON from response (in case LLM adds extra text)
-        if "```json" in response_text:
-            # Extract JSON from code block
-            json_start = response_text.find("```json") + 7
-            json_end = response_text.find("```", json_start)
-            json_str = response_text[json_start:json_end].strip()
-        elif "{" in response_text and "}" in response_text:
-            # Extract JSON object
-            json_start = response_text.find("{")
-            json_end = response_text.rfind("}") + 1
-            json_str = response_text[json_start:json_end]
-        else:
-            json_str = response_text
-        
-        result = json.loads(json_str)
-        return result
-        
+        try:
+            # Call Claude CLI with the prompt
+            # Using -p flag to read prompt from file
+            result = subprocess.run(
+                ['claude', '-p', temp_file],
+                capture_output=True,
+                text=True,
+                check=True,
+                encoding='utf-8'
+            )
+            
+            response_text = result.stdout.strip()
+            
+            # Parse JSON response
+            # Try to extract JSON from response (in case LLM adds extra text)
+            if "```json" in response_text:
+                # Extract JSON from code block
+                json_start = response_text.find("```json") + 7
+                json_end = response_text.find("```", json_start)
+                json_str = response_text[json_start:json_end].strip()
+            elif "{" in response_text and "}" in response_text:
+                # Extract JSON object
+                json_start = response_text.find("{")
+                json_end = response_text.rfind("}") + 1
+                json_str = response_text[json_start:json_end]
+            else:
+                json_str = response_text
+            
+            result = json.loads(json_str)
+            return result
+        finally:
+            # Clean up temp file
+            if os.path.exists(temp_file):
+                os.unlink(temp_file)
+                
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"Claude CLI call failed: {e.stderr}")
     except Exception as e:
         raise Exception(f"LLM judge evaluation failed: {str(e)}")
 
@@ -188,4 +197,5 @@ def evaluate_tasks(tasks_content: str, model: str = "claude-3-5-sonnet-20241022"
         overall=result['overall'],
         reasoning=result.get('reasoning')
     )
+
 
