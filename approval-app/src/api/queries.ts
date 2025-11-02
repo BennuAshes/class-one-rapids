@@ -4,7 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { api } from './client';
-import type { Workflow, WorkflowDetail, Approval } from './types';
+import type { Workflow, WorkflowDetail, Approval, FeedbackData } from './types';
 
 /**
  * Query Keys
@@ -121,6 +121,23 @@ export function useRejectRequest() {
   return useMutation({
     mutationFn: ({ filePath, reason }: { filePath: string; reason?: string }) =>
       api.rejectRequest(filePath, reason),
+    onSuccess: () => {
+      // Invalidate all related queries to refetch data
+      queryClient.invalidateQueries({ queryKey: queryKeys.workflows });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pendingApprovals });
+    },
+  });
+}
+
+/**
+ * Submit Feedback Mutation (rejects with feedback)
+ */
+export function useSubmitFeedback() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ filePath, feedback }: { filePath: string; feedback: FeedbackData }) =>
+      api.submitFeedback(filePath, feedback),
     onSuccess: () => {
       // Invalidate all related queries to refetch data
       queryClient.invalidateQueries({ queryKey: queryKeys.workflows });

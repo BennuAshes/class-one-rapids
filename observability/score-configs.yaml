@@ -1,0 +1,118 @@
+# Langfuse Score Configurations
+# This file defines all score configurations for the workflow evaluation system
+# Apply with: python scripts/setup_langfuse_score_configs.py --config observability/score-configs.yaml
+
+# PRD Scores
+prd_scores:
+  - name: prd_completeness
+    dataType: NUMERIC
+    minValue: 0
+    maxValue: 10
+    description: "PRD completeness score - Are all required sections present?"
+
+  - name: prd_clarity
+    dataType: NUMERIC
+    minValue: 0
+    maxValue: 10
+    description: "PRD clarity score - Is the language clear and specific?"
+
+  - name: prd_technical_depth
+    dataType: NUMERIC
+    minValue: 0
+    maxValue: 10
+    description: "PRD technical depth score - Is there sufficient technical detail?"
+
+  - name: prd_overall
+    dataType: CATEGORICAL
+    categories:
+      - excellent
+      - good
+      - needs_improvement
+      - poor
+    description: "Overall PRD quality assessment"
+
+# Design Scores
+design_scores:
+  - name: design_architecture
+    dataType: NUMERIC
+    minValue: 0
+    maxValue: 10
+    description: "Design architecture quality score - System design and component breakdown"
+
+  - name: design_feasibility
+    dataType: NUMERIC
+    minValue: 0
+    maxValue: 10
+    description: "Design feasibility score - Implementation practicality"
+
+  - name: design_completeness
+    dataType: NUMERIC
+    minValue: 0
+    maxValue: 10
+    description: "Design completeness score - All design elements present"
+
+  - name: design_has_security
+    dataType: BOOLEAN
+    description: "Design has security section - true if security section exists"
+
+  - name: design_overall
+    dataType: CATEGORICAL
+    categories:
+      - excellent
+      - good
+      - needs_improvement
+      - poor
+    description: "Overall Design quality assessment"
+
+# Tasks Scores
+tasks_scores:
+  - name: tasks_actionability
+    dataType: NUMERIC
+    minValue: 0
+    maxValue: 10
+    description: "Tasks actionability score - Tasks are specific and executable"
+
+  - name: tasks_completeness
+    dataType: NUMERIC
+    minValue: 0
+    maxValue: 10
+    description: "Tasks completeness score - All aspects covered"
+
+  - name: tasks_clarity
+    dataType: NUMERIC
+    minValue: 0
+    maxValue: 10
+    description: "Tasks clarity score - Descriptions are clear"
+
+  - name: tasks_has_criteria
+    dataType: BOOLEAN
+    description: "Tasks have acceptance criteria - true if criteria are defined"
+
+  - name: tasks_overall
+    dataType: CATEGORICAL
+    categories:
+      - excellent
+      - good
+      - needs_improvement
+      - poor
+    description: "Overall Tasks quality assessment"
+
+# Approval Scores
+approval_scores:
+  - name: approval_prd
+    dataType: NUMERIC
+    minValue: 0.0
+    maxValue: 1.0
+    description: "PRD approval decision - 1.0 = approved, 0.0 = rejected"
+
+  - name: approval_design
+    dataType: NUMERIC
+    minValue: 0.0
+    maxValue: 1.0
+    description: "Design approval decision - 1.0 = approved, 0.0 = rejected"
+
+  - name: approval_tasks
+    dataType: NUMERIC
+    minValue: 0.0
+    maxValue: 1.0
+    description: "Tasks approval decision - 1.0 = approved, 0.0 = rejected"

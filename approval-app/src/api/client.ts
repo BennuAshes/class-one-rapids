@@ -9,6 +9,8 @@ import type {
   Approval,
   ApprovalResponse,
   HealthResponse,
+  FeedbackData,
+  FeedbackResponse,
 } from './types';
 
 const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl || 'http://localhost:8080';
@@ -112,11 +114,11 @@ export const api = {
    * Approve a request
    */
   async approveRequest(filePath: string): Promise<ApprovalResponse> {
-    const encodedPath = btoa(filePath);
     const response = await fetchWithTimeout(
-      `${API_BASE_URL}/approvals/${encodedPath}/approve`,
+      `${API_BASE_URL}/approvals/approve`,
       {
         method: 'POST',
+        body: JSON.stringify({ file_path: filePath }),
       }
     );
     return handleResponse<ApprovalResponse>(response);
@@ -126,15 +128,34 @@ export const api = {
    * Reject a request
    */
   async rejectRequest(filePath: string, reason?: string): Promise<ApprovalResponse> {
-    const encodedPath = btoa(filePath);
     const response = await fetchWithTimeout(
-      `${API_BASE_URL}/approvals/${encodedPath}/reject`,
+      `${API_BASE_URL}/approvals/reject`,
       {
         method: 'POST',
-        body: JSON.stringify({ reason: reason || 'Rejected via mobile app' }),
+        body: JSON.stringify({
+          file_path: filePath,
+          reason: reason || 'Rejected via mobile app'
+        }),
       }
     );
     return handleResponse<ApprovalResponse>(response);
+  },
+
+  /**
+   * Submit feedback for a request (rejects with feedback)
+   */
+  async submitFeedback(filePath: string, feedback: FeedbackData): Promise<FeedbackResponse> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/approvals/feedback`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          file_path: filePath,
+          feedback: feedback
+        }),
+      }
+    );
+    return handleResponse<FeedbackResponse>(response);
   },
 };
 

@@ -12,10 +12,17 @@ interface ApprovalCardProps {
   approval: Approval;
   onApprove: () => void;
   onReject: () => void;
+  onProvideFeedback?: () => void;
   isLoading?: boolean;
 }
 
-export function ApprovalCard({ approval, onApprove, onReject, isLoading }: ApprovalCardProps) {
+export function ApprovalCard({
+  approval,
+  onApprove,
+  onReject,
+  onProvideFeedback,
+  isLoading
+}: ApprovalCardProps) {
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -117,16 +124,29 @@ export function ApprovalCard({ approval, onApprove, onReject, isLoading }: Appro
           >
             Approve
           </Button>
-          <Button
-            mode="contained"
-            icon="close"
-            onPress={onReject}
-            disabled={isLoading || isExpired}
-            style={[styles.button, styles.rejectButton]}
-            labelStyle={styles.buttonLabel}
-          >
-            Reject
-          </Button>
+          {onProvideFeedback ? (
+            <Button
+              mode="contained"
+              icon="message-text"
+              onPress={onProvideFeedback}
+              disabled={isLoading || isExpired}
+              style={[styles.button, styles.feedbackButton]}
+              labelStyle={styles.buttonLabel}
+            >
+              Feedback
+            </Button>
+          ) : (
+            <Button
+              mode="contained"
+              icon="close"
+              onPress={onReject}
+              disabled={isLoading || isExpired}
+              style={[styles.button, styles.rejectButton]}
+              labelStyle={styles.buttonLabel}
+            >
+              Reject
+            </Button>
+          )}
         </View>
       </Card.Content>
     </Card>
@@ -210,6 +230,9 @@ const styles = StyleSheet.create({
   },
   rejectButton: {
     backgroundColor: '#F44336',
+  },
+  feedbackButton: {
+    backgroundColor: '#FF9800',
   },
   buttonLabel: {
     fontSize: 12,

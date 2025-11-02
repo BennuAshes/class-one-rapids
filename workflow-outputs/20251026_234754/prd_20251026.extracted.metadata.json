@@ -1,9 +1,0 @@
-{
-  "session_id": "6cc9b5ae-8057-4520-ac16-06053202db01",
-  "execution_id": null,
-  "model": "claude-sonnet-4-5-20250929",
-  "total_cost_usd": null,
-  "total_tokens": 0,
-  "duration_ms": null,
-  "generated_file": "/mnt/c/dev/class-one-rapids/docs/specs/salvage-tinkering-system/prd_salvage_tinkering_progressive_automation_20251026.md"
-}

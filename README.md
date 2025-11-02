@@ -8,7 +8,7 @@ There are many CLI systems and now IDEs that let you build an app by creating re
 
 ## How This System Was Built
 
-**The Process:**
+**The High Level Process:**
 
 1. **Built the `/research` command** - Created a tool for deep research and knowledge synthesis
 2. **Used research to build more commands** - Created `/prd`, `/design`, and `/tasks` commands informed by research
@@ -88,3 +88,4 @@ For Expo and Jest configuration details, see [EXPO_JEST_SETUP.md](EXPO_JEST_SETU
 # Thoughts
 - I want to have LLM automatically analyze each prompt/response and subsquent followup/response until the chain stops with an LLM response only.
 - replace human approval method in new full flow script w/ telemtry to be apart of a UX we build just for this
+- Abstract things enough that we can sub out claude for cursor cli, codex, auggie, etc

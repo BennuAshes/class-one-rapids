@@ -6,10 +6,11 @@
 import React, { useState } from 'react';
 import { StyleSheet, FlatList, RefreshControl, View } from 'react-native';
 import { Appbar, Dialog, Portal, Button, TextInput, Snackbar, ActivityIndicator } from 'react-native-paper';
-import { usePendingApprovals, useApproveRequest, useRejectRequest } from '../api/queries';
+import { usePendingApprovals, useApproveRequest, useRejectRequest, useSubmitFeedback } from '../api/queries';
 import { ApprovalCard } from '../components/ApprovalCard';
 import { EmptyState } from '../components/EmptyState';
-import type { Approval } from '../api/types';
+import { FeedbackModal } from '../components/FeedbackModal';
+import type { Approval, FeedbackData } from '../api/types';
 
 export function ApprovalsScreen() {
   const {
@@ -23,8 +24,10 @@ export function ApprovalsScreen() {
 
   const approveMutation = useApproveRequest();
   const rejectMutation = useRejectRequest();
+  const feedbackMutation = useSubmitFeedback();
 
   const [rejectDialogVisible, setRejectDialogVisible] = useState(false);
+  const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
   const [selectedApproval, setSelectedApproval] = useState<Approval | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -65,13 +68,37 @@ export function ApprovalsScreen() {
     }
   };
 
+  const handleProvideFeedback = (approval: Approval) => {
+    setSelectedApproval(approval);
+    setFeedbackModalVisible(true);
+  };
+
+  const handleSubmitFeedback = async (feedback: FeedbackData) => {
+    if (!selectedApproval) return;
+
+    try {
+      await feedbackMutation.mutateAsync({
+        filePath: selectedApproval.file_path,
+        feedback: feedback,
+      });
+      setSnackbarMessage(`✓ Feedback submitted for: ${selectedApproval.checkpoint}`);
+      setSnackbarVisible(true);
+      setFeedbackModalVisible(false);
+      setSelectedApproval(null);
+    } catch (err) {
+      setSnackbarMessage(`Failed to submit feedback: ${(err as Error).message}`);
+      setSnackbarVisible(true);
+    }
+  };
+
   const renderApproval = ({ item }: { item: Approval }) => (
     <ApprovalCard
       approval={item}
       onApprove={() => handleApprove(item)}
       onReject={() => handleReject(item)}
+      onProvideFeedback={() => handleProvideFeedback(item)}
       isLoading={
-        (approveMutation.isPending || rejectMutation.isPending) &&
+        (approveMutation.isPending || rejectMutation.isPending || feedbackMutation.isPending) &&
         (selectedApproval?.file_path === item.file_path)
       }
     />
@@ -132,6 +159,20 @@ export function ApprovalsScreen() {
             </Button>
           </Dialog.Actions>
         </Dialog>
+
+        {selectedApproval && (
+          <FeedbackModal
+            visible={feedbackModalVisible}
+            onDismiss={() => {
+              setFeedbackModalVisible(false);
+              setSelectedApproval(null);
+            }}
+            onSubmit={handleSubmitFeedback}
+            checkpoint={selectedApproval.checkpoint}
+            executionId={selectedApproval.execution_id}
+            loading={feedbackMutation.isPending}
+          />
+        )}
       </Portal>
 
       <Snackbar

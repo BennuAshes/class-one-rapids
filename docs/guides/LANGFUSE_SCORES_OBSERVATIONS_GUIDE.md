@@ -55,12 +55,13 @@ Workflow Execution
    export LANGFUSE_PUBLIC_KEY="pk-lf-..."
    export LANGFUSE_SECRET_KEY="sk-lf-..."
    export LANGFUSE_HOST="http://localhost:3000"
-   export ANTHROPIC_API_KEY="sk-ant-..."  # For LLM-as-judge
+   # LLM-as-judge uses Claude CLI authentication (no API key needed)
    ```
 
 3. **Dependencies Installed**:
    ```bash
-   pip install langfuse anthropic
+   pip install langfuse
+   # Claude CLI must be installed and authenticated separately
    ```
 
 ### Run Examples
@@ -145,30 +146,66 @@ prompt = format_prd_judge_prompt(prd_content)
 response = llm.complete(prompt)
 ```
 
-### Score Configuration in Langfuse UI
+### Score Configuration
 
-Create score configurations in Langfuse UI (Settings → Score Configs):
+Score configurations define the structure and validation rules for scores. You can set them up in **three ways**:
+
+#### Method 1: Configuration File (Recommended) ✅
+
+```bash
+# Apply all score configs from YAML file
+python scripts/setup_langfuse_score_configs.py
+```
+
+The YAML file (`observability/score-configs.yaml`) contains all score definitions and is version-controlled. **This is the recommended approach.**
+
+#### Method 2: Python API
+
+```python
+import requests
+
+response = requests.post(
+    f"{LANGFUSE_HOST}/api/public/score-configs",
+    json={
+        "name": "prd_completeness",
+        "dataType": "NUMERIC",
+        "minValue": 0,
+        "maxValue": 10,
+        "description": "PRD completeness score"
+    },
+    auth=(LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY)
+)
+```
+
+#### Method 3: Langfuse UI
+
+Navigate to: **Settings → Score Configs → Create Score Config**
+
+---
+
+**📖 See [SCORE_CONFIG_SETUP.md](./SCORE_CONFIG_SETUP.md) for detailed setup instructions.**
+
+---
+
+#### Available Score Configurations
 
 **Numeric Scores** (0-10 scale):
 
-- `prd_completeness`
-- `prd_clarity`
-- `prd_technical_depth`
-- `design_architecture`
-- `design_feasibility`
-- `design_completeness`
-- `tasks_actionability`
-- `tasks_completeness`
-- `tasks_clarity`
+- `prd_completeness`, `prd_clarity`, `prd_technical_depth`
+- `design_architecture`, `design_feasibility`, `design_completeness`
+- `tasks_actionability`, `tasks_completeness`, `tasks_clarity`
 
 **Categorical Scores**:
 
-- `overall_quality`: excellent | good | needs_improvement | poor
+- `prd_overall`, `design_overall`, `tasks_overall`: excellent | good | needs_improvement | poor
 
 **Boolean Scores**:
 
-- `design_has_security`
-- `tasks_has_criteria`
+- `design_has_security`, `tasks_has_criteria`
+
+**Approval Scores** (0.0/1.0):
+
+- `approval_prd`, `approval_design`, `approval_tasks`
 
 ## Observations System
 
@@ -421,9 +458,9 @@ langfuse.flush()
 
 **Check**:
 
-1. `ANTHROPIC_API_KEY` is set
-2. LLM model is available (default: `claude-3-5-sonnet-20241022`)
-3. Artifact content is not empty
+1. Claude CLI is authenticated and available (`claude --version`)
+2. Artifact content is not empty
+3. Langfuse credentials are set (for logging scores)
 
 **Debug**:
 
