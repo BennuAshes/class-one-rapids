@@ -8,6 +8,7 @@ import { StyleSheet, View } from 'react-native';
 import { Card, Text, Button, IconButton } from 'react-native-paper';
 import type { Approval } from '../api/types';
 import { FileChangesViewer } from './FileChangesViewer';
+import { FullFileModal } from './FullFileModal';
 
 interface ApprovalCardProps {
   approval: Approval;
@@ -26,6 +27,7 @@ export function ApprovalCard({
 }: ApprovalCardProps) {
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showFileModal, setShowFileModal] = useState(false);
 
   useEffect(() => {
     const calculateTimeRemaining = () => {
@@ -227,7 +229,24 @@ export function ApprovalCard({
             </Button>
           )}
         </View>
+
+        <Button
+          mode="outlined"
+          icon="eye"
+          onPress={() => setShowFileModal(true)}
+          disabled={isLoading || isExpired}
+          style={styles.viewFileButton}
+          labelStyle={styles.viewFileButtonLabel}
+        >
+          👁 View Full File
+        </Button>
       </Card.Content>
+
+      <FullFileModal
+        visible={showFileModal}
+        filePath={approval.file}
+        onDismiss={() => setShowFileModal(false)}
+      />
     </Card>
   );
 }
@@ -435,5 +454,15 @@ const styles = StyleSheet.create({
     color: '#777',
     fontStyle: 'italic',
     fontSize: 12,
+  },
+  viewFileButton: {
+    marginTop: 12,
+    borderColor: '#667eea',
+    borderWidth: 1.5,
+  },
+  viewFileButtonLabel: {
+    color: '#667eea',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

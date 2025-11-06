@@ -89,7 +89,8 @@
       "Bash(claude /flow:prd /tmp/test-feature.md)",
       "Bash(claude /flow:prd /tmp/test-feature-2.md)",
       "Bash(claude /flow:execute-task)",
-      "Bash(claude /flow:prd --output-format stream-json)"
+      "Bash(claude /flow:prd --output-format stream-json)",
+      "Bash(env)"
     ],
     "deny": [],
     "ask": []

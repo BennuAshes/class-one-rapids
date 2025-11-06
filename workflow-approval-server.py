@@ -25,7 +25,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 import threading
 
 # Try to import Langfuse for tracking approvals
@@ -470,13 +470,65 @@ class ApprovalAPIHandler(BaseHTTPRequestHandler):
         """Send error response"""
         self.send_json_response({"error": message}, status)
 
+    def send_html_file(self, file_path: Path):
+        """Send HTML file"""
+        try:
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            with open(file_path, 'rb') as f:
+                self.wfile.write(f.read())
+        except Exception as e:
+            print(f"[ERROR] Failed to serve HTML: {e}")
+            self.send_error_response(f"Failed to serve HTML: {str(e)}", 500)
+
     def do_GET(self):
         """Handle GET requests"""
         parsed_path = urlparse(self.path)
         path = parsed_path.path
 
+        # Root endpoint - Serve HTML UI
+        if path == "/" or path == "":
+            ui_file = Path(__file__).parent / "workflow-approval-ui.html"
+            if ui_file.exists():
+                self.send_html_file(ui_file)
+            else:
+                self.send_error_response("UI file not found", 404)
+
+        # API information endpoint
+        elif path == "/api" or path == "/api/":
+            self.send_json_response({
+                "name": "Workflow Approval API Server",
+                "version": "1.0.0",
+                "status": "running",
+                "endpoints": {
+                    "workflows": {
+                        "GET /workflows": "List all workflows",
+                        "GET /workflows/{id}": "Get workflow details",
+                        "GET /workflows/{id}/approvals": "Get workflow approvals"
+                    },
+                    "approvals": {
+                        "GET /approvals/pending": "Get all pending approvals",
+                        "POST /approvals/approve": "Approve a request (body: {file_path: '...'})",
+                        "POST /approvals/reject": "Reject a request (body: {file_path: '...', reason: '...', feedback: {...}})",
+                        "POST /approvals/feedback": "Submit feedback (body: {file_path: '...', feedback: {...}})"
+                    },
+                    "files": {
+                        "GET /files/read?path={path}": "Read file contents"
+                    },
+                    "realtime": {
+                        "GET /events": "Server-Sent Events for real-time updates"
+                    },
+                    "system": {
+                        "GET /health": "Health check"
+                    }
+                },
+                "documentation": "See README.md for detailed API documentation"
+            })
+
         # List all workflows
-        if path == "/workflows":
+        elif path == "/workflows":
             workflows = WorkflowManager.list_workflows()
             self.send_json_response(workflows)
 
@@ -524,6 +576,48 @@ class ApprovalAPIHandler(BaseHTTPRequestHandler):
                     time.sleep(2)
             except (ConnectionAbortedError, BrokenPipeError, ConnectionResetError):
                 pass  # Client disconnected - this is normal
+
+        # Read file contents
+        elif path == "/files/read":
+            # Get file path from query parameter
+            query_params = parse_qs(parsed_path.query)
+            file_path_param = query_params.get('path', [None])[0]
+
+            if not file_path_param:
+                self.send_error_response("Missing 'path' query parameter", 400)
+                return
+
+            try:
+                # Resolve the file path
+                file_path = Path(file_path_param)
+
+                # Security: Only allow reading files within workflow directory or if absolute path exists
+                if not file_path.is_absolute():
+                    file_path = WORKFLOW_DIR / file_path
+
+                if not file_path.exists():
+                    self.send_error_response(f"File not found: {file_path}", 404)
+                    return
+
+                if not file_path.is_file():
+                    self.send_error_response(f"Not a file: {file_path}", 400)
+                    return
+
+                # Read file contents
+                with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+                    content = f.read()
+
+                # Return file info and content
+                self.send_json_response({
+                    "success": True,
+                    "file_path": str(file_path),
+                    "size": file_path.stat().st_size,
+                    "content": content
+                })
+
+            except Exception as e:
+                print(f"[ERROR] Failed to read file: {e}")
+                self.send_error_response(f"Failed to read file: {str(e)}", 500)
 
         # Health check
         elif path == "/health":

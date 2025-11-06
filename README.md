@@ -90,3 +90,8 @@ For Expo and Jest configuration details, see [EXPO_JEST_SETUP.md](EXPO_JEST_SETU
 - replace human approval method in new full flow script w/ telemtry to be apart of a UX we build just for this
 - Abstract things enough that we can sub out claude for cursor cli, codex, auggie, etc
 - This readme abstracted out such that its a list of features/apps/modules pointing to other readmes with more information on specific topics
+
+## Known TODOs
+- approval app hasn't been well tested
+- I want a more streamlined funnel going from idea to approval
+    - off the cuff requests that need approval that have their own flow or no flow (just a prompt, maybe with standard context)
