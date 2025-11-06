@@ -39,6 +39,10 @@ EXTRACT_TO_SPECS=$( [ "${SKIP_SPECS_COPY:-0}" = "1" ] && echo "false" || echo "t
 APPROVAL_MODE="${APPROVAL_MODE:-file}"
 APPROVAL_TIMEOUT="${APPROVAL_TIMEOUT:-0}"
 WEBHOOK_URL="${WEBHOOK_URL:-}"
+AUTO_APPLY_FEEDBACK="${AUTO_APPLY_FEEDBACK:-false}"
+AUTO_RETRY_AFTER_FEEDBACK="${AUTO_RETRY_AFTER_FEEDBACK:-false}"
+SHOW_FILE_CHANGES="${SHOW_FILE_CHANGES:-true}"
+REQUIRE_COMMAND_APPROVAL="${REQUIRE_COMMAND_APPROVAL:-true}"
 
 # Validate input
 if [ -z "$INPUT" ]; then
@@ -110,6 +114,9 @@ echo -e "Timestamp: ${GREEN}$TIMESTAMP${NC}"
 echo -e "Telemetry: ${GREEN}$([ "$TELEMETRY_ENABLED" = true ] && echo "ENABLED" || echo "DISABLED")${NC}"
 echo -e "Auto-Extract: ${GREEN}$([ "$AUTO_EXTRACT" = true ] && echo "YES" || echo "NO")${NC}"
 echo -e "Approval Mode: ${GREEN}$APPROVAL_MODE${NC}"
+echo -e "Auto-Apply Feedback: ${GREEN}$([ "$AUTO_APPLY_FEEDBACK" = true ] && echo "ENABLED" || echo "DISABLED")${NC}"
+echo -e "Command Approval Required: ${GREEN}$([ "$REQUIRE_COMMAND_APPROVAL" = true ] && echo "YES" || echo "NO")${NC}"
+echo -e "File Change Tracking: ${GREEN}$([ "$SHOW_FILE_CHANGES" = true ] && echo "ENABLED" || echo "DISABLED")${NC}"
 echo -e "${BLUE}========================================${NC}\n"
 
 # Function to send telemetry if enabled
@@ -393,6 +400,109 @@ log_step() {
   fi
 }
 
+# Function to capture git changes for file tracking
+capture_git_changes() {
+  local work_dir=$1
+
+  # Initialize git if not already initialized
+  if [ ! -d "$work_dir/.git" ]; then
+    git -C "$work_dir" init -q > /dev/null 2>&1
+    git -C "$work_dir" config user.name "Workflow" > /dev/null 2>&1
+    git -C "$work_dir" config user.email "workflow@localhost" > /dev/null 2>&1
+    git -C "$work_dir" add -A > /dev/null 2>&1
+    git -C "$work_dir" commit -q -m "Initial workflow state" > /dev/null 2>&1
+  fi
+
+  # Capture current git status
+  local status_output=$(git -C "$work_dir" status --porcelain 2>/dev/null || echo "")
+  local diff_output=$(git -C "$work_dir" diff HEAD 2>/dev/null || echo "")
+
+  # Parse status into JSON array of changed files using Python
+  local changed_files=""
+  if [ -n "$PYTHON_CMD" ]; then
+    changed_files=$(echo "$status_output" | $PYTHON_CMD -c '
+import sys
+import json
+
+files = []
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    status_code = line[:2].strip()
+    filepath = line[3:]
+
+    file_status = "modified"
+    if status_code in ["??", "A"]:
+        file_status = "created"
+    elif status_code == "D":
+        file_status = "deleted"
+    elif status_code == "M":
+        file_status = "modified"
+
+    files.append({
+        "path": filepath,
+        "status": file_status
+    })
+
+print(json.dumps(files))
+' 2>/dev/null || echo '[]')
+  else
+    # Fallback if Python not available
+    changed_files='[]'
+  fi
+
+  # Build file tree structure
+  local file_tree=""
+  if [ -n "$PYTHON_CMD" ] && [ "$changed_files" != "[]" ]; then
+    file_tree=$(echo "$changed_files" | $PYTHON_CMD -c '
+import json
+import sys
+
+try:
+    files = json.loads(sys.stdin.read())
+except:
+    files = []
+
+tree = {}
+
+for file_obj in files:
+    parts = file_obj["path"].split("/")
+    current = tree
+
+    for i, part in enumerate(parts):
+        if part not in current:
+            if i == len(parts) - 1:
+                # It is a file
+                current[part] = {"type": "file", "status": file_obj["status"]}
+            else:
+                # It is a directory
+                current[part] = {"type": "directory", "children": {}}
+        if "children" in current.get(part, {}):
+            current = current[part]["children"]
+
+def dict_to_list(d):
+    result = []
+    for name, data in d.items():
+        node = {"name": name, "type": data["type"]}
+        if "children" in data:
+            node["children"] = dict_to_list(data["children"])
+        if "status" in data:
+            node["status"] = data["status"]
+        result.append(node)
+    return result
+
+print(json.dumps(dict_to_list(tree)))
+' 2>/dev/null || echo '[]')
+  else
+    # Fallback if Python not available or no files
+    file_tree='[]'
+  fi
+
+  # Return results separated by a delimiter
+  echo "${changed_files}|||${diff_output}|||${file_tree}"
+}
+
 # Function to create approval request (keeping original functionality)
 create_approval_request() {
   local checkpoint=$1
@@ -401,6 +511,35 @@ create_approval_request() {
 
   local preview_text=$(head -n 20 "$file" 2>/dev/null || echo "")
   local preview_json=$(python3 -c "import json; print(json.dumps('''$preview_text'''))" 2>/dev/null || echo '""')
+
+  # Capture file changes if enabled
+  local changed_files_json='[]'
+  local git_diff_json='""'
+  local file_tree_json='[]'
+
+  if [ "$SHOW_FILE_CHANGES" = "true" ]; then
+    local git_changes=$(capture_git_changes "$WORK_DIR")
+
+    # Split the results using ||| delimiter
+    IFS='|||' read -r changed_files diff_output file_tree <<< "$git_changes"
+
+    # Escape for JSON (already JSON from Python)
+    changed_files_json="${changed_files:-[]}"
+    file_tree_json="${file_tree:-[]}"
+
+    # Escape diff output for JSON
+    if [ -n "$PYTHON_CMD" ] && [ -n "$diff_output" ]; then
+      git_diff_json=$(echo "$diff_output" | $PYTHON_CMD -c "import sys, json; print(json.dumps(sys.stdin.read()))" 2>/dev/null || echo '""')
+    else
+      git_diff_json='""'
+    fi
+
+    # Commit changes to track for next checkpoint
+    if [ -d "$WORK_DIR/.git" ]; then
+      git -C "$WORK_DIR" add -A > /dev/null 2>&1
+      git -C "$WORK_DIR" commit -q -m "Checkpoint: $checkpoint" > /dev/null 2>&1 || true
+    fi
+  fi
 
   cat > "$approval_file" << EOF
 {
@@ -411,6 +550,9 @@ create_approval_request() {
   "status": "pending",
   "timeout_seconds": $APPROVAL_TIMEOUT,
   "preview": $preview_json,
+  "changed_files": $changed_files_json,
+  "git_diff": $git_diff_json,
+  "file_tree": $file_tree_json,
   "feedback_requested": true,
   "feedback_template": {
     "specific_issues": "What specific issues did you find?",
@@ -422,6 +564,310 @@ create_approval_request() {
 EOF
 
   echo "$approval_file"
+}
+
+# Function to generate proposed command changes (dry-run apply-reflect)
+generate_proposed_command_changes() {
+  local checkpoint=$1
+  local reflection_file=$2
+  local command_file=""
+
+  # Map checkpoint to command file
+  case $checkpoint in
+    "PRD")
+      command_file="prd.md"
+      ;;
+    "Technical Design")
+      command_file="design.md"
+      ;;
+    "Task List")
+      command_file="tasks.md"
+      ;;
+    *)
+      echo -e "${RED}Error: Unknown checkpoint for command improvement: $checkpoint${NC}"
+      return 1
+      ;;
+  esac
+
+  echo -e "${BLUE}Generating proposed command changes...${NC}"
+
+  # Create temporary file for proposed changes
+  local proposed_file="$WORK_DIR/.claude_commands_flow_${command_file}.proposed"
+  local original_file=".claude/commands/flow/$command_file"
+
+  # Check if original command file exists
+  if [ ! -f "$original_file" ]; then
+    echo -e "${RED}Error: Command file not found: $original_file${NC}"
+    return 1
+  fi
+
+  # Run apply-reflect to generate proposed changes (save to temp file)
+  # We'll simulate this by copying the existing file and noting that actual apply-reflect would modify it
+  cp "$original_file" "$proposed_file" 2>/dev/null || {
+    echo -e "${RED}Error: Could not create proposed file${NC}"
+    return 1
+  }
+
+  # Actually run apply-reflect to the proposed file
+  echo -e "${YELLOW}Running apply-reflect in dry-run mode...${NC}"
+
+  # Create a temporary script to apply changes to proposed file
+  local apply_output="$WORK_DIR/apply_reflect_dryrun_$(date +%Y%m%d_%H%M%S).log"
+
+  # We need to temporarily copy the proposed file to the actual location,
+  # run apply-reflect, then move it back to proposed
+  cp "$original_file" "$original_file.backup_dryrun" 2>/dev/null
+  cp "$proposed_file" "$original_file" 2>/dev/null
+
+  # Run apply-reflect
+  if claude /flow:apply-reflect "$checkpoint" "$reflection_file" > "$apply_output" 2>&1; then
+    # Move the modified file to proposed location
+    mv "$original_file" "$proposed_file" 2>/dev/null
+    # Restore original
+    mv "$original_file.backup_dryrun" "$original_file" 2>/dev/null
+
+    echo -e "${GREEN}✓ Proposed changes generated${NC}"
+  else
+    # Restore original on failure
+    mv "$original_file.backup_dryrun" "$original_file" 2>/dev/null
+    echo -e "${RED}✗ Failed to generate proposed changes${NC}"
+    return 1
+  fi
+
+  # Generate diff between original and proposed
+  local diff_output=$(diff -u "$original_file" "$proposed_file" 2>/dev/null || true)
+
+  if [ -z "$diff_output" ]; then
+    echo -e "${YELLOW}No changes would be made to the command file${NC}"
+    rm -f "$proposed_file"
+    return 1
+  fi
+
+  # Extract change summary from reflection file
+  local change_summary=""
+  if [ -f "$reflection_file" ] && [ -n "$PYTHON_CMD" ]; then
+    change_summary=$($PYTHON_CMD -c "
+import re
+
+with open('$reflection_file', 'r') as f:
+    content = f.read()
+
+# Extract specific changes or improvements mentioned
+changes = []
+patterns = [
+    r'Specific changes:.*?(?=\n\n|\Z)',
+    r'Changes to make:.*?(?=\n\n|\Z)',
+    r'Improvements:.*?(?=\n\n|\Z)',
+    r'\d+\.\s+.*?(?=\n\d+\.|\n\n|\Z)'
+]
+
+for pattern in patterns:
+    matches = re.findall(pattern, content, re.DOTALL | re.MULTILINE)
+    if matches:
+        changes.extend([m.strip() for m in matches[:3]])  # Limit to 3 items
+        break
+
+if not changes:
+    # Fallback: get first few lines after 'Specific' or 'Changes'
+    lines = content.split('\n')
+    for i, line in enumerate(lines):
+        if 'specific' in line.lower() or 'changes' in line.lower():
+            changes = lines[i+1:i+4]
+            break
+
+# Clean and format
+changes = [c.strip('- ').strip() for c in changes if c.strip()][:3]
+print('\\n'.join(changes))
+" 2>/dev/null || echo "")
+  fi
+
+  # Return paths and diff
+  echo "$proposed_file|||$diff_output|||$change_summary|||$command_file"
+}
+
+# Function to create command improvement approval request
+create_command_improvement_approval() {
+  local original_checkpoint=$1
+  local reflection_file=$2
+  local proposed_file=$3
+  local diff_output=$4
+  local change_summary=$5
+  local command_file=$6
+
+  local approval_file="$WORK_DIR/.approval_Command_Improvements_${original_checkpoint// /_}.json"
+
+  # Escape the diff for JSON
+  local diff_json=""
+  if [ -n "$PYTHON_CMD" ] && [ -n "$diff_output" ]; then
+    diff_json=$(echo "$diff_output" | $PYTHON_CMD -c "import sys, json; print(json.dumps(sys.stdin.read()))" 2>/dev/null || echo '""')
+  else
+    diff_json='""'
+  fi
+
+  # Create preview from reflection file
+  local preview_text=""
+  if [ -f "$reflection_file" ]; then
+    preview_text=$(head -n 30 "$reflection_file" 2>/dev/null || echo "")
+  fi
+  local preview_json=""
+  if [ -n "$PYTHON_CMD" ] && [ -n "$preview_text" ]; then
+    preview_json=$(echo "$preview_text" | $PYTHON_CMD -c "import sys, json; print(json.dumps(sys.stdin.read()))" 2>/dev/null || echo '""')
+  else
+    preview_json='""'
+  fi
+
+  # Format change summary for JSON
+  local change_summary_json="[]"
+  if [ -n "$PYTHON_CMD" ] && [ -n "$change_summary" ]; then
+    change_summary_json=$(echo "$change_summary" | $PYTHON_CMD -c "
+import sys, json
+lines = [line.strip() for line in sys.stdin.read().strip().split('\\n') if line.strip()]
+print(json.dumps(lines[:5]))  # Limit to 5 items
+" 2>/dev/null || echo '[]')
+  fi
+
+  # Get original feedback if available
+  local original_feedback=""
+  local feedback_file="$WORK_DIR/.feedback_${original_checkpoint// /_}.json"
+  if [ -f "$feedback_file" ] && [ -n "$PYTHON_CMD" ]; then
+    original_feedback=$($PYTHON_CMD -c "
+import json
+try:
+    with open('$feedback_file', 'r') as f:
+        data = json.load(f)
+        summary = []
+        if 'specific_issues' in data and data['specific_issues']:
+            summary.append('Issues: ' + data['specific_issues'][:100])
+        if 'missing_elements' in data and data['missing_elements']:
+            summary.append('Missing: ' + data['missing_elements'][:100])
+        print(' | '.join(summary)[:200])
+except:
+    print('')
+" 2>/dev/null || echo "")
+  fi
+
+  cat > "$approval_file" << EOF
+{
+  "execution_id": "$EXECUTION_ID",
+  "checkpoint": "Command Improvements: $original_checkpoint",
+  "file": "$reflection_file",
+  "timestamp": "$(date -Iseconds)",
+  "status": "pending",
+  "timeout_seconds": 0,
+  "preview": $preview_json,
+  "changed_files": [
+    {
+      "path": ".claude/commands/flow/$command_file",
+      "status": "modified"
+    }
+  ],
+  "git_diff": $diff_json,
+  "file_tree": [
+    {
+      "name": ".claude",
+      "type": "directory",
+      "children": [
+        {
+          "name": "commands",
+          "type": "directory",
+          "children": [
+            {
+              "name": "flow",
+              "type": "directory",
+              "children": [
+                {
+                  "name": "$command_file",
+                  "type": "file",
+                  "status": "modified"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "approval_type": "command_improvement",
+  "command_improvement_metadata": {
+    "target_command": "$command_file",
+    "original_checkpoint": "$original_checkpoint",
+    "reflection_file": "$reflection_file",
+    "proposed_file": "$proposed_file",
+    "change_summary": $change_summary_json,
+    "original_feedback": "$(echo "$original_feedback" | sed 's/"/\\"/g')",
+    "what_if_rejected": "Command will not be modified. You can manually edit .claude/commands/flow/$command_file or re-run the workflow with the current command."
+  },
+  "feedback_requested": false
+}
+EOF
+
+  echo "$approval_file"
+}
+
+# Function to wait for command improvement approval
+wait_for_command_improvement_approval() {
+  local approval_file=$1
+  local checkpoint=$2
+  local proposed_file=$3
+
+  echo -e "${YELLOW}Waiting for command improvement approval...${NC}"
+  echo -e "  Approval file: $(basename "$approval_file")"
+
+  # Same logic as wait_for_approval but specific to command improvements
+  local max_wait=0
+  if [ "$APPROVAL_TIMEOUT" -gt 0 ]; then
+    max_wait=$APPROVAL_TIMEOUT
+  fi
+
+  local start_time=$(date +%s)
+  local response_file="${approval_file}.response"
+
+  while true; do
+    if [ -f "$response_file" ]; then
+      local status=$(grep -o '"status":\s*"[^"]*"' "$response_file" | sed 's/.*"status":\s*"\([^"]*\)".*/\1/')
+
+      if [ "$status" = "approved" ]; then
+        echo -e "${GREEN}✓ Command improvements approved${NC}"
+
+        # Apply the approved changes
+        local command_file=""
+        case $checkpoint in
+          "PRD") command_file="prd.md" ;;
+          "Technical Design") command_file="design.md" ;;
+          "Task List") command_file="tasks.md" ;;
+        esac
+
+        if [ -n "$command_file" ] && [ -f "$proposed_file" ]; then
+          cp "$proposed_file" ".claude/commands/flow/$command_file"
+          echo -e "${GREEN}✓ Command file updated: $command_file${NC}"
+          rm -f "$proposed_file"
+        fi
+
+        return 0
+      elif [ "$status" = "rejected" ]; then
+        local reason=$(grep -o '"reason":\s*"[^"]*"' "$response_file" | sed 's/.*"reason":\s*"\([^"]*\)".*/\1/')
+        echo -e "${RED}✗ Command improvements rejected${NC}"
+        echo -e "  Reason: $reason"
+
+        # Clean up proposed file
+        rm -f "$proposed_file"
+
+        return 1
+      fi
+    fi
+
+    # Check timeout
+    if [ "$max_wait" -gt 0 ]; then
+      local elapsed=$(($(date +%s) - start_time))
+      if [ "$elapsed" -ge "$max_wait" ]; then
+        echo -e "${RED}✗ Approval timeout after ${max_wait} seconds${NC}"
+        rm -f "$proposed_file"
+        return 1
+      fi
+    fi
+
+    sleep 2
+  done
 }
 
 # Function to invoke reflect command with feedback
@@ -483,17 +929,99 @@ EOF
     head -n 30 "$reflect_output_file"
     echo -e "${BLUE}...${NC}"
 
-    # Ask if user wants to apply suggestions
-    if [ "$APPROVAL_MODE" = "interactive" ]; then
+    # Check if we should automatically apply feedback
+    if [ "$AUTO_APPLY_FEEDBACK" = "true" ]; then
+      echo -e "${BLUE}Auto-apply feedback is enabled${NC}"
+
+      # Check if command approval is required
+      if [ "$REQUIRE_COMMAND_APPROVAL" = "true" ]; then
+        echo -e "${YELLOW}Command approval is required before applying changes${NC}"
+
+        # Generate proposed changes
+        local proposed_result=$(generate_proposed_command_changes "$checkpoint" "$reflect_output_file")
+
+        if [ $? -eq 0 ] && [ -n "$proposed_result" ]; then
+          # Parse the result
+          IFS='|||' read -r proposed_file diff_output change_summary command_file <<< "$proposed_result"
+
+          # Create approval request for command improvements
+          local cmd_approval_file=$(create_command_improvement_approval \
+            "$checkpoint" \
+            "$reflect_output_file" \
+            "$proposed_file" \
+            "$diff_output" \
+            "$change_summary" \
+            "$command_file")
+
+          echo -e "${YELLOW}Command improvement approval requested${NC}"
+          echo -e "  Approval file: $(basename "$cmd_approval_file")"
+
+          # Wait for approval
+          if wait_for_command_improvement_approval "$cmd_approval_file" "$checkpoint" "$proposed_file"; then
+            echo -e "${GREEN}✓ Command improvements applied${NC}"
+
+            # Now optionally retry the step
+            if [ "$AUTO_RETRY_AFTER_FEEDBACK" = "true" ]; then
+              echo -e "${BLUE}Auto-retrying step with improved command...${NC}"
+              retry_step "$checkpoint"
+            else
+              echo -e "${YELLOW}Command updated. To retry the step:${NC}"
+              echo -e "  Resume the workflow with: $0 $WORK_DIR"
+            fi
+          else
+            echo -e "${RED}Command improvements not applied${NC}"
+            echo -e "${YELLOW}To apply manually:${NC}"
+            echo -e "  claude /flow:apply-reflect \"$checkpoint\" \"$reflect_output_file\""
+          fi
+        else
+          echo -e "${YELLOW}No changes to apply or generation failed${NC}"
+        fi
+      else
+        # Original behavior: apply immediately without approval
+        apply_feedback_and_retry "$checkpoint" "$reflect_output_file"
+      fi
+    elif [ "$APPROVAL_MODE" = "interactive" ]; then
       echo ""
       read -p "Apply suggested improvements to the command? (y/n): " apply_improvements
 
       if [ "$apply_improvements" = "y" ] || [ "$apply_improvements" = "Y" ]; then
         echo -e "${YELLOW}Applying improvements...${NC}"
-        # Note: apply-suggestions command will be created later
-        # For now, just log the intent
-        echo "Would invoke: claude /apply-suggestions \"$checkpoint\" \"$reflect_output_file\""
+
+        # Also check if command approval is required in interactive mode
+        if [ "$REQUIRE_COMMAND_APPROVAL" = "true" ]; then
+          # Generate and approve changes
+          local proposed_result=$(generate_proposed_command_changes "$checkpoint" "$reflect_output_file")
+
+          if [ $? -eq 0 ] && [ -n "$proposed_result" ]; then
+            IFS='|||' read -r proposed_file diff_output change_summary command_file <<< "$proposed_result"
+
+            echo -e "${YELLOW}Review proposed changes:${NC}"
+            echo "$diff_output" | head -50
+            echo ""
+            read -p "Apply these changes? (y/n): " confirm_changes
+
+            if [ "$confirm_changes" = "y" ] || [ "$confirm_changes" = "Y" ]; then
+              cp "$proposed_file" ".claude/commands/flow/$command_file"
+              rm -f "$proposed_file"
+              echo -e "${GREEN}✓ Command file updated${NC}"
+
+              if [ "$AUTO_RETRY_AFTER_FEEDBACK" = "true" ]; then
+                retry_step "$checkpoint"
+              fi
+            else
+              rm -f "$proposed_file"
+              echo -e "${YELLOW}Changes not applied${NC}"
+            fi
+          fi
+        else
+          apply_feedback_and_retry "$checkpoint" "$reflect_output_file"
+        fi
       fi
+    else
+      echo -e "${YELLOW}To apply improvements manually:${NC}"
+      echo -e "  claude /flow:apply-reflect \"$checkpoint\" \"$reflect_output_file\""
+      echo -e "${YELLOW}To retry the step after applying:${NC}"
+      echo -e "  Resume the workflow with: $0 $WORK_DIR"
     fi
   else
     echo -e "${RED}✗ Reflection command failed${NC}"
@@ -526,6 +1054,145 @@ except Exception as e:
   fi
 
   send_telemetry "Reflection" "completed" "{\"checkpoint\": \"$checkpoint\", \"feedback_processed\": true}"
+}
+
+# Function to apply feedback and retry the workflow step
+apply_feedback_and_retry() {
+  local checkpoint=$1
+  local reflection_file=$2
+
+  echo -e "${YELLOW}========================================${NC}"
+  echo -e "${YELLOW}Auto-Applying Feedback Improvements${NC}"
+  echo -e "${YELLOW}========================================${NC}"
+
+  # Invoke apply-reflect command to update the flow command
+  echo -e "${BLUE}Applying improvements to command...${NC}"
+
+  # The apply-reflect command expects the checkpoint and suggestions file
+  if claude /flow:apply-reflect "$checkpoint" "$reflection_file" > "$WORK_DIR/apply_feedback_$(date +%Y%m%d_%H%M%S).log" 2>&1; then
+    echo -e "${GREEN}✓ Command improvements applied successfully${NC}"
+
+    # Update workflow status
+    update_step_status "Generate $checkpoint" "feedback_applied"
+
+    # Check if we should retry the step
+    if [ "$APPROVAL_MODE" = "interactive" ]; then
+      echo ""
+      read -p "Retry the step with improved command? (y/n): " retry_choice
+      if [ "$retry_choice" = "y" ] || [ "$retry_choice" = "Y" ]; then
+        retry_step "$checkpoint"
+      fi
+    elif [ "$AUTO_RETRY_AFTER_FEEDBACK" = "true" ]; then
+      echo -e "${BLUE}Auto-retrying step with improved command...${NC}"
+      retry_step "$checkpoint"
+    else
+      echo -e "${YELLOW}Step not retried automatically. Workflow stopped for manual review.${NC}"
+      echo -e "${YELLOW}To retry manually, restart the workflow.${NC}"
+    fi
+  else
+    echo -e "${RED}✗ Failed to apply improvements${NC}"
+    echo "Check the log file for details: $WORK_DIR/apply_feedback_*.log"
+  fi
+}
+
+# Function to retry a specific workflow step
+retry_step() {
+  local checkpoint=$1
+
+  echo -e "${BLUE}========================================${NC}"
+  echo -e "${BLUE}Retrying Step: $checkpoint${NC}"
+  echo -e "${BLUE}========================================${NC}"
+
+  # Update workflow status to indicate retry
+  update_step_status "Generate $checkpoint" "retrying"
+
+  case $checkpoint in
+    "PRD")
+      echo -e "${YELLOW}Re-generating Product Requirements Document...${NC}"
+
+      # Re-run PRD generation
+      PRD_FILE="$WORK_DIR/prd_retry_$(date +%Y%m%d_%H%M%S).md"
+
+      if [ -n "$FEATURE_FILE" ]; then
+        claude /flow:prd < "$FEATURE_FILE" > "$PRD_FILE" 2>&1
+      else
+        echo "$FEATURE_DESC" | claude /flow:prd > "$PRD_FILE" 2>&1
+      fi
+
+      if [ -s "$PRD_FILE" ]; then
+        echo -e "${GREEN}✓ PRD regenerated successfully${NC}"
+        echo -e "  Output: $PRD_FILE"
+        update_step_status "Generate PRD" "retry_completed"
+
+        # Request approval for the new PRD
+        request_approval "PRD" "$PRD_FILE"
+      else
+        echo -e "${RED}✗ PRD regeneration failed${NC}"
+        update_step_status "Generate PRD" "retry_failed"
+      fi
+      ;;
+
+    "Technical Design")
+      echo -e "${YELLOW}Re-generating Technical Design Document...${NC}"
+
+      # Find the PRD file
+      local prd_file=$(find_workflow_file "prd_")
+      if [ -z "$prd_file" ]; then
+        echo -e "${RED}Error: PRD file not found${NC}"
+        return 1
+      fi
+
+      # Re-run Technical Design generation (FIXED: pipe file path)
+      TDD_FILE="$WORK_DIR/tdd_retry_$(date +%Y%m%d_%H%M%S).md"
+
+      echo "$prd_file" | claude /flow:design > "$TDD_FILE" 2>&1
+
+      if [ -s "$TDD_FILE" ]; then
+        echo -e "${GREEN}✓ Technical Design regenerated successfully${NC}"
+        echo -e "  Output: $TDD_FILE"
+        update_step_status "Generate Technical Design" "retry_completed"
+
+        # Request approval for the new design
+        request_approval "Technical Design" "$TDD_FILE"
+      else
+        echo -e "${RED}✗ Technical Design regeneration failed${NC}"
+        update_step_status "Generate Technical Design" "retry_failed"
+      fi
+      ;;
+
+    "Task List")
+      echo -e "${YELLOW}Re-generating Task List...${NC}"
+
+      # Find the TDD file
+      local tdd_file=$(find_workflow_file "tdd_")
+      if [ -z "$tdd_file" ]; then
+        echo -e "${RED}Error: Technical Design file not found${NC}"
+        return 1
+      fi
+
+      # Re-run Task List generation (FIXED: pipe file path)
+      TASKS_FILE="$WORK_DIR/tasks_retry_$(date +%Y%m%d_%H%M%S).md"
+
+      echo "$tdd_file" | claude /flow:tasks > "$TASKS_FILE" 2>&1
+
+      if [ -s "$TASKS_FILE" ]; then
+        echo -e "${GREEN}✓ Task List regenerated successfully${NC}"
+        echo -e "  Output: $TASKS_FILE"
+        update_step_status "Generate Task List" "retry_completed"
+
+        # Request approval for the new task list
+        request_approval "Task List" "$TASKS_FILE"
+      else
+        echo -e "${RED}✗ Task List regeneration failed${NC}"
+        update_step_status "Generate Task List" "retry_failed"
+      fi
+      ;;
+
+    *)
+      echo -e "${RED}Error: Unknown checkpoint '$checkpoint'${NC}"
+      return 1
+      ;;
+  esac
 }
 
 # Function to wait for approval (enhanced with feedback support)
@@ -605,6 +1272,7 @@ request_approval() {
     "PRD") step_name="Generate PRD" ;;
     "Technical Design") step_name="Generate Technical Design" ;;
     "Task List") step_name="Generate Task List" ;;
+    "Execute Tasks") step_name="Execute Tasks" ;;
   esac
 
   if [ -n "$step_name" ] && [ "$RESUME_MODE" = true ] && check_step_completed "$step_name"; then
@@ -620,8 +1288,15 @@ request_approval() {
 
   case $APPROVAL_MODE in
     auto)
-      echo -e "${GREEN}✓ Auto-approved (APPROVAL_MODE=auto)${NC}\n"
-      return 0
+      # Special handling: Execute Tasks checkpoint ALWAYS requires approval
+      if [ "$checkpoint" = "Execute Tasks" ]; then
+        echo -e "${YELLOW}⚠️  Execute Tasks checkpoint requires explicit approval (safety measure)${NC}"
+        local approval_file=$(create_approval_request "$checkpoint" "$file")
+        wait_for_approval "$approval_file" "$checkpoint"
+      else
+        echo -e "${GREEN}✓ Auto-approved (APPROVAL_MODE=auto)${NC}\n"
+        return 0
+      fi
       ;;
     file)
       local approval_file=$(create_approval_request "$checkpoint" "$file")
@@ -705,22 +1380,20 @@ else
     fi
   fi
   
-  # Use the /prd command - it accepts the feature description as an argument
-  # Write feature description to a temp file for the command to read
-  TEMP_FEATURE_FILE=$(mktemp)
-  echo "$FEATURE_DESC" > "$TEMP_FEATURE_FILE"
-  
-  # Invoke the /flow:prd command with the feature description
-  # The command accepts either inline text or a file path
+  # Use the /prd command - pass feature description directly via stdin
+  # Save feature description to file for workflow artifacts
+  FEATURE_INPUT_FILE="$WORK_DIR/feature-description.md"
+  echo "$FEATURE_DESC" > "$FEATURE_INPUT_FILE"
+
+  # Invoke the /flow:prd command by piping the feature description directly
+  # This avoids GitHub Issue #1048 with slash command argument passing
   if [ "$TELEMETRY_ENABLED" = true ] && [ -f "scripts/claude-with-telemetry.py" ]; then
-    # For telemetry, invoke via claude CLI
-    claude /flow:prd "$TEMP_FEATURE_FILE" --output-format stream-json --verbose > "$PRD_FILE"
+    # For telemetry, pipe feature description directly
+    echo "$FEATURE_DESC" | claude /flow:prd --output-format stream-json --verbose > "$PRD_FILE"
   else
-    # Direct invocation of the prd command
-    claude /flow:prd "$TEMP_FEATURE_FILE" --output-format stream-json --verbose > "$PRD_FILE"
+    # Direct invocation by piping content
+    echo "$FEATURE_DESC" | claude /flow:prd --output-format stream-json --verbose > "$PRD_FILE"
   fi
-  
-  rm -f "$TEMP_FEATURE_FILE"
   
   if [ $? -eq 0 ]; then
     log_step 1 "Generate Product Requirements Document" "complete"
@@ -764,13 +1437,14 @@ else
     fi
   fi
   
-  # Use the /flow:design command properly with file path argument
+  # FIXED: Pipe the file path via stdin instead of using arguments
+  # This matches the input processing method in design.md
   if [ "$TELEMETRY_ENABLED" = true ] && [ -f "scripts/claude-with-telemetry.py" ]; then
-    # For telemetry, we need to invoke the command via claude CLI
-    claude /flow:design "$PRD_INPUT" --output-format stream-json --verbose > "$DESIGN_FILE"
+    # For telemetry, pipe the file path
+    echo "$PRD_INPUT" | claude /flow:design --output-format stream-json --verbose > "$DESIGN_FILE"
   else
-    # Direct invocation of the design command
-    claude /flow:design "$PRD_INPUT" --output-format stream-json --verbose > "$DESIGN_FILE"
+    # Direct invocation by piping file path
+    echo "$PRD_INPUT" | claude /flow:design --output-format stream-json --verbose > "$DESIGN_FILE"
   fi
   
   if [ $? -eq 0 ]; then
@@ -814,13 +1488,14 @@ else
     fi
   fi
   
-  # Use the /flow:tasks command properly with file path argument
+  # FIXED: Pipe the file path via stdin instead of using arguments
+  # This matches the input processing method in tasks.md
   if [ "$TELEMETRY_ENABLED" = true ] && [ -f "scripts/claude-with-telemetry.py" ]; then
-    # For telemetry, we need to invoke the command via claude CLI
-    claude /flow:tasks "$TDD_INPUT" --output-format stream-json --verbose > "$TASKS_FILE"
+    # For telemetry, pipe the file path
+    echo "$TDD_INPUT" | claude /flow:tasks --output-format stream-json --verbose > "$TASKS_FILE"
   else
-    # Direct invocation of the tasks command
-    claude /flow:tasks "$TDD_INPUT" --output-format stream-json --verbose > "$TASKS_FILE"
+    # Direct invocation by piping file path
+    echo "$TDD_INPUT" | claude /flow:tasks --output-format stream-json --verbose > "$TASKS_FILE"
   fi
   
   if [ $? -eq 0 ]; then
@@ -840,33 +1515,79 @@ else
   request_approval "Task List" "$TASKS_FILE"
 fi
 
-# Step 4: Execute Tasks (optional)
+# Step 4: Execute Tasks (requires explicit approval)
 log_step 4 "Execute Tasks" "start"
 
-AUTO_EXECUTE="${AUTO_EXECUTE:-true}"
+# Create a summary file for the Execute Tasks approval
+EXECUTE_SUMMARY_FILE="$WORK_DIR/execute_tasks_summary.md"
+cat > "$EXECUTE_SUMMARY_FILE" << EOF
+# Task Execution Summary
 
-if [ "$AUTO_EXECUTE" = "false" ]; then
-  echo -e "${YELLOW}Task execution is optional. You can:${NC}"
-  echo -e "  1. Review tasks manually: $TASKS_FILE"
-  echo -e "  2. Execute tasks now"
-  echo -e "  3. Skip and execute later: claude /execute-task $TASKS_FILE"
-  echo ""
-  read -p "Execute tasks now? (y/n): " execute_now
+## Ready to Execute Tasks
+
+The following task list has been generated and approved:
+- **Task List File**: $(basename "$TASKS_FILE")
+- **Total Tasks**: $(grep -c "^##" "$TASKS_FILE" 2>/dev/null || echo "Unknown")
+- **Timestamp**: $(date -Iseconds)
+
+## What Will Happen
+
+Upon approval, the system will:
+1. Invoke the /execute-task command with the generated task list
+2. Execute each task in sequence using TDD methodology
+3. Generate test files and implementation code
+4. Run tests and ensure all pass
+5. Provide a complete execution report
+
+## Safety Notice
+
+⚠️ **This approval will trigger actual code generation and execution.**
+- Review the task list carefully before approving
+- Ensure you have backups if needed
+- The process may create/modify multiple files
+
+## Task List Preview
+
+$(head -n 50 "$TASKS_FILE")
+
+---
+*Full task list available at: $TASKS_FILE*
+EOF
+
+echo -e "${YELLOW}========================================${NC}"
+echo -e "${YELLOW}⚠️  FINAL APPROVAL: Execute Tasks${NC}"
+echo -e "${YELLOW}========================================${NC}"
+echo -e "${YELLOW}This approval will trigger actual code execution!${NC}"
+echo ""
+
+# Request explicit approval for task execution (always required, even in auto mode)
+request_approval "Execute Tasks" "$EXECUTE_SUMMARY_FILE"
+
+# If we reach here, the user approved execution
+echo -e "${GREEN}✓ Task execution approved by user${NC}"
+echo -e "${BLUE}Invoking task execution command...${NC}"
+echo ""
+
+# Actually execute the tasks using the /execute-task command
+if command -v claude &> /dev/null; then
+  echo -e "${BLUE}Running: claude /execute-task \"$TASKS_FILE\"${NC}"
+  claude /execute-task "$TASKS_FILE"
+  execution_result=$?
+
+  if [ $execution_result -eq 0 ]; then
+    log_step 4 "Execute Tasks" "complete"
+    update_step_status "Execute Tasks" "completed"
+    echo -e "${GREEN}✓ Task execution completed successfully${NC}"
+  else
+    log_step 4 "Execute Tasks" "error"
+    update_step_status "Execute Tasks" "failed"
+    echo -e "${RED}✗ Task execution failed with exit code: $execution_result${NC}"
+  fi
 else
-  echo -e "${GREEN}Auto-executing approved task list...${NC}"
-  execute_now="y"
-fi
-
-if [ "$execute_now" = "y" ] || [ "$execute_now" = "Y" ]; then
-  echo -e "${BLUE}Executing tasks from: $TASKS_FILE${NC}"
-  echo ""
-  
-  # Note: Task execution would go here
-  echo -e "${YELLOW}Task execution not implemented in this demo${NC}"
-  echo -e "${YELLOW}You can run: claude /execute-task $TASKS_FILE${NC}"
-  
+  echo -e "${YELLOW}Claude CLI not found. Manual execution required:${NC}"
+  echo -e "${YELLOW}Run: claude /execute-task \"$TASKS_FILE\"${NC}"
   log_step 4 "Execute Tasks" "complete"
-  update_step_status "Execute Tasks" "skipped"
+  update_step_status "Execute Tasks" "manual_required"
 fi
 
 # Step 5: Workflow Summary

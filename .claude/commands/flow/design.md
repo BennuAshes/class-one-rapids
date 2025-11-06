@@ -1,16 +1,54 @@
 ---
 description: "Generate a comprehensive Technical Design Document from a Product Requirements Document"
-argument-hint: "<prd-file-path>"
+argument-hint: "<prd-file-path> (provide via stdin or as first line of input)"
 allowed-tools: "Write, Read, Edit, Bash(date:*), Grep, Glob, Task"
 ---
 
 # Technical Design Document Generator
 
-## Input Processing
+## Input Processing & Validation
 
-The PRD file path is provided as: $ARGUMENTS
+**IMPORTANT**: Due to slash command argument handling, this command receives the PRD file path through **stdin** (piped input), similar to `/flow:prd`.
 
-Use the Read tool to load the PRD file contents from the provided path.
+The workflow script will pipe the PRD file path as: `echo "$PRD_FILE_PATH" | claude /flow:design`
+
+### Step 1: Extract PRD File Path from Input
+
+The PRD file path will be provided as the first line of stdin input.
+
+**Process**:
+1. Read the input to get the PRD file path
+2. Validate the file path is not empty
+3. Check if file exists
+4. Load PRD contents using Read tool
+
+**Error Handling**:
+- If no path provided in stdin:
+  - STOP execution immediately
+  - Output: "ERROR: PRD file path required. Usage: echo '/path/to/prd.md' | claude /flow:design"
+  - DO NOT create any output files
+  - EXIT
+
+- If file does not exist:
+  - STOP execution immediately
+  - Output: "ERROR: PRD file not found at: {path}"
+  - DO NOT create any output files
+  - EXIT
+
+- If file is empty or invalid:
+  - STOP execution immediately
+  - Output: "ERROR: PRD file is empty or invalid"
+  - DO NOT create any output files
+  - EXIT
+
+### Step 2: Load and Validate PRD Contents
+
+ONLY proceed if validation passes:
+1. Use Read tool to load PRD file contents
+2. Verify PRD contains required sections (Problem Statement, Requirements, etc.)
+3. Extract key information for TDD generation
+
+**CRITICAL**: Never save error messages as TDD output. If ANY step fails, report the error clearly and exit without creating files.
 
 Generate a comprehensive Technical Design Document based on the PRD.
 

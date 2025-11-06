@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Card, Text, Button, IconButton } from 'react-native-paper';
 import type { Approval } from '../api/types';
+import { FileChangesViewer } from './FileChangesViewer';
 
 interface ApprovalCardProps {
   approval: Approval;
@@ -57,14 +58,36 @@ export function ApprovalCard({
   };
 
   const isExpired = timeRemaining === 0;
+  const isExecuteTask = approval.checkpoint === 'Execute Tasks';
+  const isCommandImprovement = approval.checkpoint?.includes('Command Improvements') ||
+                                approval.approval_type === 'command_improvement';
 
   return (
-    <Card style={[styles.card, isExpired && styles.expiredCard]} mode="elevated">
+    <Card style={[
+      styles.card,
+      isExpired && styles.expiredCard,
+      isExecuteTask && styles.executeTaskCard,
+      isCommandImprovement && styles.commandImprovementCard
+    ]} mode="elevated">
       <Card.Content>
+        {isExecuteTask && (
+          <View style={styles.warningBadge}>
+            <Text style={styles.warningBadgeText}>⚠️ FINAL APPROVAL</Text>
+          </View>
+        )}
+        {isCommandImprovement && (
+          <View style={styles.commandBadge}>
+            <Text style={styles.commandBadgeText}>🔧 COMMAND UPDATE</Text>
+          </View>
+        )}
         <View style={styles.header}>
           <View style={styles.titleContainer}>
-            <Text variant="titleMedium" style={styles.title}>
-              {approval.checkpoint}
+            <Text variant="titleMedium" style={[
+              styles.title,
+              isExecuteTask && styles.executeTaskTitle,
+              isCommandImprovement && styles.commandImprovementTitle
+            ]}>
+              {isExecuteTask ? '🚀 ' : isCommandImprovement ? '🔧 ' : ''}{approval.checkpoint}
             </Text>
             <Text variant="bodySmall" style={styles.subtitle}>
               {approval.execution_id}
@@ -86,6 +109,17 @@ export function ApprovalCard({
         <Text variant="bodySmall" style={styles.timestamp}>
           Created: {formatDate(approval.timestamp)}
         </Text>
+
+        {isExecuteTask && (
+          <View style={styles.executeWarning}>
+            <Text style={styles.executeWarningText}>
+              ⚠️ This approval will trigger actual code generation and execution.
+            </Text>
+            <Text style={styles.executeWarningSubtext}>
+              Please review the task list carefully before approving.
+            </Text>
+          </View>
+        )}
 
         {approval.preview && (
           <View style={styles.previewContainer}>
@@ -112,6 +146,44 @@ export function ApprovalCard({
           </View>
         )}
 
+        {isCommandImprovement && approval.command_improvement_metadata && (
+          <View style={styles.commandContext}>
+            <Text variant="titleSmall" style={styles.commandContextTitle}>
+              📝 Command Update Details
+            </Text>
+            <Text variant="bodySmall" style={styles.commandContextItem}>
+              <Text style={styles.commandContextLabel}>Target Command:</Text> {approval.command_improvement_metadata.target_command}
+            </Text>
+            <Text variant="bodySmall" style={styles.commandContextItem}>
+              <Text style={styles.commandContextLabel}>Original Checkpoint:</Text> {approval.command_improvement_metadata.original_checkpoint}
+            </Text>
+            {approval.command_improvement_metadata.original_feedback && (
+              <Text variant="bodySmall" style={styles.commandContextItem}>
+                <Text style={styles.commandContextLabel}>Feedback:</Text> {approval.command_improvement_metadata.original_feedback}
+              </Text>
+            )}
+            {approval.command_improvement_metadata.change_summary?.length > 0 && (
+              <View>
+                <Text variant="bodySmall" style={styles.commandContextLabel}>Proposed Changes:</Text>
+                {approval.command_improvement_metadata.change_summary.map((change, idx) => (
+                  <Text key={idx} variant="bodySmall" style={styles.changeItem}>
+                    • {change}
+                  </Text>
+                ))}
+              </View>
+            )}
+            <Text variant="caption" style={styles.commandContextNote}>
+              {approval.command_improvement_metadata.what_if_rejected}
+            </Text>
+          </View>
+        )}
+
+        <FileChangesViewer
+          fileTree={approval.file_tree}
+          changedFiles={approval.changed_files}
+          gitDiff={approval.git_diff}
+        />
+
         <View style={styles.actions}>
           <Button
             mode="contained"
@@ -119,10 +191,17 @@ export function ApprovalCard({
             onPress={onApprove}
             disabled={isLoading || isExpired}
             loading={isLoading}
-            style={[styles.button, styles.approveButton]}
-            labelStyle={styles.buttonLabel}
+            style={[
+              styles.button,
+              styles.approveButton,
+              isExecuteTask && styles.executeTaskApproveButton
+            ]}
+            labelStyle={[
+              styles.buttonLabel,
+              isExecuteTask && styles.executeTaskButtonLabel
+            ]}
           >
-            Approve
+            {isExecuteTask ? 'Execute Tasks' : 'Approve'}
           </Button>
           {onProvideFeedback ? (
             <Button
@@ -237,5 +316,124 @@ const styles = StyleSheet.create({
   buttonLabel: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  // Execute Tasks special styling
+  executeTaskCard: {
+    borderLeftColor: '#FF0000',
+    borderLeftWidth: 6,
+    backgroundColor: '#FFF5F5',
+    elevation: 6,
+    shadowColor: '#FF0000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  executeTaskTitle: {
+    color: '#CC0000',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  warningBadge: {
+    position: 'absolute',
+    top: -10,
+    right: 10,
+    backgroundColor: '#FF4444',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 1,
+  },
+  warningBadgeText: {
+    color: 'white',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  executeWarning: {
+    backgroundColor: '#FFEBEE',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FFCDD2',
+  },
+  executeWarningText: {
+    color: '#CC0000',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  executeWarningSubtext: {
+    color: '#B71C1C',
+    fontSize: 12,
+  },
+  executeTaskApproveButton: {
+    backgroundColor: '#CC0000',
+    paddingVertical: 4,
+  },
+  executeTaskButtonLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  // Command Improvement special styling
+  commandImprovementCard: {
+    borderLeftColor: '#9C27B0',
+    borderLeftWidth: 6,
+    backgroundColor: '#F3E5F5',
+    elevation: 5,
+    shadowColor: '#9C27B0',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+  commandImprovementTitle: {
+    color: '#6A1B9A',
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  commandBadge: {
+    position: 'absolute',
+    top: -10,
+    left: 10,
+    backgroundColor: '#9C27B0',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 1,
+  },
+  commandBadgeText: {
+    color: 'white',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  commandContext: {
+    backgroundColor: '#F5F5F5',
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#9C27B0',
+  },
+  commandContextTitle: {
+    color: '#6A1B9A',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  commandContextItem: {
+    marginVertical: 2,
+    color: '#555',
+  },
+  commandContextLabel: {
+    fontWeight: '600',
+    color: '#333',
+  },
+  changeItem: {
+    marginLeft: 16,
+    marginVertical: 2,
+    color: '#555',
+  },
+  commandContextNote: {
+    marginTop: 8,
+    color: '#777',
+    fontStyle: 'italic',
+    fontSize: 12,
   },
 });

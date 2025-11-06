@@ -8,11 +8,11 @@ allowed-tools: "Write, Read, Edit, Bash(date:*), Grep, Glob"
 
 ## Input Processing
 
-The feature description is provided as: $ARGUMENTS
+**IMPORTANT**: This command receives the feature description through stdin (piped input), NOT as `$ARGUMENTS` or `$1` (due to GitHub Issue #1048 with slash command argument passing being unreliable).
 
-If this is a file path (contains `/` or ends with `.md`), use the Read tool to load the file contents. Otherwise, treat it as the feature description text directly.
+The feature description will be provided directly in the conversation context after this command expands.
 
-Generate a lean, actionable Product Requirements Document for the feature.
+Generate a lean, actionable Product Requirements Document based on the feature description that follows.
 
 ## Analysis Phase
 

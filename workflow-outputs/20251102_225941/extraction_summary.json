@@ -1,0 +1,11 @@
+{
+  "extraction_timestamp": "2025-11-02T23:16:58.805161",
+  "workflow_dir": "/mnt/c/dev/class-one-rapids/workflow-outputs/20251102_225941",
+  "target_spec_dir": "docs/specs/20251102_225941",
+  "artifacts_extracted": 3,
+  "files_processed": {
+    "prd": 2,
+    "tdd": 2,
+    "tasks": 2
+  }
+}

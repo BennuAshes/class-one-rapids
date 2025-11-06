@@ -1,16 +1,54 @@
 ---
 description: "Generate explicit, agent-executable task list from Technical Design Document"
-argument-hint: "<tdd-file-path>"
+argument-hint: "<tdd-file-path> (provide via stdin or as first line of input)"
 allowed-tools: "Write, Read, Edit, Bash(date:*), Grep, Glob, Task"
 ---
 
 # Agent Task List Generator
 
-## Input Processing
+## Input Processing & Validation
 
-The TDD file path is provided as: $ARGUMENTS
+**IMPORTANT**: Due to slash command argument handling, this command receives the TDD file path through **stdin** (piped input), similar to `/flow:prd`.
 
-Use the Read tool to load the TDD file contents from the provided path.
+The workflow script will pipe the TDD file path as: `echo "$TDD_FILE_PATH" | claude /flow:tasks`
+
+### Step 1: Extract TDD File Path from Input
+
+The TDD file path will be provided as the first line of stdin input.
+
+**Process**:
+1. Read the input to get the TDD file path
+2. Validate the file path is not empty
+3. Check if file exists
+4. Load TDD contents using Read tool
+
+**Error Handling**:
+- If no path provided in stdin:
+  - STOP execution immediately
+  - Output: "ERROR: TDD file path required. Usage: echo '/path/to/tdd.md' | claude /flow:tasks"
+  - DO NOT create any output files
+  - EXIT
+
+- If file does not exist:
+  - STOP execution immediately
+  - Output: "ERROR: TDD file not found at: {path}"
+  - DO NOT create any output files
+  - EXIT
+
+- If file is empty or invalid:
+  - STOP execution immediately
+  - Output: "ERROR: TDD file is empty or invalid"
+  - DO NOT create any output files
+  - EXIT
+
+### Step 2: Load and Validate TDD Contents
+
+ONLY proceed if validation passes:
+1. Use Read tool to load TDD file contents
+2. Verify TDD contains required sections (Architecture, Implementation Plan, etc.)
+3. Extract key information for task generation
+
+**CRITICAL**: Never save error messages as task list output. If ANY step fails, report the error clearly and exit without creating files.
 
 Generate a comprehensive, executable task list based on the TDD.
 

@@ -84,7 +84,12 @@
       "Bash(source venv/bin/activate)",
       "Bash(pip install:*)",
       "Bash(source:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(test:*)",
+      "Bash(claude /flow:prd /tmp/test-feature.md)",
+      "Bash(claude /flow:prd /tmp/test-feature-2.md)",
+      "Bash(claude /flow:execute-task)",
+      "Bash(claude /flow:prd --output-format stream-json)"
     ],
     "deny": [],
     "ask": []

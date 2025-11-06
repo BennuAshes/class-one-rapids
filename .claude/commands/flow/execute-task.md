@@ -17,11 +17,11 @@ Target: $2 (optional: specific task ID or phase name)
 
 ### Before Writing Any Code
 
-**State Management**: See @docs/architecture/file-organization-patterns.md (lines 156-171)
+**State Management**: See @docs/architecture/file-organization-patterns.md
 
 - Single component → `useState` | Complex logic → Custom hook | Multiple features → Legend-State store
 
-**File Organization**: See @docs/architecture/file-organization-patterns.md (lines 3-70)
+**File Organization**: See @docs/architecture/file-organization-patterns.md
 
 - Co-located tests | No barrel exports | No `__tests__` folders
 

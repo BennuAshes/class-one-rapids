@@ -51,11 +51,38 @@ export interface Approval {
   status: 'pending' | 'approved' | 'rejected' | 'timeout';
   timeout_seconds: number;
   preview?: string;
+  changed_files?: ChangedFile[];
+  git_diff?: string;
+  file_tree?: FileTreeNode[];
   approved_at?: string;
   approved_by?: string;
   rejected_at?: string;
   rejected_by?: string;
   reason?: string;
+  approval_type?: 'standard' | 'execute_tasks' | 'command_improvement';
+  command_improvement_metadata?: CommandImprovementMetadata;
+}
+
+export interface CommandImprovementMetadata {
+  target_command: string;
+  original_checkpoint: string;
+  reflection_file: string;
+  proposed_file: string;
+  change_summary: string[];
+  original_feedback: string;
+  what_if_rejected: string;
+}
+
+export interface ChangedFile {
+  path: string;
+  status: 'created' | 'modified' | 'deleted';
+}
+
+export interface FileTreeNode {
+  name: string;
+  type: 'file' | 'directory';
+  status?: 'created' | 'modified' | 'deleted';
+  children?: FileTreeNode[];
 }
 
 export interface GeneratedFile {

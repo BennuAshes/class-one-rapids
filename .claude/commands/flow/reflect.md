@@ -2,7 +2,6 @@
 description: "Analyze feedback from workflow rejection and suggest command improvements"
 argument-hint: "<feedback-file-or-description>"
 allowed-tools: "Read, Grep, Glob"
-model: "claude-3-5-sonnet-20241022"
 ---
 
 # Reflect on Workflow Feedback
@@ -41,6 +40,12 @@ Read all files in @.claude/commands/flow/ to understand:
 2. How commands interconnect
 3. Specific command that generated the rejected output
 
+**CRITICAL**: Also read @scripts/feature-to-code-unified.sh to understand:
+1. How the workflow script invokes each flow command
+2. What arguments or input it passes to commands
+3. If the invocation pattern matches what commands expect
+4. Command input processing (stdin vs arguments vs file paths)
+
 ## Root Cause Analysis
 
 Identify based on feedback:
@@ -48,6 +53,37 @@ Identify based on feedback:
 - What sections of the command led to the issues
 - Gaps in the current prompts or templates
 - Ambiguous or unclear instructions
+
+**CRITICAL**: Also check for invocation mismatches:
+- Does the workflow script pass input the way the command expects it?
+- Are file paths being passed correctly (stdin pipe vs argument)?
+- Does the command receive the expected input format?
+- Are there any GitHub issues with slash command argument handling?
+
+## Common Patterns to Check
+
+### Input Processing Pattern
+Commands should use **stdin piping** for file paths (like `/flow:prd`):
+```bash
+# CORRECT: Pipe file path via stdin
+echo "$FILE_PATH" | claude /flow:command > output.md
+
+# INCORRECT: Pass as argument (doesn't work reliably)
+claude /flow:command "$FILE_PATH" > output.md
+```
+
+### Command File Input Processing
+Commands should read from stdin first line:
+```markdown
+The file path will be provided as the first line of stdin input.
+
+**Error Handling**:
+- If no path provided in stdin:
+  - STOP execution immediately
+  - Output: "ERROR: File path required. Usage: echo '/path/to/file.md' | claude /flow:command"
+  - DO NOT create any output files
+  - EXIT
+```
 
 # Phase 3: Generate Improvement Suggestions
 
@@ -82,12 +118,14 @@ Provide step-by-step changes:
 
 # Phase 4: Actionable Output
 
-## Suggested Command Modifications
+## Suggested Modifications
 
 Generate specific recommendations in this format:
 
 ```markdown
-Command to modify: [prd.md | design.md | tasks.md]
+### Command Files to Modify
+
+Command: [prd.md | design.md | tasks.md]
 
 Specific changes:
 1. [Section/Line]: Current issue → Suggested improvement
@@ -96,6 +134,26 @@ Specific changes:
 
 Example improved sections:
 [Provide concrete examples of improved prompts/templates]
+
+### Workflow Script Changes
+
+File: scripts/feature-to-code-unified.sh
+
+If invocation pattern mismatch detected:
+1. [Line number]: Current invocation → Corrected invocation
+2. Show before/after code snippets
+3. Explain why the change is needed
+
+Example:
+```bash
+# BEFORE (line 1440):
+claude /flow:design "$PRD_INPUT" > "$DESIGN_FILE"
+
+# AFTER:
+echo "$PRD_INPUT" | claude /flow:design > "$DESIGN_FILE"
+```
+
+Rationale: Commands receive input via stdin, not arguments
 ```
 
 ## Validation Checklist
@@ -105,6 +163,9 @@ Verify before applying changes:
 - [ ] No breaking changes to command interface
 - [ ] Improvements are specific and implementable
 - [ ] Enhanced clarity without excessive complexity
+- [ ] Command invocation patterns match between script and command files
+- [ ] Input processing is consistent (stdin piping pattern)
+- [ ] All invocation points in workflow script are updated if needed
 
 ## Expected Outcomes
 
@@ -113,15 +174,23 @@ Anticipated results after applying suggestions:
 - Missing elements will be included
 - Output quality will improve significantly
 - Future rejections for similar reasons will decrease
+- Commands will receive input correctly from workflow script
+- No more empty file path errors or error messages saved as output
 
 # Phase 5: Next Steps
 
 ## Recommended Actions
 
-1. **Apply suggestions**: Use `/apply-reflect` command with these recommendations
-2. **Retry workflow**: Re-run the rejected step with improved command
-3. **Monitor results**: Verify output meets expectations
-4. **Iterate if needed**: Collect additional feedback for further refinement
+1. **Apply command improvements**: Use `/apply-reflect` command to update flow command files
+2. **Apply script fixes**: If workflow script changes are needed, apply them using Edit tool
+3. **Retry workflow**: Re-run the rejected step with improved command and script
+4. **Monitor results**: Verify output meets expectations
+5. **Iterate if needed**: Collect additional feedback for further refinement
+
+**Important**: If both command files AND the workflow script need changes, apply BOTH before retrying:
+- Command file changes ensure proper input processing and validation
+- Script changes ensure correct invocation pattern (stdin piping)
+- Both must be aligned for the workflow to succeed
 
 ## Continuous Improvement
 
