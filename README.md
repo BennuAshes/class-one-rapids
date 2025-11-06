@@ -89,3 +89,4 @@ For Expo and Jest configuration details, see [EXPO_JEST_SETUP.md](EXPO_JEST_SETU
 - I want to have LLM automatically analyze each prompt/response and subsquent followup/response until the chain stops with an LLM response only.
 - replace human approval method in new full flow script w/ telemtry to be apart of a UX we build just for this
 - Abstract things enough that we can sub out claude for cursor cli, codex, auggie, etc
+- This readme abstracted out such that its a list of features/apps/modules pointing to other readmes with more information on specific topics
