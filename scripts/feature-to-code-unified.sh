@@ -500,7 +500,8 @@ print(json.dumps(dict_to_list(tree)))
   fi
 
   # Return results separated by a delimiter
-  echo "${changed_files}|||${diff_output}|||${file_tree}"
+  # Using printf to properly handle empty values and special characters
+  printf '%s\037%s\037%s' "$changed_files" "$diff_output" "$file_tree"
 }
 
 # Function to create approval request (keeping original functionality)
@@ -520,8 +521,8 @@ create_approval_request() {
   if [ "$SHOW_FILE_CHANGES" = "true" ]; then
     local git_changes=$(capture_git_changes "$WORK_DIR")
 
-    # Split the results using ||| delimiter
-    IFS='|||' read -r changed_files diff_output file_tree <<< "$git_changes"
+    # Split the results using ASCII Unit Separator (0x1F)
+    IFS=$'\037' read -r changed_files diff_output file_tree <<< "$git_changes"
 
     # Escape for JSON (already JSON from Python)
     changed_files_json="${changed_files:-[]}"
@@ -681,8 +682,8 @@ print('\\n'.join(changes))
 " 2>/dev/null || echo "")
   fi
 
-  # Return paths and diff
-  echo "$proposed_file|||$diff_output|||$change_summary|||$command_file"
+  # Return paths and diff using ASCII Unit Separator
+  printf '%s\037%s\037%s\037%s' "$proposed_file" "$diff_output" "$change_summary" "$command_file"
 }
 
 # Function to create command improvement approval request
@@ -941,8 +942,8 @@ EOF
         local proposed_result=$(generate_proposed_command_changes "$checkpoint" "$reflect_output_file")
 
         if [ $? -eq 0 ] && [ -n "$proposed_result" ]; then
-          # Parse the result
-          IFS='|||' read -r proposed_file diff_output change_summary command_file <<< "$proposed_result"
+          # Parse the result using ASCII Unit Separator
+          IFS=$'\037' read -r proposed_file diff_output change_summary command_file <<< "$proposed_result"
 
           # Create approval request for command improvements
           local cmd_approval_file=$(create_command_improvement_approval \
@@ -993,7 +994,7 @@ EOF
           local proposed_result=$(generate_proposed_command_changes "$checkpoint" "$reflect_output_file")
 
           if [ $? -eq 0 ] && [ -n "$proposed_result" ]; then
-            IFS='|||' read -r proposed_file diff_output change_summary command_file <<< "$proposed_result"
+            IFS=$'\037' read -r proposed_file diff_output change_summary command_file <<< "$proposed_result"
 
             echo -e "${YELLOW}Review proposed changes:${NC}"
             echo "$diff_output" | head -50
@@ -1570,8 +1571,8 @@ echo ""
 
 # Actually execute the tasks using the /execute-task command
 if command -v claude &> /dev/null; then
-  echo -e "${BLUE}Running: claude /execute-task \"$TASKS_FILE\"${NC}"
-  claude /execute-task "$TASKS_FILE"
+  echo -e "${BLUE}Running: claude /flow:execute-task -p (piping: $TASKS_FILE)${NC}"
+  echo "$TASKS_FILE" | claude /flow:execute-task -p
   execution_result=$?
 
   if [ $execution_result -eq 0 ]; then
@@ -1585,7 +1586,7 @@ if command -v claude &> /dev/null; then
   fi
 else
   echo -e "${YELLOW}Claude CLI not found. Manual execution required:${NC}"
-  echo -e "${YELLOW}Run: claude /execute-task \"$TASKS_FILE\"${NC}"
+  echo -e "${YELLOW}Run: echo \"$TASKS_FILE\" | claude /flow:execute-task -p${NC}"
   log_step 4 "Execute Tasks" "complete"
   update_step_status "Execute Tasks" "manual_required"
 fi
@@ -1656,7 +1657,7 @@ fi)
 
 1. Review all generated documents
 2. Extract documents if not auto-extracted
-3. Execute tasks: \`claude /execute-task $TASKS_FILE\`
+3. Execute tasks: \`echo "$TASKS_FILE" | claude /flow:execute-task -p\`
 4. $([ "$TELEMETRY_ENABLED" = true ] && echo "Analyze workflow metrics in Langfuse" || echo "Enable telemetry for workflow analytics")
 
 ---

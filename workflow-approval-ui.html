@@ -671,8 +671,8 @@
         <input
           type="text"
           id="apiUrl"
-          value="http://localhost:8080"
-          placeholder="http://localhost:8080"
+          value=""
+          placeholder="Same server"
         />
         <button class="btn btn-view" onclick="connect()">Connect</button>
       </div>
@@ -693,7 +693,8 @@
     </div>
 
     <script>
-      let apiUrl = "http://localhost:8080";
+      // Use current origin by default (works when served from same server)
+      let apiUrl = window.location.origin;
       let eventSource = null;
       let currentWorkflow = null;
       window.currentApprovals = [];

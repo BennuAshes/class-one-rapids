@@ -39,8 +39,12 @@ OpenTelemetry Collector
 | **Langfuse Web** | 3000 | LLM observability UI - traces, prompts, costs |
 | **Grafana** | 3001 | Metrics dashboards and visualization |
 | **Prometheus** | 9090 | Metrics storage and queries |
+| **Approval Server** | 8080 | Workflow approval management UI and API |
 | **OTEL Collector** | 4317 (gRPC), 4318 (HTTP) | Telemetry data collection and routing |
 | **PostgreSQL** | 5432 | Langfuse database |
+| **ClickHouse** | 8123, 9000 | Langfuse events database |
+| **Redis** | 6379 | Langfuse caching |
+| **MinIO** | 9002 (API), 9003 (Console) | S3-compatible storage |
 
 ## Quick Start
 
@@ -118,6 +122,11 @@ The script will:
 - View: Traces, token usage, costs, prompts
 - Search by execution ID
 
+**Approval Server (Workflow Management):**
+- **Web UI**: http://localhost:8080 - Full-featured dashboard for managing approvals
+- **API Info**: http://localhost:8080/api - API documentation
+- Features: Real-time updates, file previews, structured feedback, approve/reject with feedback
+
 **Grafana (Metrics):**
 - URL: http://localhost:3001
 - Login: admin / admin
@@ -163,6 +172,96 @@ export LANGFUSE_HOST="http://localhost:3000"
 - ✅ **Error rates** and failures
 - ✅ **Latency percentiles** (p50, p95, p99)
 - ✅ **Resource usage** of observability stack
+
+## Workflow Approval Server
+
+The approval server provides a REST API and web UI for managing workflow approvals. It's automatically started as part of the docker-compose stack.
+
+### Features
+
+- **REST API**: Programmatic approval management
+- **Real-time Updates**: SSE (Server-Sent Events) for live status
+- **File Preview**: Read workflow artifacts and view changes
+- **Structured Feedback**: Submit detailed feedback on rejections
+- **Langfuse Integration**: Automatically tracks approval decisions
+
+### API Endpoints
+
+```
+GET  /workflows                  - List all workflows
+GET  /workflows/{id}             - Get workflow details
+GET  /workflows/{id}/approvals   - Get pending approvals for workflow
+POST /approvals/approve          - Approve a request
+POST /approvals/reject           - Reject a request
+POST /approvals/feedback         - Submit feedback
+GET  /approvals/pending          - Get all pending approvals
+GET  /events                     - SSE endpoint for real-time updates
+GET  /files/read?path={path}     - Read file contents
+GET  /health                     - Health check
+```
+
+### Example Usage
+
+**Approve a request:**
+```bash
+curl -X POST http://localhost:8080/approvals/approve \
+  -H "Content-Type: application/json" \
+  -d '{"file_path": "/path/to/.approval_PRD.json"}'
+```
+
+**Reject with feedback:**
+```bash
+curl -X POST http://localhost:8080/approvals/reject \
+  -H "Content-Type: application/json" \
+  -d '{
+    "file_path": "/path/to/.approval_PRD.json",
+    "reason": "Missing requirements",
+    "feedback": {
+      "specific_issues": ["Unclear user stories", "No acceptance criteria"],
+      "missing_elements": ["Performance requirements"],
+      "suggested_improvements": ["Add user story details"],
+      "rating": 2
+    }
+  }'
+```
+
+### Configuration
+
+The approval server is configured via environment variables in docker-compose:
+
+```yaml
+environment:
+  LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+  LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+  LANGFUSE_HOST: http://langfuse-web:3000
+```
+
+Set these environment variables on your host to enable Langfuse tracking of approvals.
+
+### Web UI
+
+The approval server includes a built-in web dashboard served at the root URL:
+
+**Access the dashboard:**
+```
+http://localhost:8080
+```
+
+The UI automatically connects to the API on the same server and provides:
+- Real-time workflow list with status
+- Pending approval notifications
+- One-click approve/reject
+- Structured feedback forms
+- File previews for PRDs, designs, and task lists
+- Live updates via Server-Sent Events
+
+**Alternative React App:**
+There's also a standalone React app in `/approval-app` for development:
+```bash
+cd approval-app
+npm install
+npm start
+```
 
 ## Using Langfuse SDK for Direct Tracing
 

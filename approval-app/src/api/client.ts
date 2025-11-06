@@ -157,6 +157,20 @@ export const api = {
     );
     return handleResponse<FeedbackResponse>(response);
   },
+
+  /**
+   * Read file contents
+   */
+  async readFile(filePath: string): Promise<{
+    success: boolean;
+    file_path: string;
+    size: number;
+    content: string;
+  }> {
+    const encodedPath = encodeURIComponent(filePath);
+    const response = await fetchWithTimeout(`${API_BASE_URL}/files/read?path=${encodedPath}`);
+    return handleResponse(response);
+  },
 };
 
 export { ApiError };

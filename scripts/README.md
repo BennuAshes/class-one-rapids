@@ -210,20 +210,31 @@ SHOW_FILE_CHANGES=false ./scripts/feature-to-code-unified.sh "feature"
 
 ## Observability
 
+### Full Stack (Langfuse + Approval Server)
+
+The observability stack includes both Langfuse telemetry and the workflow approval server:
+
+1. Start stack: `cd observability && docker-compose up -d`
+2. Run workflow normally
+3. View traces at http://localhost:3000 (Langfuse)
+4. **Manage approvals at http://localhost:8080 (Web Dashboard)**
+
+The approval server runs automatically as part of the docker-compose stack and includes a full web UI for managing workflow approvals. Just open http://localhost:8080 in your browser!
+
 ### Langfuse Integration
 
 When telemetry is enabled (default):
 
-1. Start Langfuse: `cd observability && docker-compose up -d`
-2. Run workflow normally
-3. View traces at http://localhost:3000
-4. Search by execution ID
+1. Tracks each workflow step (PRD, Design, Tasks)
+2. Records approval checkpoints with timing
+3. Logs model usage and costs
+4. Captures custom metadata
 
 ### What Gets Tracked
 
 - Each workflow step (PRD, Design, Tasks)
-- Approval checkpoints
-- Timing and duration
+- Approval checkpoints with duration
+- Timing and performance metrics
 - Model usage and costs
 - Custom metadata
 
@@ -263,9 +274,12 @@ scripts/
 ├── extract-artifacts.py            # Extract docs from JSON
 ├── claude-with-telemetry.py        # Claude CLI wrapper with telemetry
 ├── send-workflow-telemetry.sh      # Manual telemetry helper
-├── workflow-approval-server.py     # Approval UI server
 ├── FEATURE_TO_CODE_MIGRATION.md    # Migration guide
 └── README.md                       # This file
+
+(Root level)
+├── workflow-approval-server.py     # Approval UI server (runs in docker-compose)
+└── Dockerfile.approval-server      # Docker image for approval server
 ```
 
 ## Best Practices

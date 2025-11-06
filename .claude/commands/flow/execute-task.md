@@ -1,13 +1,56 @@
 ---
 description: "Execute tasks from task list using Test-Driven Development (TDD) methodology"
-argument-hint: "<task-list-file-path> [task-id|phase-name]"
+argument-hint: "<task-list-file-path via stdin> [task-id|phase-name]"
 allowed-tools: "TodoWrite, Read, Write, MultiEdit, Edit, Bash(npm:*), Bash(npx:*), Bash(node:*), Bash(git status:*), Bash(git diff:*), Grep, Glob, Task"
 ---
 
 # TDD Task Executor Agent
 
-Execute tasks from the task list at: **$1**
-Target: $2 (optional: specific task ID or phase name)
+**IMPORTANT**: This command receives the task list file path through **stdin** (piped input), NOT as `$1`.
+
+The workflow script pipes the file path as: `echo "$TASKS_FILE" | claude /flow:execute-task -p`
+
+## Input Processing & Validation
+
+### Step 1: Extract Task List File Path from Input
+
+The task list file path will be provided as the first line of stdin input.
+
+**Process**:
+1. Read the input to get the task list file path
+2. Validate the file path is not empty
+3. Check if file exists
+4. Load task list contents using Read tool
+
+**Error Handling**:
+- If no path provided in stdin:
+  - STOP execution immediately
+  - Output: "ERROR: Task list file path required. Usage: echo '/path/to/tasks.md' | claude /flow:execute-task -p"
+  - DO NOT start task execution
+  - EXIT
+
+- If file does not exist:
+  - STOP execution immediately
+  - Output: "ERROR: Task list file not found at: {path}"
+  - DO NOT start task execution
+  - EXIT
+
+- If file is empty or invalid:
+  - STOP execution immediately
+  - Output: "ERROR: Task list file is empty or invalid"
+  - DO NOT start task execution
+  - EXIT
+
+### Step 2: Load and Validate Task List Contents
+
+ONLY proceed if validation passes:
+1. Use Read tool to load task list file contents
+2. Verify task list contains valid tasks
+3. Parse tasks and phases
+
+**CRITICAL**: Never start task execution if ANY validation step fails. Report errors clearly and exit.
+
+---
 
 **IMPORTANT**: Follow @docs/guides/lean-task-generation-guide.md principles - prioritize user-visible features, create infrastructure only when needed.
 
@@ -172,9 +215,9 @@ Keep it simple with hooks/useState when:
 
 First, I'll set up the execution environment and understand the task requirements.
 
-1. **Read Task List**: Load and parse the task list from $1
+1. **Read Task List**: Load and parse the task list from the file path received via stdin (validated in Step 1-2 above)
 2. **Check Task Status**: Look for [COMPLETED] or [PARTIAL] prefixes in task titles
-3. **Identify Target**: Determine which tasks to execute based on $2 (if provided)
+3. **Identify Target**: Determine which tasks to execute (all tasks from the list)
 4. **Skip Completed Tasks**: Tasks marked [COMPLETED] should be skipped
 5. **Validate Prerequisites**: Check that required tools, dependencies, and environment are ready
 6. **Initialize Progress Tracking**: Set up TodoWrite for tracking task execution
