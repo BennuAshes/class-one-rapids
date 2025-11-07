@@ -47,6 +47,7 @@ export interface Approval {
   checkpoint: string;
   file: string;
   file_path: string;
+  extracted_file?: string;
   timestamp: string;
   status: 'pending' | 'approved' | 'rejected' | 'timeout';
   timeout_seconds: number;

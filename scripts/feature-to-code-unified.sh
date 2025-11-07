@@ -125,18 +125,9 @@ send_telemetry() {
     local step_name=$1
     local status=$2
     local metadata=$3
-    
-    # Use the Python telemetry wrapper if available
-    if [ -f "scripts/claude-with-telemetry.py" ] && command -v python3 &>/dev/null; then
-      # This is a simplified version - the actual implementation would integrate better
-      echo -e "${YELLOW}[Telemetry] Tracking: $step_name - $status${NC}"
-    else
-      # Fallback to manual telemetry
-      if [ -f "scripts/send-workflow-telemetry.sh" ]; then
-        source scripts/send-workflow-telemetry.sh
-        send_trace_to_langfuse "$EXECUTION_ID" "$step_name" "$status" "$metadata"
-      fi
-    fi
+
+    # Just log telemetry events (actual tracking happens via approval server)
+    echo -e "${YELLOW}[Telemetry] Tracking: $step_name - $status${NC}"
   fi
 }
 
@@ -390,7 +381,7 @@ log_step() {
   local step_num=$1
   local step_name=$2
   local status=$3
-  
+
   if [ "$status" = "start" ]; then
     echo -e "${BLUE}[$step_num/5] Starting: $step_name${NC}"
   elif [ "$status" = "complete" ]; then
@@ -1208,8 +1199,6 @@ wait_for_approval() {
   echo -e "  To reject with feedback: echo '{\"status\":\"rejected\", \"feedback\": {...}}' > ${approval_file}.response"
   echo ""
 
-  send_telemetry "Approval Request" "waiting" "{\"checkpoint\": \"$checkpoint\"}"
-
   while true; do
     local response_file="${approval_file}.response"
 
@@ -1239,13 +1228,13 @@ wait_for_approval() {
             echo -e "${YELLOW}Feedback received:${NC}"
             echo "$feedback" | python3 -m json.tool 2>/dev/null || echo "$feedback"
 
+            send_telemetry "Approval" "rejected_with_feedback" "{\"checkpoint\": \"$checkpoint\", \"has_feedback\": true}"
+
             # Invoke reflect command with feedback
             if [ -f "$feedback_file" ]; then
               echo -e "\n${YELLOW}Invoking reflection on feedback...${NC}"
               invoke_reflect_with_feedback "$checkpoint" "$feedback_file"
             fi
-
-            send_telemetry "Approval" "rejected_with_feedback" "{\"checkpoint\": \"$checkpoint\", \"has_feedback\": true}"
           else
             echo -e "${RED}✗ Rejected - workflow stopped${NC}"
             send_telemetry "Approval" "rejected" "{\"checkpoint\": \"$checkpoint\"}"

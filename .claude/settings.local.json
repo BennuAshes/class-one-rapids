@@ -90,7 +90,11 @@
       "Bash(claude /flow:prd /tmp/test-feature-2.md)",
       "Bash(claude /flow:execute-task)",
       "Bash(claude /flow:prd --output-format stream-json)",
-      "Bash(env)"
+      "Bash(env)",
+      "Bash(docker compose:*)",
+      "Bash(/mnt/c/Program Files/Docker/Docker/resources/bin/docker-compose.exe up:*)",
+      "Bash(pip show:*)",
+      "Bash(docker ps:*)"
     ],
     "deny": [],
     "ask": []

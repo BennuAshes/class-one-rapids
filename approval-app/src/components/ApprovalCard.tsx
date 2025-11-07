@@ -244,7 +244,7 @@ export function ApprovalCard({
 
       <FullFileModal
         visible={showFileModal}
-        filePath={approval.file}
+        filePath={approval.extracted_file || approval.file}
         onDismiss={() => setShowFileModal(false)}
       />
     </Card>

@@ -91,51 +91,70 @@ class CachedResult:
 # Global cache instance
 _cache = CachedResult(ttl=CACHE_TTL)
 
-def track_approval_in_langfuse(execution_id: str, checkpoint: str, status: str, duration_seconds: float, reason: Optional[str] = None):
+def track_approval_in_langfuse(execution_id: str, checkpoint: str, status: str, duration_seconds: float, reason: Optional[str] = None, feedback: Optional[Dict] = None):
     """
-    Track approval decision in Langfuse
-    
+    Track approval decision in Langfuse with optional feedback scoring
+
     Args:
         execution_id: Workflow execution ID
         checkpoint: Name of checkpoint (e.g., "PRD", "Design")
         status: "approved" or "rejected"
         duration_seconds: Time spent in approval
         reason: Optional rejection reason
+        feedback: Optional feedback dict with rating and comments
     """
     if not LANGFUSE_AVAILABLE or not langfuse_client:
         return
-    
+
     try:
-        # Get trace for this execution
-        trace = langfuse_client.trace(
-            name="workflow-approval",
-            session_id=execution_id,
-        )
-        
-        # Create span for approval checkpoint
-        span = trace.span(
-            name=f"Approval: {checkpoint}",
-            metadata={
-                "checkpoint": checkpoint,
-                "status": status,
-                "duration_seconds": duration_seconds,
-                "reason": reason,
-                "timestamp": datetime.now().isoformat(),
-                "tracked_by": "approval-server"
-            }
-        )
-        
-        span.end()
-        
-        # Also add a score for the approval decision
-        langfuse_client.score(
-            trace_id=execution_id,
-            name=f"approval_{checkpoint.lower().replace(' ', '_')}",
-            value=1.0 if status == "approved" else 0.0,
-            comment=reason if reason else f"{checkpoint} {status}",
-            data_type="NUMERIC"
-        )
-        
+        # Add feedback to metadata if provided
+        metadata = {
+            "checkpoint": checkpoint,
+            "status": status,
+            "duration_seconds": duration_seconds,
+            "reason": reason,
+            "timestamp": datetime.now().isoformat(),
+            "tracked_by": "approval-server"
+        }
+
+        if feedback:
+            metadata["has_feedback"] = True
+            metadata["rating"] = feedback.get("rating")
+
+        # Create span for approval checkpoint using context manager (v3 API)
+        with langfuse_client.start_as_current_span(name=f"Approval: {checkpoint}", metadata=metadata) as span:
+            # Update the current trace with session_id and name (v3 API)
+            langfuse_client.update_current_trace(
+                name="workflow-approval",
+                session_id=execution_id
+            )
+
+            # Add a score for the approval decision (v3 API)
+            langfuse_client.score_current_trace(
+                name=f"approval_{checkpoint.lower().replace(' ', '_')}",
+                value=1.0 if status == "approved" else 0.0,
+                comment=reason if reason else f"{checkpoint} {status}",
+                data_type="NUMERIC"
+            )
+
+            # Add separate score for feedback rating if provided
+            if feedback and "rating" in feedback:
+                rating = feedback.get("rating")
+                # Normalize rating to 0-1 scale (assuming 1-5 scale)
+                try:
+                    rating_value = float(rating)
+                    normalized_rating = (rating_value - 1) / 4  # Convert 1-5 to 0-1
+
+                    langfuse_client.score_current_trace(
+                        name=f"feedback_rating_{checkpoint.lower().replace(' ', '_')}",
+                        value=normalized_rating,
+                        comment=f"User rating: {rating}/5 stars",
+                        data_type="NUMERIC"
+                    )
+                    print(f"[LANGFUSE] Tracked feedback rating: {checkpoint} = {rating}/5")
+                except (ValueError, TypeError):
+                    print(f"[LANGFUSE] Warning: Invalid rating value: {rating}")
+
         langfuse_client.flush()
         print(f"[LANGFUSE] Tracked approval: {checkpoint} = {status}")
     except Exception as e:
@@ -270,12 +289,54 @@ class WorkflowManager:
                         response_file = Path(str(approval_file) + ".response")
                         if response_file.exists():
                             continue  # Already has a response, not pending
-                        
+
                         with open(approval_file, encoding='utf-8') as f:
                             data = json.load(f)
                             if data.get("status") == "pending":
                                 data["file_path"] = str(approval_file)
                                 data["execution_id"] = exec_dir.name
+
+                                # Find extracted markdown file based on checkpoint
+                                checkpoint = data.get("checkpoint", "").lower()
+                                date_part = exec_dir.name.split("_")[0]  # Extract YYYYMMDD from execution_id
+
+                                extracted_file = None
+                                if "prd" in checkpoint or "generate" in checkpoint:
+                                    extracted_file = exec_dir / f"prd_{date_part}.extracted.md"
+                                elif "design" in checkpoint or "tdd" in checkpoint or "technical" in checkpoint:
+                                    extracted_file = exec_dir / f"tdd_{date_part}.extracted.md"
+                                elif "task" in checkpoint:
+                                    # For task checkpoints, try tasks first, then fall back to tdd
+                                    extracted_file = exec_dir / f"tasks_{date_part}.extracted.md"
+                                    if not extracted_file.exists():
+                                        extracted_file = exec_dir / f"tdd_{date_part}.extracted.md"
+
+                                # If extracted file exists, add it to the data (use absolute path)
+                                if extracted_file and extracted_file.exists():
+                                    data["extracted_file"] = str(extracted_file.absolute())
+                                else:
+                                    # Fallback 1: check if there's an extracted version of the original file
+                                    if "file" in data and data["file"]:
+                                        original_file = Path(data["file"])
+                                        if original_file.name:
+                                            extracted_version = original_file.parent / f"{original_file.stem}.extracted.md"
+                                            if extracted_version.exists():
+                                                data["extracted_file"] = str(extracted_version.absolute())
+
+                                    # Fallback 2: find any .extracted.md file in the directory
+                                    if "extracted_file" not in data:
+                                        extracted_files = list(exec_dir.glob("*.extracted.md"))
+                                        if extracted_files:
+                                            # Prefer tdd > prd > any other
+                                            tdd_files = [f for f in extracted_files if "tdd" in f.name]
+                                            prd_files = [f for f in extracted_files if "prd" in f.name]
+                                            if tdd_files:
+                                                data["extracted_file"] = str(tdd_files[0].absolute())
+                                            elif prd_files:
+                                                data["extracted_file"] = str(prd_files[0].absolute())
+                                            else:
+                                                data["extracted_file"] = str(extracted_files[0].absolute())
+
                                 pending.append(data)
                     except json.JSONDecodeError as e:
                         # Log malformed JSON files for debugging
@@ -411,21 +472,14 @@ class WorkflowManager:
 
             print(f"[REJECT] ✓ Successfully created: {response_file}")
 
-            # Track in Langfuse with enhanced metadata if feedback provided
-            langfuse_metadata = {
-                "reason": reason
-            }
-            if feedback:
-                langfuse_metadata["has_feedback"] = True
-                langfuse_metadata["rating"] = feedback.get("rating")
-                langfuse_metadata["feedback_type"] = "structured"
-
+            # Track in Langfuse with feedback (if provided)
             track_approval_in_langfuse(
                 execution_id=execution_id,
                 checkpoint=checkpoint,
                 status="rejected",
                 duration_seconds=duration_seconds,
-                reason=str(langfuse_metadata)
+                reason=reason,
+                feedback=feedback  # Pass feedback dict to enable rating scoring
             )
 
             # Save separate feedback file for easier processing

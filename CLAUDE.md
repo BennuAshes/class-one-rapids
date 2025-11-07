@@ -33,3 +33,39 @@
 - ADD to existing config, don't replace
 - If unsure about config code, leave it unchanged
 - NEVER run ```expo start``` yourself, ask for help
+
+## Observability & Telemetry
+
+### Langfuse OTLP Limitations
+
+**IMPORTANT**: Langfuse **ONLY** supports OTLP traces, NOT logs or metrics.
+
+- **Supported**: OTLP traces via `/api/public/otel/v1/traces`
+- **NOT Supported**: OTLP logs (returns 404) or metrics
+- **Format**: HTTP/protobuf only (no gRPC)
+
+**Sources:**
+- [Langfuse OTLP Documentation](https://langfuse.com/docs/opentelemetry/get-started)
+- [GitHub Discussion #8275](https://github.com/orgs/langfuse/discussions/8275)
+
+### Claude Code Telemetry Issue
+
+Claude Code's built-in OTLP telemetry sends data as **logs**, not traces:
+```
+ResourceLog #0 ... claude_code.api_request ...
+```
+
+This means Claude Code's OTLP data **cannot** be sent directly to Langfuse.
+
+### Solution: Use Langfuse Python SDK
+
+For workflow telemetry, use the **Langfuse Python SDK** directly:
+- Module: `scripts/workflow_telemetry.py`
+- Bypasses OTLP entirely
+- Uses Langfuse native API
+- Creates traces/spans programmatically
+
+**Do NOT** try to configure OTEL collector to send logs to Langfuse - it will fail with 404 errors.
+
+## More Guidelines
+- NEVER use LangFuse SDK v2, if you don't understand v3 or why its not working, read local documentation and use websearch to understand.
