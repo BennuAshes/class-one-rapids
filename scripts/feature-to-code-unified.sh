@@ -1390,10 +1390,10 @@ else
   # This avoids GitHub Issue #1048 with slash command argument passing
   if [ "$TELEMETRY_ENABLED" = true ] && [ -f "scripts/claude-with-telemetry.py" ]; then
     # For telemetry, pipe feature description directly
-    echo "$FEATURE_DESC" | claude /flow:prd --output-format stream-json --verbose > "$PRD_FILE"
+    echo "$FEATURE_DESC" | claude /flow:prd > "$PRD_FILE" 2>&1
   else
     # Direct invocation by piping content
-    echo "$FEATURE_DESC" | claude /flow:prd --output-format stream-json --verbose > "$PRD_FILE"
+    echo "$FEATURE_DESC" | claude /flow:prd > "$PRD_FILE" 2>&1
   fi
   
   if [ $? -eq 0 ]; then
@@ -1442,10 +1442,10 @@ else
   # This matches the input processing method in design.md
   if [ "$TELEMETRY_ENABLED" = true ] && [ -f "scripts/claude-with-telemetry.py" ]; then
     # For telemetry, pipe the file path
-    echo "$PRD_INPUT" | claude /flow:design --output-format stream-json --verbose > "$DESIGN_FILE"
+    echo "$PRD_INPUT" | claude /flow:design > "$DESIGN_FILE" 2>&1
   else
     # Direct invocation by piping file path
-    echo "$PRD_INPUT" | claude /flow:design --output-format stream-json --verbose > "$DESIGN_FILE"
+    echo "$PRD_INPUT" | claude /flow:design > "$DESIGN_FILE" 2>&1
   fi
   
   if [ $? -eq 0 ]; then
@@ -1493,10 +1493,10 @@ else
   # This matches the input processing method in tasks.md
   if [ "$TELEMETRY_ENABLED" = true ] && [ -f "scripts/claude-with-telemetry.py" ]; then
     # For telemetry, pipe the file path
-    echo "$TDD_INPUT" | claude /flow:tasks --output-format stream-json --verbose > "$TASKS_FILE"
+    echo "$TDD_INPUT" | claude /flow:tasks > "$TASKS_FILE" 2>&1
   else
     # Direct invocation by piping file path
-    echo "$TDD_INPUT" | claude /flow:tasks --output-format stream-json --verbose > "$TASKS_FILE"
+    echo "$TDD_INPUT" | claude /flow:tasks > "$TASKS_FILE" 2>&1
   fi
   
   if [ $? -eq 0 ]; then
@@ -1571,8 +1571,21 @@ echo ""
 
 # Actually execute the tasks using the /execute-task command
 if command -v claude &> /dev/null; then
-  echo -e "${BLUE}Running: claude /flow:execute-task -p (piping: $TASKS_FILE)${NC}"
-  echo "$TASKS_FILE" | claude /flow:execute-task -p
+  # Use extracted tasks file if available (cleaner, no JSON logs)
+  TASKS_INPUT="$TASKS_FILE"
+  if [ "$AUTO_EXTRACT" = true ]; then
+    EXTRACTED_TASKS="docs/specs/$(basename "$WORK_DIR")/tasks_$(basename "$TASKS_FILE" | grep -oP '\d{8}').md"
+    if [ -f "$EXTRACTED_TASKS" ] && [ -s "$EXTRACTED_TASKS" ]; then
+      # Check if extracted file is actually clean (not just error message)
+      if grep -q "^#" "$EXTRACTED_TASKS" 2>/dev/null; then
+        TASKS_INPUT="$EXTRACTED_TASKS"
+        echo -e "${GREEN}Using extracted tasks file: $EXTRACTED_TASKS${NC}"
+      fi
+    fi
+  fi
+
+  echo -e "${BLUE}Running: claude /flow:execute-task -p (piping: $TASKS_INPUT)${NC}"
+  echo "$TASKS_INPUT" | claude /flow:execute-task -p
   execution_result=$?
 
   if [ $execution_result -eq 0 ]; then
