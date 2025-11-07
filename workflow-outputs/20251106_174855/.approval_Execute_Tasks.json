@@ -1,0 +1,19 @@
+{
+  "execution_id": "20251106_174855",
+  "checkpoint": "Execute Tasks",
+  "file": "/mnt/c/dev/class-one-rapids/workflow-outputs/20251106_174855/execute_tasks_summary.md",
+  "timestamp": "2025-11-06T21:28:31-05:00",
+  "status": "pending",
+  "timeout_seconds": 0,
+  "preview": "# Task Execution Summary\n\n## Ready to Execute Tasks\n\nThe following task list has been generated and approved:\n- **Task List File**: tasks_20251106.md\n- **Total Tasks**: 0\nUnknown\n- **Timestamp**: 2025-11-06T21:28:31-05:00\n\n## What Will Happen\n\nUpon approval, the system will:\n1. Invoke the /execute-task command with the generated task list\n2. Execute each task in sequence using TDD methodology\n3. Generate test files and implementation code\n4. Run tests and ensure all pass\n5. Provide a complete execution report\n\n## Safety Notice",
+  "changed_files": [{"path": ".approval_Task_List.json", "status": "created"}, {"path": ".approval_Task_List.json.response", "status": "created"}, {"path": "execute_tasks_summary.md", "status": "created"}],
+  "git_diff": "",
+  "file_tree": [{"name": ".approval_Task_List.json", "type": "file", "status": "created"}, {"name": ".approval_Task_List.json.response", "type": "file", "status": "created"}, {"name": "execute_tasks_summary.md", "type": "file", "status": "created"}],
+  "feedback_requested": true,
+  "feedback_template": {
+    "specific_issues": "What specific issues did you find?",
+    "missing_elements": "What's missing or unclear?",
+    "suggested_improvements": "How should this be improved?",
+    "rating": "Rate the quality (1-5 stars)"
+  }
+}
