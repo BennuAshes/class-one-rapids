@@ -95,3 +95,11 @@ For Expo and Jest configuration details, see [EXPO_JEST_SETUP.md](EXPO_JEST_SETU
 - approval app hasn't been well tested
 - I want a more streamlined funnel going from idea to approval
     - off the cuff requests that need approval that have their own flow or no flow (just a prompt, maybe with standard context)
+
+## The Font of Knowledge
+There are many ways for you to describe rules, guidelines, guardrails, steering, commands, skills, hooks, etc that influence the final prompt that gets sent, and the response or results it generates. My goal here is exploring some of these ideas at low levels so I can understand them in a deep way, and thus be able to assess high level wrappers being marketed.
+
+### The Flow of Knowledge
+Source might be files generated from requests to do research from an LLM or you, or another expert in a field.
+```Source -> Document -> Refine -> Store```
+Example: You are the source, as an expert in your domain. You write a file with examples from your experiences that describe how code should be written with examples. You opt to keep it simple and just tag files in your prompts to add context (skipping the "Store" step that might go to a vector database to be retrieved as part of some process).

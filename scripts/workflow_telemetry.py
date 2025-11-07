@@ -264,11 +264,12 @@ def track_approval_checkpoint(
     status: str,
     duration_seconds: float,
     reviewer: Optional[str] = None,
-    reason: Optional[str] = None
+    reason: Optional[str] = None,
+    add_score: bool = True
 ):
     """
-    Track an approval checkpoint in the workflow
-    
+    Track an approval checkpoint in the workflow with optional scoring
+
     Args:
         execution_id: Execution ID for linking to trace
         checkpoint: Name of checkpoint (e.g., "PRD", "Design", "Tasks")
@@ -276,37 +277,53 @@ def track_approval_checkpoint(
         duration_seconds: Time spent waiting for approval
         reviewer: Optional reviewer identifier
         reason: Optional reason for rejection
+        add_score: Whether to add numeric score (default: True)
     """
     if not LANGFUSE_AVAILABLE:
         return
-    
-    langfuse = Langfuse(
-        public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
-        secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
-        host=os.getenv("LANGFUSE_HOST", "http://localhost:3000"),
-    )
-    
-    # Get trace
-    trace = langfuse.trace(
-        name="workflow-approval",
-        session_id=execution_id,
-    )
-    
-    # Create span for approval checkpoint
-    span = trace.span(
-        name=f"Approval: {checkpoint}",
-        metadata={
-            "checkpoint": checkpoint,
-            "status": status,
-            "duration_seconds": duration_seconds,
-            "reviewer": reviewer,
-            "reason": reason,
-            "timestamp": datetime.now().isoformat(),
-        }
-    )
-    
-    span.end()
-    langfuse.flush()
+
+    try:
+        langfuse = Langfuse(
+            public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
+            secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
+            host=os.getenv("LANGFUSE_HOST", "http://localhost:3000"),
+        )
+
+        # Create span for approval checkpoint using v3 API context manager
+        with langfuse.start_as_current_span(
+            name=f"Approval: {checkpoint}",
+            metadata={
+                "checkpoint": checkpoint,
+                "status": status,
+                "duration_seconds": duration_seconds,
+                "reviewer": reviewer,
+                "reason": reason,
+                "timestamp": datetime.now().isoformat(),
+                "tracked_by": "workflow-telemetry"
+            }
+        ) as span:
+            # Update trace with session_id and name (v3 API)
+            langfuse.update_current_trace(
+                name="workflow-approval",
+                session_id=execution_id
+            )
+
+            # Add numeric score for the approval decision (v3 API)
+            if add_score:
+                score_value = 1.0 if status == "approved" else 0.0
+                score_comment = reason if reason else f"{checkpoint} {status}"
+
+                langfuse.score_current_trace(
+                    name=f"approval_{checkpoint.lower().replace(' ', '_')}",
+                    value=score_value,
+                    comment=score_comment,
+                    data_type="NUMERIC"
+                )
+
+        langfuse.flush()
+    except Exception as e:
+        # Graceful degradation - don't fail workflow if telemetry fails
+        print(f"[WARNING] Failed to track approval checkpoint: {e}")
 
 
 def create_step_generation(

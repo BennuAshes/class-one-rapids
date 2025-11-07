@@ -1285,6 +1285,17 @@ request_approval() {
         wait_for_approval "$approval_file" "$checkpoint"
       else
         echo -e "${GREEN}✓ Auto-approved (APPROVAL_MODE=auto)${NC}\n"
+
+        # Track auto-approval in Langfuse
+        if [ "$TELEMETRY_ENABLED" = true ]; then
+          python3 scripts/track-workflow-step.py approval \
+            "$EXECUTION_ID" \
+            "$checkpoint" \
+            "approved" \
+            "0" \
+            "Auto-approved via APPROVAL_MODE=auto" 2>/dev/null || true
+        fi
+
         return 0
       fi
       ;;
