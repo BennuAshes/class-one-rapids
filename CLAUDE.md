@@ -67,5 +67,12 @@ For workflow telemetry, use the **Langfuse Python SDK** directly:
 
 **Do NOT** try to configure OTEL collector to send logs to Langfuse - it will fail with 404 errors.
 
-## More Guidelines
-- NEVER use LangFuse SDK v2, if you don't understand v3 or why its not working, read local documentation and use websearch to understand.
+## LangFuse
+- NEVER use LangFuse SDK v2
+- If you don't understand v3 or why its not working, read local documentation and use websearch to understand.
+
+## PRP/Spec-driven vs Plan & Act
+If you are in an existing code base and working with other code, this sytem is a bit much. Maybe you have a product person not on board with AI yet, and you're just wanting to use AI to assist.
+
+### Plan & Act
+Simplifies the PRP/spec process, and assumes we already have a spec and a single task or small collection of todos related to a medium task.
