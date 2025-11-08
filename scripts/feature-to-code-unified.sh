@@ -9,12 +9,43 @@
 #   ./feature-to-code-unified.sh workflow-outputs/YYYYMMDD_HHMMSS  # Resume
 #
 # Environment Variables (opt-out):
+#   WORKFLOW_ENGINE=python      # Use Python implementation instead of bash (default: bash)
 #   DISABLE_TELEMETRY=1         # Disable Langfuse telemetry (default: enabled)
 #   DISABLE_EXTRACTION=1        # Disable auto-extraction (default: enabled)
 #   SKIP_SPECS_COPY=1           # Don't copy to docs/specs (default: copies)
 #   APPROVAL_MODE=file          # Approval mode: file, interactive, or auto (default: file)
 #   APPROVAL_TIMEOUT=300        # Approval timeout in seconds (default: 0 = unlimited)
 #
+
+# Feature flag: Delegate to Python implementation if requested
+WORKFLOW_ENGINE="${WORKFLOW_ENGINE:-bash}"
+
+if [ "$WORKFLOW_ENGINE" = "python" ]; then
+  echo -e "${BLUE}Delegating to Python workflow implementation...${NC}"
+
+  # Build Python CLI arguments
+  PYTHON_ARGS=("$1")
+
+  # Pass through configuration
+  if [ "${DISABLE_TELEMETRY:-0}" = "1" ]; then
+    PYTHON_ARGS+=("--no-telemetry")
+  fi
+
+  if [ "${DISABLE_EXTRACTION:-0}" = "1" ]; then
+    PYTHON_ARGS+=("--no-auto-extract")
+  fi
+
+  if [ -n "$APPROVAL_MODE" ]; then
+    PYTHON_ARGS+=("--approval-mode" "$APPROVAL_MODE")
+  fi
+
+  if [ -n "$APPROVAL_TIMEOUT" ] && [ "$APPROVAL_TIMEOUT" != "0" ]; then
+    PYTHON_ARGS+=("--approval-timeout" "$APPROVAL_TIMEOUT")
+  fi
+
+  # Execute Python workflow
+  exec python3 -m scripts.workflow.cli "${PYTHON_ARGS[@]}"
+fi
 
 set -e  # Exit on error
 
@@ -1404,7 +1435,7 @@ else
     
     # Extract if needed
     if [ "$AUTO_EXTRACT" = true ]; then
-      extract_artifacts "$WORK_DIR" "docs/specs/$(basename "$WORK_DIR")"
+      extract_artifacts "$WORK_DIR" "docs/specs/$(basename "$WORK_DIR")" || true
     fi
   else
     log_step 1 "Generate Product Requirements Document" "error"
@@ -1453,9 +1484,9 @@ else
     echo -e "  Output: $DESIGN_FILE"
     echo -e "  Size: $(wc -c < "$DESIGN_FILE") bytes"
     update_step_status "Generate Technical Design" "completed"
-    
+
     if [ "$AUTO_EXTRACT" = true ]; then
-      extract_artifacts "$WORK_DIR" "docs/specs/$(basename "$WORK_DIR")"
+      extract_artifacts "$WORK_DIR" "docs/specs/$(basename "$WORK_DIR")" || true
     fi
   else
     log_step 2 "Generate Technical Design Document" "error"
@@ -1504,9 +1535,9 @@ else
     echo -e "  Output: $TASKS_FILE"
     echo -e "  Size: $(wc -c < "$TASKS_FILE") bytes"
     update_step_status "Generate Task List" "completed"
-    
+
     if [ "$AUTO_EXTRACT" = true ]; then
-      extract_artifacts "$WORK_DIR" "docs/specs/$(basename "$WORK_DIR")"
+      extract_artifacts "$WORK_DIR" "docs/specs/$(basename "$WORK_DIR")" || true
     fi
   else
     log_step 3 "Generate Task List" "error"

@@ -94,7 +94,8 @@
       "Bash(docker compose:*)",
       "Bash(/mnt/c/Program Files/Docker/Docker/resources/bin/docker-compose.exe up:*)",
       "Bash(pip show:*)",
-      "Bash(docker ps:*)"
+      "Bash(docker ps:*)",
+      "Bash(pip3 install:*)"
     ],
     "deny": [],
     "ask": []
