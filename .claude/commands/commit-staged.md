@@ -36,3 +36,5 @@ Review staged files and commit with an appropriate message based on the changes.
 - `test`: Test additions or changes
 - `style`: Formatting changes
 
+
+
