@@ -15,13 +15,13 @@ echo -e "${BLUE}Claude Code Observability Stack${NC}"
 echo -e "${BLUE}========================================${NC}\n"
 
 echo -e "${YELLOW}Starting services...${NC}"
-docker-compose up -d
+docker-compose -f config/docker-compose.yml up -d
 
 echo -e "\n${YELLOW}Waiting for services to be healthy...${NC}"
 sleep 5
 
 echo -e "\n${GREEN}Checking service status:${NC}"
-docker-compose ps
+docker-compose -f config/docker-compose.yml ps
 
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${GREEN}✓ Observability stack is running!${NC}"
@@ -42,7 +42,7 @@ echo -e "  5. Configure OTEL collector with keys (see README.md)"
 echo ""
 
 echo -e "${YELLOW}Next steps:${NC}"
-echo -e "  Run workflow: ${GREEN}./scripts/next-feature-full-flow-observable.sh \"feature\"${NC}"
-echo -e "  View logs:    ${GREEN}docker-compose logs -f${NC}"
-echo -e "  Stop stack:   ${GREEN}docker-compose down${NC}"
+echo -e "  Run workflow: ${GREEN}./scripts/feature-to-code-unified.sh \"feature\"${NC}"
+echo -e "  View logs:    ${GREEN}docker-compose -f config/docker-compose.yml logs -f${NC}"
+echo -e "  Stop stack:   ${GREEN}docker-compose -f config/docker-compose.yml down${NC}"
 echo ""

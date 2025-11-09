@@ -24,6 +24,7 @@ All features are **enabled by default**. Use these to opt-out:
 
 | Variable             | Default | Description                                      |
 | -------------------- | ------- | ------------------------------------------------ |
+| `WORKFLOW_ENGINE`    | `bash`  | Set to `python` to use Python workflow implementation |
 | `DISABLE_TELEMETRY`  | `0`     | Set to `1` to disable Langfuse telemetry         |
 | `DISABLE_EXTRACTION` | `0`     | Set to `1` to skip auto-extraction               |
 | `SKIP_SPECS_COPY`    | `0`     | Set to `1` to keep docs only in workflow-outputs |
@@ -62,16 +63,41 @@ APPROVAL_MODE=auto ./scripts/feature-to-code-unified.sh "feature"
 
 ## Utility Scripts
 
+### Python Workflow (Recommended)
+
+Use the new Python implementation for better reliability and features:
+
+```bash
+# Enable Python workflow engine
+WORKFLOW_ENGINE=python ./scripts/feature-to-code-unified.sh "feature description"
+
+# Or run directly
+python3 -m scripts.workflow.cli "feature description"
+
+# With auto-approval
+python3 -m scripts.workflow.cli --approval-mode auto feature.md
+
+# Interactive mode
+python3 -m scripts.workflow.cli --approval-mode interactive feature.md
+```
+
+**Benefits:**
+- ✅ Fixes stream-json output issues
+- ✅ Type-safe implementation
+- ✅ Better error handling
+- ✅ Resumable workflows
+- ✅ Async I/O for better performance
+
 ### Extract Artifacts
 
 Extract readable documents from JSON streaming output:
 
 ```bash
 # Extract in place (creates .extracted.md files)
-python3 scripts/extract-artifacts.py workflow-outputs/20251026_123456
+python3 scripts/utils/extract-artifacts.py workflow-outputs/20251026_123456
 
 # Extract to specific location
-python3 scripts/extract-artifacts.py workflow-outputs/20251026_123456 docs/specs/my-feature
+python3 scripts/utils/extract-artifacts.py workflow-outputs/20251026_123456 docs/specs/my-feature
 ```
 
 ### Claude with Telemetry
@@ -79,16 +105,15 @@ python3 scripts/extract-artifacts.py workflow-outputs/20251026_123456 docs/specs
 Wrapper for `claude -p` that adds Langfuse telemetry:
 
 ```bash
-python3 scripts/claude-with-telemetry.py "Your prompt" "execution_id" "step_name"
+python3 scripts/utils/claude-with-telemetry.py "Your prompt" "execution_id" "step_name"
 ```
 
-### Send Workflow Telemetry
+### Check Approvals
 
-Manually send telemetry data for workflow steps:
+Diagnostic tool for troubleshooting approval files:
 
 ```bash
-source scripts/send-workflow-telemetry.sh
-send_trace_to_langfuse "$EXECUTION_ID" "Step Name" "completed" '{"metadata": "value"}'
+python3 scripts/utils/check-approvals.py workflow-outputs/20251026_123456
 ```
 
 ## Workflow Approval System
@@ -269,13 +294,59 @@ The original `feature-to-code.sh` is deprecated and redirects to the unified scr
 
 ```
 scripts/
-├── feature-to-code-unified.sh      # Main workflow script
-├── feature-to-code.sh              # Deprecated (redirects to unified)
-├── extract-artifacts.py            # Extract docs from JSON
-├── claude-with-telemetry.py        # Claude CLI wrapper with telemetry
-├── send-workflow-telemetry.sh      # Manual telemetry helper
-├── FEATURE_TO_CODE_MIGRATION.md    # Migration guide
-└── README.md                       # This file
+├── feature-to-code-unified.sh      # Main CLI entry point (delegates to Python or runs bash)
+├── README.md                       # This file
+├── PYTHON_INSTALL_GUIDE.md         # Python setup guide
+├── WORKFLOW_APPROVALS.md           # Approval system reference
+│
+├── workflow/                       # Python workflow implementation (NEW)
+│   ├── cli.py                      # Command-line interface
+│   ├── orchestrator.py             # Main workflow coordination
+│   ├── types.py                    # Type definitions
+│   ├── services/                   # Reusable services
+│   │   ├── claude_cli.py           # Claude subprocess wrapper (with stream-json)
+│   │   ├── approval.py             # Approval flows (file/auto/interactive)
+│   │   ├── telemetry.py            # Langfuse telemetry integration
+│   │   └── artifact_extraction.py  # Artifact extraction service
+│   ├── steps/                      # Workflow step executors
+│   │   ├── prd.py                  # PRD generation
+│   │   ├── design.py               # Technical design generation
+│   │   ├── tasks.py                # Task list generation
+│   │   ├── execute.py              # Task execution
+│   │   └── summary.py              # Summary generation
+│   └── utils/                      # Utilities
+│       └── file_ops.py             # Async file operations
+│
+├── utils/                          # Standalone utilities
+│   ├── extract-artifacts.py        # Extract docs from JSON
+│   ├── claude-with-telemetry.py    # Claude CLI wrapper with telemetry
+│   ├── check-approvals.py          # Diagnostic tool for approval files
+│   └── track-workflow-step.py      # Manual workflow step tracking
+│
+├── langfuse/                       # Langfuse-specific libraries
+│   ├── judge_prompts.py            # LLM judge prompts
+│   ├── langfuse_evaluators.py      # Evaluation functions
+│   └── setup_langfuse_score_configs.py  # Scoring configuration
+│
+├── setup/                          # Setup & diagnostic scripts
+│   ├── install-telemetry-deps.sh   # Install Langfuse SDK dependencies
+│   ├── verify-telemetry-setup.sh   # Check telemetry configuration
+│   ├── setup-telemetry-env.sh      # Configure environment variables
+│   └── test-telemetry.sh           # Test telemetry connectivity
+│
+├── libs/                           # Shared libraries
+│   └── workflow_telemetry.py       # Telemetry library (used by bash)
+│
+├── deprecated/                     # Archived scripts (see deprecated/README.md)
+│   ├── feature-to-code.sh
+│   ├── feature-to-code-traced.sh
+│   ├── send-workflow-telemetry.sh
+│   └── workflow-approval-ui.html
+│
+└── docs/                           # Archived documentation (see docs/README.md)
+    ├── FEATURE_TO_CODE_MIGRATION.md
+    ├── APPROVAL_SYSTEM_FIXES.md
+    └── PERFORMANCE_IMPROVEMENTS.md
 
 (Root level)
 ├── workflow-approval-server.py     # Approval UI server (runs in docker-compose)
