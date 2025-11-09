@@ -52,6 +52,19 @@ class ApprovalStatus(str, Enum):
     TIMEOUT = "timeout"
 
 
+class FeedbackCategory(str, Enum):
+    """Categories for structured feedback"""
+    FACTUAL_ERROR = "factual_error"
+    INCOMPLETE = "incomplete"
+    TONE = "tone"
+    STRUCTURE = "structure"
+    MISSING_CONTEXT = "missing_context"
+    TECHNICAL_ISSUE = "technical_issue"
+    CLARITY = "clarity"
+    REQUIREMENTS_MISMATCH = "requirements_mismatch"
+    OTHER = "other"
+
+
 # ============================================================================
 # Configuration
 # ============================================================================
@@ -64,18 +77,25 @@ class WorkflowConfig:
     feature_source: str
     feature_description: str
 
-    # Feature toggles
+    # Core features - always enabled for best practices
     telemetry_enabled: bool = True
     auto_extract: bool = True
     extract_to_specs: bool = True
+    show_file_changes: bool = True
 
     # Approval settings
     approval_mode: ApprovalMode = ApprovalMode.FILE
     approval_timeout: int = 0  # 0 = unlimited
+
+    # Advanced approval settings (set by approval profile)
     require_command_approval: bool = True
     auto_apply_feedback: bool = False
     auto_retry_after_feedback: bool = False
-    show_file_changes: bool = True
+    require_all_approvals: bool = False  # For strict mode
+
+    # Execution settings
+    parallel_execution: bool = False  # Enable parallel step execution
+    max_concurrent_steps: int = 3  # Max steps to run in parallel
 
     # Optional webhook
     webhook_url: Optional[str] = None
@@ -84,6 +104,11 @@ class WorkflowConfig:
     langfuse_public_key: Optional[str] = None
     langfuse_secret_key: Optional[str] = None
     langfuse_host: str = "http://localhost:3000"
+
+    def _replace(self, **kwargs):
+        """Helper to create a new config with updated fields."""
+        from dataclasses import replace
+        return replace(self, **kwargs)
 
 
 # ============================================================================
@@ -148,9 +173,62 @@ class StepResult:
     """Result of a workflow step execution"""
     success: bool
     output_file: Optional[Path] = None
+    duration_seconds: float = 0.0
     error_message: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def is_success(self) -> bool:
+        """Alias for success property."""
+        return self.success
+
+
+# ============================================================================
+# Approval System
+# ============================================================================
+
+@dataclass(frozen=True)
+class FileChange:
+    """Represents a changed file."""
+    path: str
+    status: Literal["created", "modified", "deleted"]
+
+
+@dataclass(frozen=True)
+class ApprovalRequest:
+    """Request for approval at a checkpoint."""
+    execution_id: str
+    checkpoint: str
+    file: Path
+    timestamp: datetime
+    timeout_seconds: int = 0
+    preview: str = ""
+    changed_files: List[FileChange] = field(default_factory=list)
+    git_diff: str = ""
+    feedback_requested: bool = True
+    approval_type: str = "standard"
+    command_improvement_metadata: Optional[Dict[str, Any]] = None
+
+
+@dataclass(frozen=True)
+class StructuredFeedback:
+    """Structured feedback for better learning."""
+    category: FeedbackCategory
+    description: str
+    severity: Literal["low", "medium", "high"] = "medium"
+    suggestions: List[str] = field(default_factory=list)
+    examples: List[str] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ApprovalResponse:
+    """Response from approval request."""
+    status: ApprovalStatus
     duration_seconds: float = 0.0
+    reason: Optional[str] = None
+    feedback: Optional[Dict[str, Any]] = None
+    structured_feedback: Optional[List[StructuredFeedback]] = None
 
     @property
     def is_success(self) -> bool:
