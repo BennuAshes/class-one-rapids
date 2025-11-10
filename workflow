@@ -20,8 +20,9 @@ export LANGFUSE_SECRET_KEY="${LANGFUSE_SECRET_KEY:-sk-lf-980bcde7-ff84-40b2-b127
 export LANGFUSE_HOST="${LANGFUSE_HOST:-http://localhost:3000}"
 
 # Use venv python if available, otherwise fall back to system python3
+# Use -u flag for unbuffered output to see real-time progress
 if [ -f "$SCRIPT_DIR/venv/bin/python3" ]; then
-    exec "$SCRIPT_DIR/venv/bin/python3" "$SCRIPT_DIR/scripts/workflow.py" "$@"
+    exec "$SCRIPT_DIR/venv/bin/python3" -u "$SCRIPT_DIR/scripts/workflow.py" "$@"
 else
-    exec python3 "$SCRIPT_DIR/scripts/workflow.py" "$@"
+    exec python3 -u "$SCRIPT_DIR/scripts/workflow.py" "$@"
 fi
