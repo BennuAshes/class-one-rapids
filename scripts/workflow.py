@@ -144,9 +144,48 @@ async def main_async(args: argparse.Namespace) -> int:
                 feature_description = f.read()
             feature_source = f"file: {input_path.name}"
         else:
-            # Use as inline description
-            feature_description = args.feature
-            feature_source = "command line"
+            # Check if it looks like a mangled file path (no slashes, ends with .md)
+            # This happens when Windows backslashes are used without quotes
+            if '/' not in args.feature and '\\' not in args.feature and args.feature.endswith('.md'):
+                # Try to find a matching file by searching for .md files
+                import glob
+                # Search for all .md files
+                all_md_files = glob.glob('**/*.md', recursive=True)
+
+                # Find files that match when all slashes are removed
+                mangled_input = args.feature
+                matches = [f for f in all_md_files if f.replace('/', '').replace('\\', '') == mangled_input]
+
+                if len(matches) == 1:
+                    # Found exactly one match - use it!
+                    corrected_path = Path(matches[0])
+                    print(f"\n💡 Auto-corrected path: {args.feature} → {matches[0]}", flush=True)
+                    print(f"   (Tip: Use forward slashes or quotes to avoid this)", flush=True)
+                    print(f"", flush=True)
+                    with open(corrected_path, 'r', encoding='utf-8') as f:
+                        feature_description = f.read()
+                    feature_source = f"file: {corrected_path.name}"
+                elif len(matches) > 1:
+                    print(f"\n❌ Error: Ambiguous path - multiple files match: {args.feature}", flush=True)
+                    print(f"", flush=True)
+                    print(f"Possible matches:", flush=True)
+                    for match in matches:
+                        print(f"  - {match}", flush=True)
+                    print(f"", flush=True)
+                    print(f"💡 Tip: Use forward slashes (/) to specify the exact file", flush=True)
+                    sys.exit(1)
+                else:
+                    print(f"\n❌ Error: File not found: {args.feature}", flush=True)
+                    print(f"", flush=True)
+                    print(f"💡 Tip: If you're on Windows, use forward slashes (/) instead of backslashes (\\)", flush=True)
+                    print(f"   Example: docs/specs/feature/description.md", flush=True)
+                    print(f"", flush=True)
+                    print(f"   See CLAUDE.md for CLI best practices.", flush=True)
+                    sys.exit(1)
+            else:
+                # Use as inline description
+                feature_description = args.feature
+                feature_source = "command line"
 
         # Generate feature folder name for docs/specs/
         feature_folder_name = generate_feature_folder_name(feature_description)
