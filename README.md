@@ -90,16 +90,31 @@ For Expo and Jest configuration details, see [EXPO_JEST_SETUP.md](EXPO_JEST_SETU
 - replace human approval method in new full flow script w/ telemtry to be apart of a UX we build just for this
 - Abstract things enough that we can sub out claude for cursor cli, codex, auggie, etc
 - This readme abstracted out such that its a list of features/apps/modules pointing to other readmes with more information on specific topics
+- Finding I have to immediately reflect after each change, so that later when it tries to make an adjustment it doesn't undo and go back to a default it likes. I don't experience this often with Typescript but it happens a lot with python. It does not have a grasp of langfuse v3, and reverted back to v2 several times. The first few were quite confusing.
+- The second time you interact with an LLM past your initial prompt should result in analysis for why we are having to ask that specific follow-up question. I call this reflection, and its common to do it with scoring or llm-as-judge. A formal name for this process that's evolving is called "Evaluations" or "Evals" for short. 
 
 ## Known TODOs
 - approval app hasn't been well tested
 - I want a more streamlined funnel going from idea to approval
     - off the cuff requests that need approval that have their own flow or no flow (just a prompt, maybe with standard context)
+- change to point to feature description files?
+
+
+## PRP/Spec-driven vs Plan & Act
+If you are in an existing code base and working with other code, this sytem is a bit much. Maybe you have a product person not on board with AI yet, and you're just wanting to use AI to assist.
+
+### Plan & Act
+Simplifies the PRP/spec process, and assumes we already have a spec and a single task or small collection of todos related to a medium task.
+
 
 ## The Font of Knowledge
-There are many ways for you to describe rules, guidelines, guardrails, steering, commands, skills, hooks, etc that influence the final prompt that gets sent, and the response or results it generates. My goal here is exploring some of these ideas at low levels so I can understand them in a deep way, and thus be able to assess high level wrappers being marketed.
+- There are many ways for you to describe rules, guidelines, guardrails, steering, commands, skills, hooks, etc that influence the final prompt that gets sent, and the response or results it generates. My goal here is exploring some of these ideas at low levels so I can understand them in a deep way, and thus be able to assess high level wrappers being marketed.
 
 ### The Flow of Knowledge
 Source might be files generated from requests to do research from an LLM or you, or another expert in a field.
 ```Source -> Document -> Refine -> Store```
 Example: You are the source, as an expert in your domain. You write a file with examples from your experiences that describe how code should be written with examples. You opt to keep it simple and just tag files in your prompts to add context (skipping the "Store" step that might go to a vector database to be retrieved as part of some process).
+
+# What is Vital (thinking ahead)
+## The feedback loop
+- Being able to know where a given prompt stands, and how each change can influence it. We want as much data related to this process as possible, and interactive visualizations therein.

@@ -223,3 +223,62 @@ Current version: 2.0.0
 - Enhanced feedback and retry system
 - Git-based file tracking
 - Better error handling and recovery
+- **Step-level caching (90%+ speed improvement)**
+- **Mock mode for instant testing**
+- **Structured feedback system**
+- **Parallel execution framework**
+
+## 🚀 Performance Optimizations
+
+### Caching System
+Get instant results for repeated workflows:
+
+```bash
+# First run: 30-60s per step
+./workflow --approval minimal feature.md
+
+# Second run: <1s per cached step (90%+ faster!)
+./workflow --approval minimal feature.md
+```
+
+Cache is automatically managed and expires after 24 hours.
+
+### Mock Mode Testing
+Test the entire workflow in seconds without API calls:
+
+```bash
+# Instant testing with mock responses
+./workflow --mock --approval minimal test-feature.md
+
+# Run automated test suite
+./test-workflow.sh
+```
+
+Perfect for:
+- Development iterations
+- CI/CD pipelines
+- Learning the system
+- Testing workflow logic
+
+### Structured Feedback
+Provide categorized, actionable feedback:
+
+```json
+{
+  "status": "rejected",
+  "structured_feedback": [{
+    "category": "INCOMPLETE",
+    "description": "Missing authentication",
+    "severity": "high",
+    "suggestions": ["Add JWT", "Include rate limiting"]
+  }]
+}
+```
+
+## 📖 Documentation
+
+- **Getting Started**: This file
+- **Testing Guide**: See `MOCK_MODE_GUIDE.md`
+- **Optimization Details**: See `COMPLETE_OPTIMIZATION_SUMMARY.md`
+- **Migration Guide**: See `scripts/MIGRATION_GUIDE.md`
+- **Test Examples**: See `OPTIMIZATION_TEST_GUIDE.md`

@@ -24,7 +24,9 @@ from ..utils.file_ops import async_write_json, async_read_json, async_file_exist
 async def request_approval(
     request: ApprovalRequest,
     mode: ApprovalMode,
-    timeout: int = 0
+    timeout: int = 0,
+    mock_mode: bool = False,
+    skip_execute_approval: bool = False
 ) -> ApprovalResponse:
     """
     Request approval for workflow checkpoint.
@@ -35,16 +37,18 @@ async def request_approval(
         request: Approval request with checkpoint details
         mode: Approval mode (file/auto/interactive)
         timeout: Timeout in seconds (0 = unlimited)
+        mock_mode: If True, auto-approve everything (for testing)
 
     Returns:
         ApprovalResponse with decision and metadata
     """
     if mode == ApprovalMode.AUTO:
-        # Special case: Execute Tasks always requires approval
-        if request.checkpoint == "Execute Tasks":
-            return await _file_approval_flow(request, timeout)
-        else:
+        # In mock mode or with skip_execute_approval, auto-approve everything including Execute Tasks
+        if mock_mode or skip_execute_approval or request.checkpoint != "Execute Tasks":
             return ApprovalResponse(status=ApprovalStatus.APPROVED)
+        else:
+            # Execute Tasks requires approval in normal AUTO mode (unless skip flag is set)
+            return await _file_approval_flow(request, timeout)
 
     elif mode == ApprovalMode.FILE:
         return await _file_approval_flow(request, timeout)

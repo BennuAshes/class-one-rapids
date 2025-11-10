@@ -467,6 +467,20 @@
         background: #dc3545;
       }
 
+      .refresh-paused-indicator {
+        position: fixed;
+        top: 70px;
+        right: 20px;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-weight: 600;
+        color: white;
+        background: #ffc107;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        display: none;
+        animation: fadeIn 0.3s ease;
+      }
+
       .spinner {
         display: inline-block;
         width: 20px;
@@ -744,6 +758,46 @@
         }
       }
 
+      function updateRefreshPausedIndicator(isPaused) {
+        let indicator = document.getElementById("refreshPausedIndicator");
+
+        if (isPaused) {
+          if (!indicator) {
+            // Create the indicator if it doesn't exist
+            indicator = document.createElement("div");
+            indicator.id = "refreshPausedIndicator";
+            indicator.className = "refresh-paused-indicator";
+            indicator.innerHTML = "⏸ Auto-refresh paused (feedback form open)";
+            document.body.appendChild(indicator);
+          }
+          indicator.style.display = "block";
+        } else {
+          if (indicator) {
+            indicator.style.display = "none";
+          }
+        }
+      }
+
+      // Helper function to check if any feedback form is currently active
+      function hasFeedbackFormsOpen() {
+        const activeForms = document.querySelectorAll('.feedback-form.active');
+        return activeForms.length > 0;
+      }
+
+      // Helper function to check if user is actively typing in any feedback form
+      function isUserTypingInFeedback() {
+        const activeForms = document.querySelectorAll('.feedback-form.active');
+        for (const form of activeForms) {
+          const textareas = form.querySelectorAll('textarea');
+          for (const textarea of textareas) {
+            if (document.activeElement === textarea || textarea.value.trim() !== '') {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+
       function setupEventStream() {
         eventSource = new EventSource(`${apiUrl}/events`);
 
@@ -751,7 +805,13 @@
           const data = JSON.parse(event.data);
           updatePendingCount(data.pending_count);
           if (data.pending_count > 0) {
-            loadPendingApprovals();
+            // Don't refresh if user has feedback forms open
+            if (!hasFeedbackFormsOpen()) {
+              loadPendingApprovals();
+            } else {
+              console.log('Skipping auto-refresh: feedback form is open');
+              updateRefreshPausedIndicator(true);
+            }
           }
         };
 
@@ -1237,6 +1297,11 @@
             // Hide feedback form
             const feedbackForm = document.getElementById(`feedback-form-${idx}`);
             feedbackForm.classList.remove("active");
+
+            // Clear the paused indicator if no other forms are open
+            if (!hasFeedbackFormsOpen()) {
+              updateRefreshPausedIndicator(false);
+            }
             return;
           }
 
@@ -1266,6 +1331,9 @@
             }
 
             submitFeedback(approval.file_path, feedback);
+
+            // Clear the paused indicator since form will be closed after submission
+            updateRefreshPausedIndicator(false);
             return;
           }
 
@@ -1319,7 +1387,15 @@
       setInterval(() => {
         if (document.visibilityState === "visible") {
           loadWorkflows();
-          loadPendingApprovals();
+
+          // Don't refresh approvals if user has feedback forms open
+          if (!hasFeedbackFormsOpen()) {
+            loadPendingApprovals();
+            updateRefreshPausedIndicator(false);
+          } else {
+            console.log('Auto-refresh paused: feedback form is open');
+            updateRefreshPausedIndicator(true);
+          }
         }
       }, 30000);
     </script>

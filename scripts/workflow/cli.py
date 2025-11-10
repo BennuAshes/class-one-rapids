@@ -13,7 +13,7 @@ from pathlib import Path
 
 from .types import WorkflowConfig, ApprovalMode
 from .orchestrator import run_workflow, load_workflow_state
-from .utils.file_ops import async_read_file, async_mkdir
+from .utils.file_ops import async_read_file, async_mkdir, generate_feature_folder_name
 
 
 async def main_async(args: argparse.Namespace) -> int:
@@ -68,6 +68,16 @@ async def main_async(args: argparse.Namespace) -> int:
     # Create work directory
     await async_mkdir(work_dir)
 
+    # Determine feature folder name for docs/specs/
+    feature_folder_name = None
+    if args.extract_to_specs:
+        if args.feature_folder:
+            # User-specified feature folder
+            feature_folder_name = args.feature_folder
+        else:
+            # Auto-generate from feature description
+            feature_folder_name = generate_feature_folder_name(feature_description)
+
     # Build config
     config = WorkflowConfig(
         execution_id=execution_id,
@@ -77,6 +87,7 @@ async def main_async(args: argparse.Namespace) -> int:
         telemetry_enabled=args.telemetry,
         auto_extract=args.auto_extract,
         extract_to_specs=args.extract_to_specs,
+        feature_folder_name=feature_folder_name,
         approval_mode=ApprovalMode(args.approval_mode),
         approval_timeout=args.approval_timeout,
         webhook_url=args.webhook_url,
@@ -195,6 +206,11 @@ Examples:
         action="store_true",
         default=True,
         help="Extract artifacts to docs/specs (default: enabled)"
+    )
+
+    parser.add_argument(
+        "--feature-folder",
+        help="Feature folder name for docs/specs/ (auto-generated if not specified)"
     )
 
     parser.add_argument(

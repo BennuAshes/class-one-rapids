@@ -108,7 +108,39 @@ def extract_workflow_artifacts(workflow_dir, target_spec_dir=None):
             with open(json_file, 'r', encoding='utf-8') as f:
                 first_line = f.readline().strip()
                 if not first_line.startswith('{'):
-                    print(f"  → Already extracted (not JSON format)")
+                    # File is already markdown - copy it to target directory if specified
+                    if target_spec_dir:
+                        output_dir = Path(target_spec_dir)
+                        output_dir.mkdir(parents=True, exist_ok=True)
+
+                        timestamp = datetime.now().strftime('%Y%m%d')
+                        if artifact_type == 'prd':
+                            output_filename = f"prd_extracted_{timestamp}.md"
+                        elif artifact_type == 'tdd':
+                            output_filename = f"technical_design_{timestamp}.md"
+                        else:
+                            output_filename = f"{artifact_type}_{timestamp}.md"
+
+                        output_path = output_dir / output_filename
+
+                        # Copy the markdown file
+                        import shutil
+                        shutil.copy2(json_file, output_path)
+                        print(f"  ✓ Copied to: {output_path}")
+
+                        # Create a metadata file
+                        metadata_path = output_path.with_suffix('.metadata.json')
+                        import json
+                        with open(metadata_path, 'w', encoding='utf-8') as mf:
+                            json.dump({
+                                'source': str(json_file),
+                                'copied_at': datetime.now().isoformat(),
+                                'already_clean': True
+                            }, mf, indent=2)
+
+                        extracted_count += 1
+                    else:
+                        print(f"  → Already extracted (not JSON format)")
                     continue
             
             # Extract content

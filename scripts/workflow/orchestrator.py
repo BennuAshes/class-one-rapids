@@ -351,8 +351,14 @@ async def _extract_step_artifacts(
     if not config.extract_to_specs:
         return
 
-    specs_dir = Path("docs/specs")
-    success, message = await extract_artifacts(config.work_dir, specs_dir)
+    # Use feature folder if configured, otherwise use timestamp folder
+    if config.feature_folder_name:
+        target_dir = Path("docs/specs") / config.feature_folder_name
+    else:
+        # Fallback to timestamp-based folder (legacy behavior)
+        target_dir = Path("docs/specs") / config.work_dir.name
+
+    success, message = await extract_artifacts(config.work_dir, target_dir)
 
     if not success and "not JSON format" not in message:
         print(f"  Warning: Artifact extraction failed: {message}")

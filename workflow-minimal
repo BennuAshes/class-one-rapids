@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+# Workflow wrapper with minimal approval mode and telemetry enabled
+#
+# Usage: ./workflow-minimal <feature-description-or-file>
+#
+# Features:
+# - Auto-approval mode (minimal) - only manual step is Execute Tasks
+# - Telemetry enabled by default
+# - Feature extraction to docs/specs/
+#
+
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <feature-description-or-file>"
+    echo ""
+    echo "Examples:"
+    echo "  $0 test-feature.md"
+    echo "  $0 \"Add user authentication\""
+    echo "  $0 docs/features/my-feature.md"
+    exit 1
+fi
+
+# Call workflow with minimal approval and telemetry enabled
+exec ./workflow --approval minimal "$1"

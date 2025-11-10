@@ -67,12 +67,165 @@ For workflow telemetry, use the **Langfuse Python SDK** directly:
 
 **Do NOT** try to configure OTEL collector to send logs to Langfuse - it will fail with 404 errors.
 
-## LangFuse
-- NEVER use LangFuse SDK v2
-- If you don't understand v3 or why its not working, read local documentation and use websearch to understand.
+## LangFuse Python SDK v3 - CRITICAL RULES
 
-## PRP/Spec-driven vs Plan & Act
-If you are in an existing code base and working with other code, this sytem is a bit much. Maybe you have a product person not on board with AI yet, and you're just wanting to use AI to assist.
+**Version**: 3.8.1 (OTEL-based)
 
-### Plan & Act
-Simplifies the PRP/spec process, and assumes we already have a spec and a single task or small collection of todos related to a medium task.
+### What NOT to Do
+
+1. **NEVER use SDK v2 methods** - No `.trace()`, `.span()`, or similar methods
+2. **NEVER instantiate `Langfuse()` directly** - Use `get_client()` instead
+3. **NEVER add/remove/modify telemetry code without testing** - Run workflow with telemetry enabled first
+4. **NEVER assume v2 examples work** - SDK v3 uses completely different API
+
+### Correct v3 API
+
+```python
+from langfuse import get_client
+
+# Get client (singleton)
+client = get_client()
+
+# Create spans using context managers (auto-handles lifecycle)
+with client.start_as_current_span(name="step-name") as span:
+    # Your work here
+    span.update(metadata={"key": "value"})
+    # Span auto-closes when exiting context
+
+# Flush in short-lived apps
+client.flush()
+```
+
+### Implementation Location
+
+- **File**: `scripts/libs/workflow_telemetry.py`
+- **Class**: `WorkflowObserver`
+- **Key Methods**:
+  - `_create_workflow_trace()` - Creates parent trace on initialization
+  - `start_step()` - Creates nested child spans under parent trace
+  - `complete_step()` - Closes child spans
+  - `flush()` - Closes parent trace and sends all data
+- **DO NOT modify** these without understanding v3 context manager lifecycle
+
+### Trace Structure
+
+Workflow creates **ONE parent trace** with **nested child spans** for each step:
+
+```
+Feature-to-Code Workflow (parent trace)
+├── Generate PRD (span)
+├── Generate Technical Design (span)
+├── Generate Task List (span)
+├── Execute Tasks (span)
+└── Generate Summary (span)
+```
+
+All spans share the same `execution_id` as `session_id` for easy filtering in Langfuse UI.
+
+### Testing Telemetry
+
+```bash
+# Test with telemetry
+./workflow --mock --approval test test-feature.md
+
+# Test without telemetry (faster)
+./workflow --mock --approval test --no-telemetry test-feature.md
+
+# Run test suite (includes telemetry test)
+./test-workflow.sh
+```
+
+Check http://localhost:3000 for traces after running.
+
+## Workflow CLI Best Practices
+
+### File Path Handling
+
+**CRITICAL**: Always use Unix-style forward slashes (`/`) when passing file paths to `./workflow`, even on Windows.
+
+**Good Examples**:
+```bash
+./workflow docs/specs/feature-name/description.md
+./workflow test-feature.md
+```
+
+**Bad Examples** (will cause path parsing errors):
+```bash
+./workflow docs\specs\feature-name\description.md  # Windows backslashes
+./workflow "docs\specs\feature-name\description.md"  # Quoted but still wrong
+```
+
+### Why This Matters
+
+When Windows backslashes are used:
+- Path gets mangled into a single string (e.g., `docsspecsfeature-namedescription.md`)
+- Feature folder name generation fails
+- Files stay in `workflow-outputs/` instead of being extracted to `docs/specs/[feature]/`
+
+The workflow now automatically normalizes paths, but always prefer forward slashes to avoid issues.
+
+### Feature Folder Organization
+
+**How It Works**:
+1. Workflow reads your feature description from file or command line
+2. Generates a folder name from the description (kebab-case, removes stop-words)
+3. Creates specs in `docs/specs/[generated-folder-name]/`
+
+**Example**:
+```bash
+# Input: docs/specs/salvage-tinkering-system/salvage-tinkering-progressive-automation.md
+# Generated folder: salvage-tinkering-progressive-automation
+# Output location: docs/specs/salvage-tinkering-progressive-automation/
+```
+
+**What Gets Extracted**:
+- `prd_extracted_YYYYMMDD.md` - Product Requirements Document
+- `technical_design_YYYYMMDD.md` - Technical Design Document
+- `tasks_YYYYMMDD.md` - Task List
+
+**Verifying Extraction Worked**:
+```bash
+# Check if files were extracted
+ls docs/specs/[your-feature-name]/
+
+# Should see:
+# - prd_extracted_YYYYMMDD.md
+# - technical_design_YYYYMMDD.md
+# - tasks_YYYYMMDD.md
+# - *.metadata.json files
+```
+
+### Common Pitfalls
+
+1. **Spaces in paths** - Always quote paths with spaces:
+   ```bash
+   ./workflow "docs/specs/my feature/description.md"  # Correct
+   ./workflow docs/specs/my feature/description.md    # Wrong
+   ```
+
+2. **Relative vs absolute paths** - Both work, but relative paths are preferred:
+   ```bash
+   ./workflow docs/specs/feature.md           # Preferred
+   ./workflow /mnt/c/dev/project/feature.md   # Also works
+   ```
+
+3. **Missing feature folder** - If folder isn't created in `docs/specs/`:
+   - Check that `auto_extract` and `extract_to_specs` are enabled (they are by default)
+   - Verify feature description isn't empty
+   - Check workflow output for extraction warnings
+
+### Testing Your Changes
+
+Before relying on the workflow for production features:
+
+```bash
+# Test with mock mode (fast, no actual LLM calls)
+./workflow --mock --approval minimal test-feature.md
+
+# Verify files were extracted
+ls docs/specs/test-feature-simple-calculator-api/
+
+# Run full test suite
+./test-workflow.sh
+```
+
