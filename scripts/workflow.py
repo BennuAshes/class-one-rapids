@@ -218,16 +218,16 @@ async def main_async(args: argparse.Namespace) -> int:
             success = await orchestrator.run()
 
         if success:
-            print("\n" + "=" * 60)
-            print("✅ Workflow completed successfully!")
-            print(f"📁 Output directory: {config.work_dir}")
-            print("=" * 60)
+            print("\n" + "=" * 60, flush=True)
+            print("✅ Workflow completed successfully!", flush=True)
+            print(f"📁 Output directory: {config.work_dir}", flush=True)
+            print("=" * 60, flush=True)
             return 0
         else:
-            print("\n" + "=" * 60)
-            print("❌ Workflow failed or was cancelled")
-            print(f"📁 Output directory: {config.work_dir}")
-            print("=" * 60)
+            print("\n" + "=" * 60, flush=True)
+            print("❌ Workflow failed or was cancelled", flush=True)
+            print(f"📁 Output directory: {config.work_dir}", flush=True)
+            print("=" * 60, flush=True)
             return 1
 
     except KeyboardInterrupt:

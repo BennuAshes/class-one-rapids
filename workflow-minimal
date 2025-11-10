@@ -21,4 +21,5 @@ if [ $# -eq 0 ]; then
 fi
 
 # Call workflow with minimal approval and telemetry enabled
-exec ./workflow --approval minimal "$1"
+# Use unbuffered output for real-time progress updates
+exec python3 -u scripts/workflow.py --approval minimal "$1"

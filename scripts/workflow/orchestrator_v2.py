@@ -151,9 +151,9 @@ class WorkflowOrchestrator:
                 print(f"[{step_name.value}] ✓ Skipping (already completed)")
                 continue
 
-            print(f"\n{'=' * 60}")
-            print(f"📍 Step: {step_name.value}")
-            print('=' * 60)
+            print(f"\n{'=' * 60}", flush=True)
+            print(f"📍 Step: {step_name.value}", flush=True)
+            print('=' * 60, flush=True)
 
             # Execute step
             state = await self._execute_step(state, step_name)
@@ -187,7 +187,7 @@ class WorkflowOrchestrator:
     ) -> WorkflowState:
         """Execute a single workflow step with approval and feedback handling."""
 
-        print(f"⏳ Starting: {step_name.value}")
+        print(f"⏳ Starting: {step_name.value}", flush=True)
 
         # Update state: mark step as in progress
         state = state.with_step_update(
@@ -243,9 +243,9 @@ class WorkflowOrchestrator:
                 updated_at=datetime.now()
             )
 
-            print(f"✅ Completed: {step_name.value}")
+            print(f"✅ Completed: {step_name.value}", flush=True)
             if result.output_file:
-                print(f"   📄 Output: {result.output_file.name}")
+                print(f"   📄 Output: {result.output_file.name}", flush=True)
 
             # Track completion
             self.telemetry.track_step_complete(
@@ -270,7 +270,7 @@ class WorkflowOrchestrator:
                 updated_at=datetime.now()
             )
 
-            print(f"❌ Failed: {result.error_message}")
+            print(f"❌ Failed: {result.error_message}", flush=True)
 
             self.telemetry.track_step_complete(
                 step_name.value,
