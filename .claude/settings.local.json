@@ -96,7 +96,18 @@
       "Bash(pip show:*)",
       "Bash(docker ps:*)",
       "Bash(pip3 install:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(./test-workflow.sh:*)",
+      "Bash(./workflow:*)",
+      "Bash(timeout:*)",
+      "Bash(time ./workflow:*)",
+      "Bash(/dev/null)",
+      "Bash(time python3:*)",
+      "Bash(time git diff:*)",
+      "Bash(time git status:*)",
+      "Bash(time:*)",
+      "Bash(pip3 show:*)",
+      "Bash(./workflow-minimal)"
     ],
     "deny": [],
     "ask": []

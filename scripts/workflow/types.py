@@ -83,6 +83,9 @@ class WorkflowConfig:
     extract_to_specs: bool = True
     show_file_changes: bool = True
 
+    # Feature organization
+    feature_folder_name: Optional[str] = None  # If set, extracts to docs/specs/{feature_folder_name}/
+
     # Approval settings
     approval_mode: ApprovalMode = ApprovalMode.FILE
     approval_timeout: int = 0  # 0 = unlimited
@@ -92,10 +95,13 @@ class WorkflowConfig:
     auto_apply_feedback: bool = False
     auto_retry_after_feedback: bool = False
     require_all_approvals: bool = False  # For strict mode
+    skip_execute_approval: bool = False  # For test mode
 
     # Execution settings
     parallel_execution: bool = False  # Enable parallel step execution
     max_concurrent_steps: int = 3  # Max steps to run in parallel
+    mock_mode: bool = False  # Use mock LLM responses for testing
+    mock_delay: float = 0.1  # Delay for mock responses in seconds
 
     # Optional webhook
     webhook_url: Optional[str] = None
@@ -289,7 +295,7 @@ class ApprovalRequest:
             "timeout_seconds": self.timeout_seconds,
             "preview": self.preview,
             "changed_files": [
-                {"path": fc.path, "status": fc.status}
+                fc if isinstance(fc, dict) else {"path": fc.path, "status": fc.status}
                 for fc in self.changed_files
             ],
             "git_diff": self.git_diff,

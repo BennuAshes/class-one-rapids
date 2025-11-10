@@ -19,5 +19,9 @@ export LANGFUSE_PUBLIC_KEY="${LANGFUSE_PUBLIC_KEY:-pk-lf-e7b25b9c-356f-4268-96cf
 export LANGFUSE_SECRET_KEY="${LANGFUSE_SECRET_KEY:-sk-lf-980bcde7-ff84-40b2-b127-1e68a0b6c406}"
 export LANGFUSE_HOST="${LANGFUSE_HOST:-http://localhost:3000}"
 
-# Execute Python workflow with all arguments
-exec python3 "$SCRIPT_DIR/scripts/workflow.py" "$@"
+# Use venv python if available, otherwise fall back to system python3
+if [ -f "$SCRIPT_DIR/venv/bin/python3" ]; then
+    exec "$SCRIPT_DIR/venv/bin/python3" "$SCRIPT_DIR/scripts/workflow.py" "$@"
+else
+    exec python3 "$SCRIPT_DIR/scripts/workflow.py" "$@"
+fi

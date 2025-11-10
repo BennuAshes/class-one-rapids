@@ -71,7 +71,8 @@ async def execute(
         # Execute claude CLI (async subprocess)
         result = await run_claude_execute(
             tasks_file_path=tasks_input_path,
-            execution_id=config.execution_id
+            execution_id=config.execution_id,
+            mock_mode=config.mock_mode
         )
 
         if result.success:

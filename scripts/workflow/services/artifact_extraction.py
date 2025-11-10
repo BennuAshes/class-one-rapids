@@ -27,7 +27,7 @@ async def extract_artifacts(
     Returns:
         Tuple of (success, message)
     """
-    extract_script = Path(__file__).parent.parent.parent / "extract-artifacts.py"
+    extract_script = Path(__file__).parent.parent.parent / "utils" / "extract-artifacts.py"
 
     if not extract_script.exists():
         return False, f"Extraction script not found: {extract_script}"

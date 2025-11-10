@@ -49,17 +49,8 @@ async def execute(
             error_message="PRD file not found. Cannot generate design without PRD."
         )
 
-    # Check if PRD needs extraction (is it JSON format?)
+    # Use PRD file directly (extraction already happened in claude_cli layer)
     prd_input_path = str(prd_file)
-    try:
-        content = await async_read_file(prd_file)
-        if content.startswith('{'):
-            # It's JSON format, check for extracted version
-            extracted_prd = prd_file.parent / f"prd_extracted_{datetime.now():%Y%m%d}.md"
-            if extracted_prd.exists():
-                prd_input_path = str(extracted_prd)
-    except:
-        pass  # Use original file if check fails
 
     # Determine output path
     output_file = config.work_dir / f"tdd_{datetime.now():%Y%m%d}.md"
@@ -69,7 +60,8 @@ async def execute(
         result = await run_claude_design(
             prd_file_path=prd_input_path,
             output_file=output_file,
-            execution_id=config.execution_id
+            execution_id=config.execution_id,
+            mock_mode=config.mock_mode
         )
 
         if result.success:

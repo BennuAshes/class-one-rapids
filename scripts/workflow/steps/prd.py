@@ -41,7 +41,8 @@ async def execute(
         result = await run_claude_prd(
             feature_description=feature_desc,
             output_file=output_file,
-            execution_id=config.execution_id
+            execution_id=config.execution_id,
+            mock_mode=config.mock_mode
         )
 
         if result.success:

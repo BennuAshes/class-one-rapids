@@ -32,6 +32,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from workflow.types import WorkflowConfig, ApprovalMode
 from workflow.orchestrator_v2 import WorkflowOrchestrator
+from workflow.utils.file_ops import generate_feature_folder_name
 
 
 def parse_approval_mode(mode: str) -> tuple[ApprovalMode, dict]:
@@ -45,6 +46,13 @@ def parse_approval_mode(mode: str) -> tuple[ApprovalMode, dict]:
     - interactive: Terminal prompts for approval
     """
     profiles = {
+        "test": {
+            "mode": ApprovalMode.AUTO,
+            "require_command_approval": False,
+            "auto_apply_feedback": True,
+            "auto_retry_after_feedback": False,
+            "skip_execute_approval": True  # NEW: Auto-approve Execute Tasks too
+        },
         "minimal": {
             "mode": ApprovalMode.AUTO,
             "require_command_approval": False,
@@ -100,7 +108,9 @@ async def main_async(args: argparse.Namespace) -> int:
     """Main async entry point."""
 
     # Determine if we're resuming or starting new
-    input_path = Path(args.feature)
+    # Normalize path to handle both Windows and Unix separators
+    normalized_feature = args.feature.replace('\\', '/')
+    input_path = Path(normalized_feature)
 
     if input_path.is_dir() and (input_path / "workflow-status.json").exists():
         # Resume existing workflow
@@ -138,6 +148,9 @@ async def main_async(args: argparse.Namespace) -> int:
             feature_description = args.feature
             feature_source = "command line"
 
+        # Generate feature folder name for docs/specs/
+        feature_folder_name = generate_feature_folder_name(feature_description)
+
         # Set up work directory
         if args.output:
             work_dir = Path(args.output) / execution_id
@@ -158,11 +171,14 @@ async def main_async(args: argparse.Namespace) -> int:
             work_dir=work_dir,
             feature_source=feature_source,
             feature_description=feature_description,
+            feature_folder_name=feature_folder_name,
             telemetry_enabled=args.telemetry,
             approval_mode=approval_mode,
             approval_timeout=args.timeout,
             webhook_url=args.webhook,
             parallel_execution=args.parallel,
+            mock_mode=args.mock,
+            mock_delay=args.mock_delay,
             **approval_settings
         )
 
@@ -183,6 +199,8 @@ async def main_async(args: argparse.Namespace) -> int:
     print(f"📁 Work Directory: {config.work_dir}")
     print(f"🎯 Approval Mode: {args.approval}")
     print(f"📊 Telemetry: {'Enabled' if args.telemetry else 'Disabled'}")
+    if args.mock:
+        print(f"🎭 Mock Mode: ENABLED (delay: {args.mock_delay}s)")
     if args.parallel:
         print(f"⚡ Parallel Execution: Enabled")
     if args.webhook:
@@ -262,7 +280,7 @@ Approval Modes:
 
     parser.add_argument(
         "--approval",
-        choices=["minimal", "standard", "strict", "interactive"],
+        choices=["test", "minimal", "standard", "strict", "interactive"],
         default="standard",
         help="Approval mode profile (default: standard)"
     )
@@ -295,6 +313,19 @@ Approval Modes:
         "--parallel",
         action="store_true",
         help="Enable parallel step execution (experimental)"
+    )
+
+    parser.add_argument(
+        "--mock",
+        action="store_true",
+        help="Use mock LLM responses for fast testing (no API calls)"
+    )
+
+    parser.add_argument(
+        "--mock-delay",
+        type=float,
+        default=0.1,
+        help="Delay for mock responses in seconds (default: 0.1)"
     )
 
     parser.add_argument(

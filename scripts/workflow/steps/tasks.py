@@ -48,17 +48,8 @@ async def execute(
             error_message="TDD file not found. Cannot generate tasks without TDD."
         )
 
-    # Check if TDD needs extraction (is it JSON format?)
+    # Use TDD file directly (extraction already happened in claude_cli layer)
     tdd_input_path = str(tdd_file)
-    try:
-        content = await async_read_file(tdd_file)
-        if content.startswith('{'):
-            # It's JSON format, check for extracted version
-            extracted_tdd = tdd_file.parent / f"technical_design_{datetime.now():%Y%m%d}.md"
-            if extracted_tdd.exists():
-                tdd_input_path = str(extracted_tdd)
-    except:
-        pass  # Use original file if check fails
 
     # Determine output path
     output_file = config.work_dir / f"tasks_{datetime.now():%Y%m%d}.md"
@@ -68,7 +59,8 @@ async def execute(
         result = await run_claude_tasks(
             tdd_file_path=tdd_input_path,
             output_file=output_file,
-            execution_id=config.execution_id
+            execution_id=config.execution_id,
+            mock_mode=config.mock_mode
         )
 
         if result.success:

@@ -32,7 +32,6 @@ from .types import (
 from .services.telemetry import TelemetryTracker
 from .services.approval import request_approval
 from .services.artifact_extraction import extract_artifacts
-from .services.cache import get_cache_service, StepCacheService
 from .utils.file_ops import async_write_json, async_read_json, async_file_exists, async_read_file, async_write_file
 
 # Import step executors
@@ -49,7 +48,16 @@ class WorkflowOrchestrator:
             enabled=config.telemetry_enabled
         )
         self.git_initialized = False
-        self.cache_service: Optional[StepCacheService] = None
+        self.mock_service = None
+
+        # Initialize mock service if in mock mode
+        if config.mock_mode:
+            from .services.mock_llm import MockLLMService
+            self.mock_service = MockLLMService(
+                delay_seconds=config.mock_delay,
+                enable_variation=False
+            )
+            print(f"🎭 Mock mode enabled - using simulated LLM responses")
 
     async def run(self) -> bool:
         """Run complete workflow from start."""
@@ -132,14 +140,6 @@ class WorkflowOrchestrator:
         state = dataclass_replace(state, status="running")
         await self._save_state(state)
 
-        # Initialize cache service
-        cache_dir = self.config.work_dir / ".cache"
-        self.cache_service = await get_cache_service(
-            cache_dir=cache_dir,
-            enabled=True,  # Always enable for better development experience
-            max_age_hours=24
-        )
-
         # Initialize git tracking if enabled
         if self.config.show_file_changes:
             await self._init_git_tracking()
@@ -211,72 +211,28 @@ class WorkflowOrchestrator:
                 updated_at=datetime.now()
             )
 
-        # Try to get from cache first
-        cached_result = None
-        if self.cache_service and step_name != StepName.EXECUTE_TASKS:  # Never cache Execute step
-            # Get input for cache key
-            cache_input = await self._get_cache_input(state, step_name)
-            if cache_input:
-                cached_content, cache_metadata = await self.cache_service.get(
-                    step_name.value,
-                    cache_input,
-                    {"execution_id": self.config.execution_id[:8]}  # Use partial ID for better reuse
-                )
+        # Execute step
+        try:
+            # Execute step (mock_mode is passed through config to CLI)
+            result = await executor.execute(state)
 
-                if cached_content:
-                    # Create a cached result
-                    from pathlib import Path
-                    from .types import StepResult
+        except Exception as e:
+            error_msg = f"Step execution exception: {str(e)}"
+            print(f"❌ {error_msg}")
 
-                    # Save cached content to output file
-                    output_file = self.config.work_dir / f"{step_name.value.lower().replace(' ', '_')}_cached_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
-                    await async_write_file(output_file, cached_content)
+            self.telemetry.track_step_complete(
+                step_name.value,
+                duration_seconds=0,
+                success=False,
+                metadata={"error": str(e)}
+            )
 
-                    cached_result = StepResult(
-                        success=True,
-                        output_file=output_file,
-                        duration_seconds=0.1,  # Instant from cache
-                        metadata={"from_cache": True, "cache_hits": cache_metadata.get("hit_count", 1)}
-                    )
-
-        # Execute step if not cached
-        if cached_result:
-            result = cached_result
-            print(f"⚡ Using cached result (instant)")
-        else:
-            try:
-                result = await executor.execute(state)
-
-                # Cache successful results
-                if result.success and self.cache_service and step_name != StepName.EXECUTE_TASKS:
-                    cache_input = await self._get_cache_input(state, step_name)
-                    if cache_input and result.output_file and result.output_file.exists():
-                        output_content = await async_read_file(result.output_file)
-                        await self.cache_service.set(
-                            step_name.value,
-                            cache_input,
-                            output_content,
-                            {"execution_id": self.config.execution_id[:8]},
-                            {"duration_seconds": result.duration_seconds}
-                        )
-
-            except Exception as e:
-                error_msg = f"Step execution exception: {str(e)}"
-                print(f"❌ {error_msg}")
-
-                self.telemetry.track_step_complete(
-                    step_name.value,
-                    duration_seconds=0,
-                    success=False,
-                    metadata={"error": str(e)}
-                )
-
-                return state.with_step_update(
-                    step_name,
-                    status=StepStatus.FAILED,
-                    error_message=error_msg,
-                    updated_at=datetime.now()
-                )
+            return state.with_step_update(
+                step_name,
+                status=StepStatus.FAILED,
+                error_message=error_msg,
+                updated_at=datetime.now()
+            )
 
         # Handle result
         if result.success:
@@ -301,7 +257,7 @@ class WorkflowOrchestrator:
 
             # Extract artifacts if needed
             if self.config.auto_extract and result.output_file:
-                await self._extract_artifacts(state, step_name, result.output_file)
+                await self._extract_step_artifacts(state, step_name, result.output_file)
 
             # Request approval and handle feedback
             state = await self._handle_approval(state, step_name, result)
@@ -367,7 +323,9 @@ class WorkflowOrchestrator:
         approval_response = await request_approval(
             approval_request,
             self.config.approval_mode,
-            self.config.approval_timeout
+            self.config.approval_timeout,
+            self.config.mock_mode,
+            self.config.skip_execute_approval
         )
 
         # Track approval
@@ -404,6 +362,37 @@ class WorkflowOrchestrator:
             await self._commit_git_checkpoint(step_name.value)
 
         return state
+
+    async def _extract_step_artifacts(
+        self,
+        state: WorkflowState,
+        step_name: StepName,
+        output_file: Path
+    ) -> None:
+        """
+        Extract artifacts from step output if needed.
+
+        Args:
+            state: Current workflow state
+            step_name: Step that was executed
+            output_file: Step output file
+        """
+        config = state.config
+
+        if not config.extract_to_specs:
+            return
+
+        # Use feature folder if configured, otherwise use timestamp folder
+        if config.feature_folder_name:
+            target_dir = Path("docs/specs") / config.feature_folder_name
+        else:
+            # Fallback to timestamp-based folder (legacy behavior)
+            target_dir = Path("docs/specs") / config.work_dir.name
+
+        success, message = await extract_artifacts(config.work_dir, target_dir)
+
+        if not success and "not JSON format" not in message:
+            print(f"  ⚠️  Artifact extraction failed: {message}")
 
     async def _handle_feedback(
         self,
@@ -755,21 +744,6 @@ Focus on making the command better so it generates higher quality output next ti
             # Ignore commit errors (might be nothing to commit)
             pass
 
-    async def _extract_artifacts(
-        self,
-        state: WorkflowState,
-        step_name: StepName,
-        output_file: Path
-    ):
-        """Extract artifacts from step output."""
-        if self.config.extract_to_specs:
-            specs_dir = Path("docs/specs") / self.config.execution_id
-            success, message = await extract_artifacts(self.config.work_dir, specs_dir)
-
-            if success:
-                print(f"   📦 Artifacts extracted to: {specs_dir}")
-            elif "not JSON format" not in message:
-                print(f"   ⚠️  Extraction issue: {message}")
 
     async def _get_file_preview(self, file_path: Path, lines: int = 20) -> str:
         """Get preview of file content."""
@@ -833,45 +807,6 @@ Focus on making the command better so it generates higher quality output next ti
         except:
             return None
 
-    async def _get_cache_input(self, state: WorkflowState, step_name: StepName) -> Optional[str]:
-        """
-        Get the input content for cache key generation.
-
-        Args:
-            state: Current workflow state
-            step_name: Step to get input for
-
-        Returns:
-            Input content string or None
-        """
-        # Map step to its input
-        if step_name == StepName.GENERATE_PRD:
-            # PRD uses feature description
-            return self.config.feature_description
-
-        elif step_name == StepName.GENERATE_DESIGN:
-            # Design uses PRD output
-            prd_step = state.get_step(StepName.GENERATE_PRD)
-            if prd_step and prd_step.output_file and prd_step.output_file.exists():
-                return await async_read_file(prd_step.output_file)
-
-        elif step_name == StepName.GENERATE_TASKS:
-            # Tasks uses Design output
-            design_step = state.get_step(StepName.GENERATE_DESIGN)
-            if design_step and design_step.output_file and design_step.output_file.exists():
-                return await async_read_file(design_step.output_file)
-
-        elif step_name == StepName.GENERATE_SUMMARY:
-            # Summary uses all previous outputs (concatenated)
-            summary_parts = []
-            for prev_step in [StepName.GENERATE_PRD, StepName.GENERATE_DESIGN, StepName.GENERATE_TASKS]:
-                step_record = state.get_step(prev_step)
-                if step_record and step_record.output_file and step_record.output_file.exists():
-                    content = await async_read_file(step_record.output_file)
-                    summary_parts.append(f"=== {prev_step.value} ===\n{content}\n")
-            return "\n".join(summary_parts) if summary_parts else None
-
-        return None
 
     async def _generate_proposed_changes(
         self,
