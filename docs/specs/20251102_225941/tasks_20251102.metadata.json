@@ -1,9 +1,0 @@
-{
-  "session_id": "5355deea-b8ee-4190-93e3-b67ae36b3b3b",
-  "execution_id": null,
-  "model": "claude-sonnet-4-5-20250929",
-  "total_cost_usd": null,
-  "total_tokens": 0,
-  "duration_ms": null,
-  "generated_file": "/mnt/c/dev/class-one-rapids/TDD_SUMMARY.md"
-}

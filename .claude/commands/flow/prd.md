@@ -5,14 +5,13 @@ allowed-tools: "Write, Read, Edit, Bash(date:*), Grep, Glob"
 ---
 
 # PRD Generator
+Generate a lean, actionable Product Requirements Document based on the file at $ARGUMENTS.
 
-## Input Processing
-
-**IMPORTANT**: This command receives the feature description through stdin (piped input), NOT as `$ARGUMENTS` or `$1` (due to GitHub Issue #1048 with slash command argument passing being unreliable).
-
-The feature description will be provided directly in the conversation context after this command expands.
-
-Generate a lean, actionable Product Requirements Document based on the feature description that follows.
+**Process**:
+1. Read the file to get the task list file path
+2. Validate the file path is not empty
+3. Check if file exists
+4. Load task list contents using Read tool
 
 ## Analysis Phase
 

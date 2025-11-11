@@ -1,8 +1,0 @@
-pytest>=7.4.0
-pytest-mock>=3.11.1
-langfuse>=2.0.0
-pyyaml>=6.0
-requests>=2.28.0
-# Note: Claude CLI must be installed and authenticated separately for evaluators
-
-

@@ -107,7 +107,8 @@
       "Bash(time git status:*)",
       "Bash(time:*)",
       "Bash(pip3 show:*)",
-      "Bash(./workflow-minimal)"
+      "Bash(./workflow-minimal)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

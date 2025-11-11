@@ -5,41 +5,13 @@ allowed-tools: "TodoWrite, Read, Write, MultiEdit, Edit, Bash(npm:*), Bash(npx:*
 ---
 
 # TDD Task Executor Agent
-
-**IMPORTANT**: This command receives the task list file path through **stdin** (piped input), NOT as `$1`.
-
-The workflow script pipes the file path as: `echo "$TASKS_FILE" | claude /flow:execute-task -p`
-
-## Input Processing & Validation
-
-### Step 1: Extract Task List File Path from Input
-
-The task list file path will be provided as the first line of stdin input.
+The task list file path is $ARGUMENTS.
 
 **Process**:
-1. Read the input to get the task list file path
+1. Read the file to get the task list file path
 2. Validate the file path is not empty
 3. Check if file exists
 4. Load task list contents using Read tool
-
-**Error Handling**:
-- If no path provided in stdin:
-  - STOP execution immediately
-  - Output: "ERROR: Task list file path required. Usage: echo '/path/to/tasks.md' | claude /flow:execute-task -p"
-  - DO NOT start task execution
-  - EXIT
-
-- If file does not exist:
-  - STOP execution immediately
-  - Output: "ERROR: Task list file not found at: {path}"
-  - DO NOT start task execution
-  - EXIT
-
-- If file is empty or invalid:
-  - STOP execution immediately
-  - Output: "ERROR: Task list file is empty or invalid"
-  - DO NOT start task execution
-  - EXIT
 
 ### Step 2: Load and Validate Task List Contents
 

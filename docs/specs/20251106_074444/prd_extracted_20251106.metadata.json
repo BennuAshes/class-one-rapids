@@ -1,9 +1,0 @@
-{
-  "session_id": "f9670837-f473-4b85-9234-5b4f7db3fd08",
-  "execution_id": null,
-  "model": "claude-sonnet-4-5-20250929",
-  "total_cost_usd": null,
-  "total_tokens": 0,
-  "duration_ms": null,
-  "generated_file": "/tmp/salvage-tinkering-feature.md"
-}
