@@ -5,9 +5,11 @@ allowed-tools: "TodoWrite, Read, Write, MultiEdit, Edit, Bash(npm:*), Bash(npx:*
 ---
 
 # TDD Task Executor Agent
+
 The task list file path is $ARGUMENTS.
 
 **Process**:
+
 1. Read the file to get the task list file path
 2. Validate the file path is not empty
 3. Check if file exists
@@ -16,6 +18,7 @@ The task list file path is $ARGUMENTS.
 ### Step 2: Load and Validate Task List Contents
 
 ONLY proceed if validation passes:
+
 1. Use Read tool to load task list file contents
 2. Verify task list contains valid tasks
 3. Parse tasks and phases
@@ -28,22 +31,26 @@ ONLY proceed if validation passes:
 
 **Read and follow these guides before ANY implementation**:
 
-1. **Lean Development**: @docs/guides/lean-task-generation-guide.md
+1. **Lean Development**: @docs/architecture/lean-task-generation-guide.md
+
    - Prioritize user-visible features
    - Create infrastructure only when needed
    - Just-in-time everything
 
 2. **File Organization**: @docs/architecture/file-organization-patterns.md
+
    - Co-located tests (NO `__tests__` folders)
    - NO barrel exports (index.ts files)
    - Component structure patterns
 
 3. **Working Directory Context**: @docs/architecture/working-directory-context.md
+
    - You are in `c:\dev\class-one-rapids\frontend\`
    - NEVER create `frontend/frontend/` nested structures
    - Path rules and conventions
 
 4. **State Management**: @docs/architecture/state-management-hooks-guide.md
+
    - Hook-based architecture
    - When to use useState vs custom hooks vs Legend-State stores
    - Fine-grained reactivity patterns
@@ -61,16 +68,19 @@ ONLY proceed if validation passes:
 ### State Management (see @docs/architecture/state-management-hooks-guide.md for details)
 
 **Decision Flow**:
+
 1. Is state used by only ONE component? → `useState` in component
 2. Is logic complex but single-feature? → Custom hook (`useFeatureName.ts`)
 3. Is state shared across features? → Legend-State store (`featureStore.ts`) + hook
 
 **Red Flags for Legend-State**:
+
 - Multiple components need the same state
 - Callbacks passed through 2+ component levels
 - You're typing `createContext` or `useContext`
 
 **NEVER Use**:
+
 - ❌ React Context API for state (use Legend-State)
 - ❌ Service classes (use hooks)
 - ❌ Redux, MobX (use Legend-State)
@@ -97,6 +107,7 @@ First, I'll set up the execution environment and understand the task requirement
 For the identified tasks:
 
 1. **Extract Task Requirements**:
+
    - Task ID and description
    - Dependencies and prerequisites
    - Acceptance criteria
@@ -104,11 +115,13 @@ For the identified tasks:
    - Deliverables
 
 2. **Determine Execution Order**:
+
    - Resolve dependency graph
    - Identify parallelizable tasks
    - Create execution sequence
 
 3. **Prepare Test Strategy**:
+
    - Identify test categories needed (unit, integration, e2e)
    - Determine testing tools and frameworks
    - Plan test file structure (co-located per @docs/architecture/file-organization-patterns.md)
@@ -122,36 +135,28 @@ For the identified tasks:
 
 **Pre-execution Check**: For each task, verify it's not already implemented:
 
-```bash
-# Check if component/hook exists (follow @docs/architecture/file-organization-patterns.md)
-test -f src/modules/[feature]/ComponentName.tsx
-test -f src/modules/[feature]/useFeatureName.ts
+Follow @docs/architecture/file-organization-patterns.md for locating files. Use appropriate search tools (Glob, Grep) to check for:
 
-# Check for existing tests (co-located per file-organization-patterns.md)
-test -f src/modules/[feature]/ComponentName.test.tsx
-test -f src/modules/[feature]/useFeatureName.test.ts
-
-# Check for existing state management (per @docs/architecture/state-management-hooks-guide.md)
-find src/modules/*/[feature]Store.ts 2>/dev/null  # Legend-State stores
-find src/modules/*/use*.ts 2>/dev/null            # Custom hooks
-
-# Anti-pattern check (per state-management-hooks-guide.md)
-grep -r "createContext" src/modules/ 2>/dev/null && echo "⚠️ WARNING: Context found - use Legend-State instead"
-```
+- Existing components, hooks, and utilities
+- Co-located test files
+- Existing state management (stores, hooks)
+- Anti-patterns (Context API usage, service classes, barrel exports)
 
 **Pre-implementation State Management Check** (see @docs/architecture/state-management-hooks-guide.md):
 
 1. Will this state be accessed by multiple components/features?
+
    - YES → Legend-State store + hook (see state-management-hooks-guide.md §🏪 Private Store Implementation)
    - NO → Continue to step 2
 
 2. Is the logic complex but single-feature?
+
    - YES → Custom hook (see state-management-hooks-guide.md §🪝 Hook Implementation)
    - NO → `useState` in component
 
 3. Check for existing state management:
-   - Look for `src/modules/[feature]/*Store.ts`
-   - Look for `src/modules/[feature]/use*.ts`
+   - Look for Legend-State stores (`*.store.ts` files per @docs/architecture/file-organization-patterns.md)
+   - Look for custom hooks (`use*.ts` files)
    - Reuse existing patterns before creating new ones
 
 For each task in the execution sequence:
@@ -267,8 +272,8 @@ task_id:
   completed:
     - List of implemented features
   evidence:
-    - src/modules/[feature]/implementation.ts
-    - src/modules/[feature]/implementation.test.ts # Co-located test
+    - modules/[feature]/implementation.ts
+    - modules/[feature]/implementation.test.ts # Co-located test per @docs/architecture/file-organization-patterns.md
   completed_at: 2025-09-24T10:30:00Z
 ```
 
@@ -386,16 +391,19 @@ For each completed task:
 ### Code Generation Guidelines
 
 1. **Follow Existing Patterns**:
+
    - Check neighboring files for conventions
    - Use existing utilities and helpers
    - Match code style (indentation, naming, etc.)
 
 2. **Component Structure**: See @docs/architecture/file-organization-patterns.md
+
    - Co-located tests (NO `__tests__` folders)
    - File naming conventions
    - Module organization
 
 3. **State Management Files**: See @docs/architecture/state-management-hooks-guide.md
+
    - `featureStore.ts` - For cross-feature shared state
    - `useFeature.ts` - For complex single-feature logic
    - `useState` in component - For simple component-local state

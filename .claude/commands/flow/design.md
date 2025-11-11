@@ -17,6 +17,7 @@ The workflow script will pipe the PRD file path as: `echo "$PRD_FILE_PATH" | cla
 The PRD file path will be provided as the first line of stdin input.
 
 **Process**:
+
 1. Read the input to get the PRD file path
 2. Validate the file path is not empty
 3. Check if file exists
@@ -28,27 +29,32 @@ The PRD file path will be provided as the first line of stdin input.
 
 **Consult these guides while creating the Technical Design Document**:
 
-1. **Lean Development Principles**: @docs/guides/lean-task-generation-guide.md
+1. **Lean Development Principles**: @docs/architecture/lean-task-generation-guide.md
+
    - Focus on user-visible features in implementation plan
    - Just-in-time infrastructure approach
    - Avoid over-engineering
 
 2. **File Organization**: @docs/architecture/file-organization-patterns.md
+
    - Component structure and module organization
    - Co-located tests (NO `__tests__` folders)
    - NO barrel exports (index.ts files)
 
 3. **Working Directory Context**: @docs/architecture/working-directory-context.md
+
    - Understand project structure and paths
    - Directory organization conventions
 
 4. **State Management**: @docs/architecture/state-management-hooks-guide.md
+
    - Hook-based architecture patterns
    - When to use useState vs custom hooks vs Legend-State stores
    - Fine-grained reactivity patterns
    - Effect hooks in separate files
 
 5. **Legend-State Implementation**: @docs/research/expo_legend_state_v3_guide_20250917_225656.md
+
    - Legend-State v3 patterns for data model design
    - Observable primitives and persistence
 
@@ -59,13 +65,16 @@ The PRD file path will be provided as the first line of stdin input.
 ---
 
 **Error Handling**:
+
 - If no path provided in stdin:
+
   - STOP execution immediately
   - Output: "ERROR: PRD file path required. Usage: echo '/path/to/prd.md' | claude /flow:design"
   - DO NOT create any output files
   - EXIT
 
 - If file does not exist:
+
   - STOP execution immediately
   - Output: "ERROR: PRD file not found at: {path}"
   - DO NOT create any output files
@@ -80,6 +89,7 @@ The PRD file path will be provided as the first line of stdin input.
 ### Step 2: Load and Validate PRD Contents
 
 ONLY proceed if validation passes:
+
 1. Use Read tool to load PRD file contents
 2. Verify PRD contains required sections (Problem Statement, Requirements, etc.)
 3. Extract key information for TDD generation
@@ -91,6 +101,7 @@ Generate a comprehensive Technical Design Document based on the PRD.
 ## Phase 1: PRD Analysis
 
 Analyze the PRD to extract:
+
 1. **Core Requirements**: Functional and non-functional requirements
 2. **User Stories**: Understanding the user flows and acceptance criteria
 3. **Success Metrics**: Performance targets and KPIs
@@ -102,12 +113,14 @@ Analyze the PRD to extract:
 Based on the PRD analysis, design the technical solution covering:
 
 ### Architecture Decisions
+
 - Choose appropriate architectural patterns (monolithic, microservices, serverless)
 - Define system boundaries and component responsibilities
 - Select technology stack based on requirements
 - Design for scalability, reliability, and maintainability
 
 ### Implementation Strategy
+
 - Break down features into technical components
 - Define interfaces and contracts between components
 - Plan data flow and state management
@@ -123,28 +136,37 @@ Generate a comprehensive Technical Design Document with these sections:
 # [Feature Name] Technical Design Document
 
 ## Document Control
-| Version | Author | Date | Status | Changes |
-|---------|--------|------|--------|---------|
-| v1.0 | [Generated] | [Date] | Draft | Initial TDD from PRD |
+
+| Version | Author      | Date   | Status | Changes              |
+| ------- | ----------- | ------ | ------ | -------------------- |
+| v1.0    | [Generated] | [Date] | Draft  | Initial TDD from PRD |
 
 ## Executive Summary
+
 [2-3 sentence technical overview linking to PRD goals]
 
 ## 1. Overview & Context
+
 ### Problem Statement
+
 [Extract from PRD with technical perspective]
 
 ### Solution Approach
+
 [High-level technical approach to solve the problem]
 
 ### Success Criteria
+
 [Technical metrics aligned with PRD business metrics]
 
 ## 2. Requirements Analysis
+
 ### Functional Requirements
+
 [Map PRD user stories to technical capabilities]
 
 ### Non-Functional Requirements
+
 - Performance: [Specific benchmarks from PRD]
 - Scalability: [User/data volume projections]
 - Security: [Authentication, authorization, data protection]
@@ -152,39 +174,52 @@ Generate a comprehensive Technical Design Document with these sections:
 - Compliance: [Regulatory requirements if any]
 
 ## 3. System Architecture
+
 ### High-Level Architecture
+
 [Architecture diagram showing major components]
+
 - Component breakdown
 - Service boundaries
 - External dependencies
 
 ### Component Design
+
 #### [Component Name]
+
 - **Purpose**: [What it does]
 - **Responsibilities**: [Core functions]
 - **Interfaces**: [APIs/contracts]
 - **Dependencies**: [What it needs]
 
 ### Data Flow
+
 [Sequence diagrams for critical user flows from PRD]
 
 ## 4. API Design
+
 ### Internal APIs
-| Endpoint | Method | Purpose | Request | Response |
-|----------|--------|---------|---------|----------|
+
+| Endpoint        | Method       | Purpose   | Request  | Response |
+| --------------- | ------------ | --------- | -------- | -------- |
 | /api/[resource] | GET/POST/etc | [Purpose] | [Schema] | [Schema] |
 
 ### External Integrations
+
 [Any third-party services or APIs]
 
 ## 5. Data Model
+
 ### Entity Design
 ```
+
 [Entity Name]
+
 - field1: type (constraints)
 - field2: type (constraints)
 - relationships
-```
+
+````
 
 ### Database Schema
 - Tables/Collections structure
@@ -236,9 +271,10 @@ For each feature/component, follow this strict order:
      expect(screen.getByText('John Doe')).toBeTruthy();
    });
    // This test MUST fail initially
-   ```
+````
 
 2. **GREEN Phase - Minimal Implementation**
+
    - Write ONLY enough code to pass the test
    - No extra features or optimizations
    - Focus on making test green
@@ -251,6 +287,7 @@ For each feature/component, follow this strict order:
 #### Test Categories (in order of implementation)
 
 ### Unit Testing (TDD First Layer)
+
 - **Render Tests**: Component displays correctly
 - **Interaction Tests**: User actions work properly
 - **State Tests**: Data changes trigger correct updates
@@ -258,17 +295,20 @@ For each feature/component, follow this strict order:
 - Testing approach: Test behavior, not implementation
 
 ### Integration Testing (TDD Second Layer)
+
 - **Component Integration**: Parent-child data flow
 - **API Integration**: MSW mock handlers
 - **Navigation Testing**: Screen transitions
 - **Context/State Management**: Global state updates
 
 ### End-to-End Testing (TDD Third Layer)
+
 - **User Flows**: Complete feature workflows
 - **Cross-Feature Integration**: Feature interactions
 - **Performance Benchmarks**: Response time requirements
 
 ### TDD Checklist for Each Component
+
 - [ ] First test written before any implementation code
 - [ ] Each test covers one specific behavior
 - [ ] Tests use React Native Testing Library patterns
@@ -278,68 +318,86 @@ For each feature/component, follow this strict order:
 - [ ] All tests pass before next feature
 
 ## 8. Infrastructure & Deployment
+
 ### Infrastructure Requirements
-| Component | Specification | Justification |
-|-----------|--------------|---------------|
-| Compute | [CPU/Memory] | [Why needed] |
-| Storage | [Type/Size] | [Data requirements] |
-| Network | [Bandwidth] | [Traffic expectations] |
+
+| Component | Specification | Justification          |
+| --------- | ------------- | ---------------------- |
+| Compute   | [CPU/Memory]  | [Why needed]           |
+| Storage   | [Type/Size]   | [Data requirements]    |
+| Network   | [Bandwidth]   | [Traffic expectations] |
 
 ### Deployment Architecture
+
 - Environment strategy: [Dev/Staging/Prod]
 - Container strategy: [Docker/K8s if applicable]
 - CI/CD pipeline design
 - Blue-green deployment approach
 
 ### Monitoring & Observability
+
 #### Metrics
+
 - Application metrics: [Key metrics]
 - Business metrics: [Aligned with PRD]
 - Infrastructure metrics: [Resource utilization]
 
 #### Logging
+
 - Log levels and categories
 - Centralized logging strategy
 - Log retention policy
 
 #### Alerting
-| Alert | Condition | Priority | Action |
-|-------|-----------|----------|--------|
+
+| Alert        | Condition | Priority | Action     |
+| ------------ | --------- | -------- | ---------- |
 | [Alert name] | [Trigger] | P0/P1/P2 | [Response] |
 
 ## 9. Scalability & Performance
+
 ### Performance Requirements
+
 [Extract from PRD and define technical targets]
+
 - Response time: [<Xms for Y percentile]
 - Throughput: [X requests/second]
 - Concurrent users: [X users]
 
 ### Scalability Strategy
+
 - Horizontal scaling approach
 - Load balancing strategy
 - Database scaling (read replicas, sharding)
 - Caching layers (Redis, CDN)
 
 ### Performance Optimization
+
 - Query optimization
 - Asset optimization
 - Code-level optimizations
 - Resource pooling
 
 ## 10. Risk Assessment & Mitigation
+
 ### Technical Risks
-| Risk | Impact | Probability | Mitigation | Owner |
-|------|--------|-------------|------------|-------|
+
+| Risk                             | Impact       | Probability  | Mitigation | Owner  |
+| -------------------------------- | ------------ | ------------ | ---------- | ------ |
 | [From PRD + new technical risks] | High/Med/Low | High/Med/Low | [Strategy] | [Team] |
 
 ### Dependencies
+
 [Map PRD dependencies to technical components]
 
 ## 11. Implementation Plan (TDD-Driven)
+
 ### Development Phases
-Following @docs/guides/lean-task-generation-guide.md principles - prioritize user-visible functionality:
+
+Following @docs/architecture/lean-task-generation-guide.md principles - prioritize user-visible functionality:
 
 #### Phase 1: Foundation & Test Setup [X weeks]
+
 - Set up testing infrastructure (Jest, React Native Testing Library)
 - Configure MSW for API mocking
 - Create test utilities and custom renderers
@@ -347,15 +405,19 @@ Following @docs/guides/lean-task-generation-guide.md principles - prioritize use
 - Core data models with tests first
 
 #### Phase 2: TDD Feature Implementation [X weeks]
+
 [Map to PRD MVP features - each with TDD cycle]
 
 **For Each Feature:**
+
 1. **Day 1-2: Test Planning**
+
    - Break down feature into testable behaviors
    - Write all failing tests for feature
    - Review tests against requirements
 
 2. **Day 3-4: Implementation**
+
    - Implement code to pass each test
    - Follow Red-Green-Refactor for each behavior
    - Keep all previous tests green
@@ -366,6 +428,7 @@ Following @docs/guides/lean-task-generation-guide.md principles - prioritize use
    - Ensure end-to-end flow works
 
 Example Feature Breakdown:
+
 - **[Feature 1]**: User Authentication
   - Test 1: Login form renders with email/password fields
   - Test 2: Validation shows errors for invalid email
@@ -374,57 +437,73 @@ Example Feature Breakdown:
   - Test 5: Token stored securely after login
 
 #### Phase 3: Enhancement with TDD [X weeks]
+
 [Map to PRD nice-to-have features]
+
 - Write tests for enhanced features first
 - Implement improvements test-by-test
 - Performance optimization with benchmark tests
 
 #### Phase 4: Hardening [X weeks]
+
 - Security testing suite
 - Performance test suite
 - Documentation of all test scenarios
 - Coverage report review (must be >80%)
 
 ### Technical Milestones
-| Milestone | Deliverable | Date | Dependencies |
-|-----------|------------|------|--------------|
-| M1 | [Technical deliverable] | [Date] | [What's needed] |
+
+| Milestone | Deliverable             | Date   | Dependencies    |
+| --------- | ----------------------- | ------ | --------------- |
+| M1        | [Technical deliverable] | [Date] | [What's needed] |
 
 ## 12. Decision Log
+
 ### Architecture Decisions
-| Decision | Options Considered | Choice | Rationale |
-|----------|-------------------|--------|-----------|
-| [Database] | [SQL, NoSQL, etc] | [Choice] | [Why] |
-| [Framework] | [Options] | [Choice] | [Why] |
+
+| Decision    | Options Considered | Choice   | Rationale |
+| ----------- | ------------------ | -------- | --------- |
+| [Database]  | [SQL, NoSQL, etc]  | [Choice] | [Why]     |
+| [Framework] | [Options]          | [Choice] | [Why]     |
 
 ### Trade-offs
+
 - [Trade-off 1]: Chose [X] over [Y] because [reason]
 - [Trade-off 2]: Accepted [limitation] for [benefit]
 
 ## 13. Open Questions
+
 Technical questions requiring resolution:
+
 - [ ] [Technical question from PRD analysis]
 - [ ] [Architecture decision pending]
 - [ ] [Integration clarification needed]
 
 ## 14. Appendices
+
 ### A. Technical Glossary
+
 [Define technical terms used]
 
 ### B. Reference Architecture
+
 [Links to similar systems or patterns]
 
 ### C. Proof of Concepts
+
 [Any POCs or prototypes created]
 
 ### D. Related Documents
+
 - Product Requirements Document: [Link to source PRD]
 - Architecture Decision Records: [Links]
 - API Documentation: [Links]
 
 ---
-*Generated from PRD: [filename]*
-*Generation Date: [timestamp]*
+
+_Generated from PRD: [filename]_
+_Generation Date: [timestamp]_
+
 ```
 
 ## Generation Requirements
@@ -462,7 +541,8 @@ The TDD must:
 
 Save the generated TDD to:
 - Filename: `tdd_[feature_name_snake_case]_[YYYYMMDD].md`
-- Location: `/docs/specs/` if it exists, otherwise `/docs/` or project root
+- Location: Same directory as the source PRD file
 - Include generation timestamp and source PRD reference
 
 The TDD should enable the development team to immediately begin implementation with clear technical direction and architectural decisions already made.
+```

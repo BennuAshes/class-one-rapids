@@ -1,8 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
+import { ClickerScreen } from "./modules/clicker/ClickerScreen";
 export default function App() {
   return (
     <View style={styles.container}>
-      <Text>Dog Walker!</Text>
+      <ClickerScreen />
     </View>
   );
 }
