@@ -6,15 +6,9 @@ allowed-tools: "Write, Read, Edit, Bash(date:*), Grep, Glob, Task"
 
 # Agent Task List Generator
 
-## Input Processing & Validation
-
-**IMPORTANT**: Due to slash command argument handling, this command receives the TDD file path through **stdin** (piped input), similar to `/flow:prd`.
-
-The workflow script will pipe the TDD file path as: `echo "$TDD_FILE_PATH" | claude /flow:tasks`
-
 ### Step 1: Extract TDD File Path from Input
 
-The TDD file path will be provided as the first line of stdin input.
+The TDD file path is $ARGUMENTS
 
 **Process**:
 1. Read the input to get the TDD file path

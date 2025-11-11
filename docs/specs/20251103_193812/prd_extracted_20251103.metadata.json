@@ -1,9 +1,0 @@
-{
-  "session_id": "31e67c88-7b9f-40b3-be75-ed53bdddb698",
-  "execution_id": null,
-  "model": "claude-sonnet-4-5-20250929",
-  "total_cost_usd": null,
-  "total_tokens": 0,
-  "duration_ms": null,
-  "generated_file": "/mnt/c/dev/class-one-rapids/workflow-outputs/20251103_193844/prd_20251103.md"
-}
