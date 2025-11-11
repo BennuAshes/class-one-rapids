@@ -108,7 +108,11 @@
       "Bash(time:*)",
       "Bash(pip3 show:*)",
       "Bash(./workflow-minimal)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "SlashCommand(/flow:prd:*)",
+      "SlashCommand(/flow:design:*)",
+      "SlashCommand(/flow:tasks:*)",
+      "SlashCommand(/flow:execute-task:*)"
     ],
     "deny": [],
     "ask": []

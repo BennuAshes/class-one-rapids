@@ -12,61 +12,41 @@ Barrel exports are `index.ts` or `index.js` files that re-export multiple module
 4. **Violates lean principles** - Infrastructure without immediate user value
 5. **Performance impact** - Can prevent tree-shaking optimizations
 
-### Examples
-
-❌ **NEVER DO THIS** (Barrel Export):
-```typescript
-// src/modules/combat/index.ts
-export { Enemy } from './Enemy';
-export { useEnemy } from './useEnemy';
-export { calculateDamage } from './damageCalculator';
-export type { CombatStats } from './types';
-```
-
-✅ **ALWAYS DO THIS** (Direct Imports):
-```typescript
-// Import directly from source files
-import { Enemy } from '@/modules/combat/Enemy';
-import { useEnemy } from '@/modules/combat/useEnemy';
-import { calculateDamage } from '@/modules/combat/damageCalculator';
-import type { CombatStats } from '@/modules/combat/types';
-```
-
 ## Test File Organization
 
 ### Co-location Rule
 Tests MUST be placed next to the files they test, not in separate directories.
 
 ### Naming Convention
-- Use `.test.ts` for TypeScript files
-- Use `.test.tsx` for React components
+- Use `.test.tsx` for all test files (components, hooks, utilities)
 - Match the name of the file being tested
+- Consistent extension simplifies tooling and avoids confusion
 
 ### Examples
 
 ✅ **CORRECT** (Co-located tests):
 ```
-src/modules/combat/
+modules/combat/
 ├── Enemy.tsx
-├── Enemy.test.tsx           # Test next to component
+├── Enemy.test.tsx              # Test next to component
 ├── useEnemy.ts
-├── useEnemy.test.ts         # Test next to hook
+├── useEnemy.test.tsx           # Test next to hook
 ├── damageCalculator.ts
-├── damageCalculator.test.ts # Test next to utility
-└── types.ts                 # Types don't need tests
+├── damageCalculator.test.tsx   # Test next to utility
+└── types.ts                    # Types don't need tests
 ```
 
 ❌ **WRONG** (Separate test directory):
 ```
-src/modules/combat/
+modules/combat/
 ├── Enemy.tsx
 ├── useEnemy.ts
 ├── damageCalculator.ts
 ├── types.ts
 └── __tests__/              # DON'T DO THIS
     ├── Enemy.test.tsx
-    ├── useEnemy.test.ts
-    └── damageCalculator.test.ts
+    ├── useEnemy.test.tsx
+    └── damageCalculator.test.tsx
 ```
 
 ## Feature Module Organization
@@ -80,21 +60,21 @@ Count all items in a feature (components + hooks + utilities + types).
 Keep all files at the feature root level.
 
 ```
-src/modules/player-stats/
+modules/player-stats/
 ├── PlayerStats.tsx
 ├── PlayerStats.test.tsx
 ├── usePlayerStats.ts
-├── usePlayerStats.test.ts
+├── usePlayerStats.test.tsx
 ├── statsCalculator.ts
-├── statsCalculator.test.ts
+├── statsCalculator.test.tsx
 └── types.ts
 ```
 
-#### Large Features (≥ 10 items): Organized by Type
-Group files into subdirectories by their type.
+#### Large Features (≥ 10 items): Organized by Behavior
+Group files into subdirectories by their behavior.
 
 ```
-src/modules/inventory/
+modules/inventory/
 ├── components/
 │   ├── InventoryGrid.tsx
 │   ├── InventoryGrid.test.tsx
@@ -104,14 +84,12 @@ src/modules/inventory/
 │   └── ItemTooltip.test.tsx
 ├── hooks/
 │   ├── useInventory.ts
-│   ├── useInventory.test.ts
+│   ├── useInventory.test.tsx
 │   ├── useItemDrag.ts
-│   └── useItemDrag.test.ts
+│   └── useItemDrag.test.tsx
 ├── utils/
 │   ├── itemSorting.ts
-│   └── itemSorting.test.ts
-├── stores/              # Only if state needs cross-feature sharing
-│   └── inventory.store.ts
+│   └── itemSorting.test.tsx
 └── types.ts
 ```
 
@@ -177,11 +155,11 @@ export const useEnemies = () => {
 
 ### Hooks
 - camelCase with 'use' prefix: `usePlayerHealth.ts`
-- Test: `usePlayerHealth.test.ts`
+- Test: `usePlayerHealth.test.tsx`
 
 ### Utilities
 - camelCase: `damageCalculator.ts`
-- Test: `damageCalculator.test.ts`
+- Test: `damageCalculator.test.tsx`
 
 ### Types
 - camelCase or PascalCase: `types.ts` or `CombatTypes.ts`
@@ -189,7 +167,7 @@ export const useEnemies = () => {
 
 ### Stores (Legend-State)
 - camelCase with '.store' suffix: `player.store.ts`
-- Test: `player.store.test.ts`
+- Test: `player.store.test.tsx`
 
 ## Import Organization
 
