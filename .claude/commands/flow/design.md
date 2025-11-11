@@ -22,6 +22,42 @@ The PRD file path will be provided as the first line of stdin input.
 3. Check if file exists
 4. Load PRD contents using Read tool
 
+---
+
+## 📚 MANDATORY ARCHITECTURE GUIDES
+
+**Consult these guides while creating the Technical Design Document**:
+
+1. **Lean Development Principles**: @docs/guides/lean-task-generation-guide.md
+   - Focus on user-visible features in implementation plan
+   - Just-in-time infrastructure approach
+   - Avoid over-engineering
+
+2. **File Organization**: @docs/architecture/file-organization-patterns.md
+   - Component structure and module organization
+   - Co-located tests (NO `__tests__` folders)
+   - NO barrel exports (index.ts files)
+
+3. **Working Directory Context**: @docs/architecture/working-directory-context.md
+   - Understand project structure and paths
+   - Directory organization conventions
+
+4. **State Management**: @docs/architecture/state-management-hooks-guide.md
+   - Hook-based architecture patterns
+   - When to use useState vs custom hooks vs Legend-State stores
+   - Fine-grained reactivity patterns
+   - Effect hooks in separate files
+
+5. **Legend-State Implementation**: @docs/research/expo_legend_state_v3_guide_20250917_225656.md
+   - Legend-State v3 patterns for data model design
+   - Observable primitives and persistence
+
+6. **React Native Testing**: @docs/research/react_native_testing_library_guide_20250918_184418.md
+   - Testing best practices for TDD strategy
+   - Query priorities and async handling
+
+---
+
 **Error Handling**:
 - If no path provided in stdin:
   - STOP execution immediately
@@ -185,7 +221,7 @@ Generate a comprehensive Technical Design Document with these sections:
 
 #### Testing Framework & Tools
 - Framework: React Native Testing Library
-- Reference: `/docs/research/react_native_testing_library_guide_20250918_184418.md`
+- Reference: @docs/research/react_native_testing_library_guide_20250918_184418.md
 - Test Runner: Jest with React Native preset
 - Mocking: MSW for API mocking, Jest mocks for modules
 

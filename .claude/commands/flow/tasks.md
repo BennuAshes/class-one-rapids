@@ -16,6 +16,47 @@ The TDD file path is $ARGUMENTS
 3. Check if file exists
 4. Load TDD contents using Read tool
 
+---
+
+## 📚 MANDATORY ARCHITECTURE GUIDES
+
+**Consult these guides while generating the task list**:
+
+1. **Lean Development Principles**: @docs/guides/lean-task-generation-guide.md
+   - **CRITICAL**: First task MUST deliver user-visible functionality
+   - No infrastructure-only tasks
+   - Just-in-time file/folder creation
+   - Each task independently demo-able
+
+2. **File Organization**: @docs/architecture/file-organization-patterns.md
+   - Feature-based module organization
+   - Co-located tests (NO `__tests__` folders)
+   - NO barrel exports (index.ts files)
+   - File structure patterns for different feature sizes
+
+3. **Working Directory Context**: @docs/architecture/working-directory-context.md
+   - You are in `c:\dev\class-one-rapids\frontend\`
+   - NEVER create `frontend/frontend/` nested structures
+   - Path and directory conventions
+
+4. **State Management**: @docs/architecture/state-management-hooks-guide.md
+   - Hook-based architecture (NO service classes for state)
+   - When to use useState vs custom hooks vs Legend-State stores
+   - Fine-grained reactivity patterns
+   - Effect hooks in separate files
+
+5. **Expo App Organization**: @docs/architecture/organizing_expo_apps_by_feature_20250921_113000.md
+   - Feature-based architecture details
+   - Expo Router integration
+   - Module boundaries
+
+6. **React Native Testing**: @docs/research/react_native_testing_library_guide_20250918_184418.md
+   - TDD best practices
+   - Testing Library query priorities
+   - Async handling patterns
+
+---
+
 **Error Handling**:
 - If no path provided in stdin:
   - STOP execution immediately
@@ -48,53 +89,14 @@ Generate a comprehensive, executable task list based on the TDD.
 
 **IMPORTANT**: Follow @docs/guides/lean-task-generation-guide.md principles throughout - focus on user-visible functionality, not infrastructure.
 
-## CRITICAL: Working Directory Context
-**MANDATORY**: Read and follow @docs/architecture/working-directory-context.md for all path operations.
-- You are in `c:\dev\class-one-rapids\frontend\`
-- All paths are relative to frontend directory
-- NEVER create nested `frontend/frontend/` structures
-
 ## Phase 1: Check Existing Implementations & Architecture
 
-### Architecture References
-**MANDATORY**: Follow these architecture guides:
-1. @docs/architecture/organizing_expo_apps_by_feature_20250921_113000.md - Feature-based organization
-2. @docs/architecture/file-organization-patterns.md - File patterns and anti-patterns (NO barrel exports!)
-3. @docs/architecture/working-directory-context.md - Path and directory rules
-
-### Required Folder Structure
-
-```
-src/
-├── app/                    # Expo Router Pages (SCREENS ONLY)
-│   ├── index.tsx          # Home screen
-│   ├── _layout.tsx        # Global layout
-│   └── (groups)/          # Route groups
-├── modules/               # Feature Modules
-│   ├── [feature]/        # When < 10 items: flat structure
-│   │   ├── Enemy.tsx     # Component
-│   │   ├── Enemy.test.tsx # Test co-located
-│   │   ├── useEnemy.ts   # Hook (NOT service)
-│   │   ├── useEnemy.test.ts # Test co-located
-│   │   └── enemy.types.ts  # Types
-│   ├── [large-feature]/  # When ≥ 10 items: organized by type
-│   │   ├── components/   # Feature-specific UI
-│   │   │   ├── Component.tsx
-│   │   │   └── Component.test.tsx # Co-located test
-│   │   ├── hooks/        # Feature-specific hooks (NOT services)
-│   │   │   ├── useFeature.ts
-│   │   │   └── useFeature.test.ts # Co-located test
-│   │   ├── stores/       # State management (Legend-State preferred)
-│   │   └── types/        # TypeScript interfaces
-│   └── ...
-├── shared/                # Cross-cutting Concerns
-│   ├── components/        # Reusable UI components
-│   ├── hooks/            # Shared custom hooks (NOT services)
-│   └── utils/            # Utility functions
-├── assets/               # Images, fonts, etc.
-├── constants/            # App-wide constants
-└── types/                # Global TypeScript types
-```
+### File Structure Reference
+**Consult**: @docs/architecture/file-organization-patterns.md for complete folder structure patterns including:
+- Feature module organization (flat for <10 items, organized by type for ≥10)
+- Co-located test placement (ALWAYS next to implementation files)
+- State management file types (stores, hooks, types)
+- Shared vs feature-specific organization
 
 ### Implementation Check
 1. **Scan for existing files according to architecture**:
@@ -185,7 +187,7 @@ Generate the task list with this structure:
   ├── constants/    # App constants
   └── types/        # Global types
   ```
-  Reference: `/docs/architecture/organizing_expo_apps_by_feature_20250921_113000.md`
+  Reference: @docs/architecture/organizing_expo_apps_by_feature_20250921_113000.md
 - Set up .gitignore for [technology stack from TDD]
 - Configure pre-commit hooks for code quality
 - Create README.md with architecture overview
@@ -356,50 +358,11 @@ Rate Limiting: [From TDD]
 5. Add logging at key decision points
 6. Write tests for business logic
 
-**CODE STRUCTURE** (Following feature-based architecture with co-located tests):
-```
-src/modules/[feature]/
-├── ComponentName.tsx           # Component
-├── ComponentName.test.tsx      # Component test (co-located)
-├── useFeature.ts              # Hook
-├── useFeature.test.ts         # Hook test (co-located)
-├── featureService.ts          # Service
-├── featureService.test.ts     # Service test (co-located)
-├── featureStore.ts            # Store
-└── feature.types.ts           # Types
-```
-
-For larger features (≥10 items):
-```
-src/modules/[feature]/
-├── components/
-│   ├── ComponentA.tsx
-│   ├── ComponentA.test.tsx    # Test next to component
-│   ├── ComponentB.tsx
-│   └── ComponentB.test.tsx    # Test next to component
-├── services/
-│   ├── serviceA.ts
-│   └── serviceA.test.ts       # Test next to service
-└── types/
-    └── feature.types.ts
-```
-
-For shared components:
-```
-src/shared/
-├── components/
-│   ├── ui/
-│   │   ├── Button.tsx
-│   │   ├── Button.test.tsx    # Test next to component
-│   │   ├── Input.tsx
-│   │   └── Input.test.tsx     # Test next to component
-│   └── layout/
-│       ├── Header.tsx
-│       └── Header.test.tsx    # Test next to component
-└── services/
-    ├── apiService.ts
-    └── apiService.test.ts     # Test next to service
-```
+**CODE STRUCTURE**: See @docs/architecture/file-organization-patterns.md for complete patterns including:
+- Feature module organization (flat vs organized by type)
+- Co-located test placement (ALWAYS next to implementation)
+- Shared vs feature-specific file locations
+- State management file organization (hooks, stores, types)
 
 **SUCCESS METRICS**:
 - Passes all test cases from TDD
@@ -418,7 +381,7 @@ src/shared/
 
 ### Task 3.1: TDD Implementation for [Component/Feature Name]
 **ROLE**: You are a senior developer following strict TDD practices
-**ARCHITECTURE**: Follow feature-based organization from `/docs/architecture/organizing_expo_apps_by_feature_20250921_113000.md`
+**ARCHITECTURE**: Follow feature-based organization from @docs/architecture/organizing_expo_apps_by_feature_20250921_113000.md
 
 **CONTEXT**: Component design from TDD section [X] requires implementation using test-first approach
 
@@ -455,7 +418,7 @@ For features with ≥ 10 items (organized by type):
 #### Step 1: RED - Write Failing Test First
 ```typescript
 // Test file co-located with component: [ComponentName].test.tsx
-// Using React Native Testing Library guide from /docs/research/react_native_testing_library_guide_20250918_184418.md
+// Using React Native Testing Library guide from @docs/research/react_native_testing_library_guide_20250918_184418.md
 import { render, screen, userEvent } from '@testing-library/react-native';
 import { [ComponentName] } from './[ComponentName]';  // Import from same directory
 
@@ -601,7 +564,7 @@ Or use Markdown table format for simpler requirements:
    - [ ] Empty states show appropriate UI
 
 **TESTING TOOLS & PATTERNS**:
-Reference: `/docs/research/react_native_testing_library_guide_20250918_184418.md`
+Reference: @docs/research/react_native_testing_library_guide_20250918_184418.md
 - Use `userEvent` over `fireEvent` for realistic interactions
 - Query by user-visible text/labels, not testIds
 - Use `waitFor` for async operations

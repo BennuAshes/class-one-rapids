@@ -13,6 +13,27 @@ Generate a lean, actionable Product Requirements Document based on the file at $
 3. Check if file exists
 4. Load task list contents using Read tool
 
+---
+
+## 📚 REFERENCE GUIDES
+
+**Consult these guides while creating the PRD**:
+
+1. **Lean Development Principles**: @docs/guides/lean-task-generation-guide.md
+   - Focus on user-visible features over infrastructure
+   - Just-in-time approach to scope definition
+   - Avoid premature optimization
+
+2. **File Organization**: @docs/architecture/file-organization-patterns.md
+   - Understand project structure for technical scope
+   - Component organization patterns
+
+3. **State Management**: @docs/architecture/state-management-hooks-guide.md
+   - Inform technical requirements and architecture decisions
+   - Hook-based patterns for feature state
+
+---
+
 ## Analysis Phase
 
 First, analyze the feature description to extract (following @docs/guides/lean-task-generation-guide.md principles):
