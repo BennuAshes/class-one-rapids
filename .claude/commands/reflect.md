@@ -1,1 +1,3 @@
-Read the files listed in @FLOW.md and determine what we can change in those files or in the research those files reference such that: $ARGUMENTS
+- Read the files listed in @FLOW.md and determine what we can change in those files or in the research those files reference such that: $ARGUMENTS
+- If it relates to how to write the code, like its style, behavior, how concerns are separated, etc then find appropriate knowledge or research files mostly at docs/architecture/ but also docs/
+- If it relates to the process of that flow command, then change the command

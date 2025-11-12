@@ -7,7 +7,9 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "jest"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@legendapp/state": "^3.0.0-beta.35",
@@ -31,6 +33,7 @@
     "react-test-renderer": "19.1.0"
   },
   "devDependencies": {
+    "@testing-library/jest-native": "^5.4.3",
     "@types/react": "19.1.14",
     "jest-environment-jsdom": "^30.1.2",
     "typescript": "~5.9.2"
@@ -42,7 +45,7 @@
       "<rootDir>/jest.setup.js"
     ],
     "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)"
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|@legendapp)"
     ],
     "moduleDirectories": [
       "node_modules"
@@ -53,6 +56,21 @@
     "watchPathIgnorePatterns": [
       "/node_modules/"
     ],
+    "collectCoverageFrom": [
+      "modules/**/*.{ts,tsx}",
+      "shared/**/*.{ts,tsx}",
+      "!**/*.d.ts",
+      "!**/*.test.{ts,tsx}",
+      "!**/node_modules/**"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    },
     "haste": {
       "defaultPlatform": "ios",
       "platforms": [

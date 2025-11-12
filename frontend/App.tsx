@@ -1,18 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
-import { ClickerScreen } from "./modules/clicker/ClickerScreen";
-export default function App() {
-  return (
-    <View style={styles.container}>
-      <ClickerScreen />
-    </View>
-  );
-}
+import { SingularityPetScreen } from "./modules/attack-button/SingularityPetScreen";
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
+export default function App() {
+  return <SingularityPetScreen />;
+}

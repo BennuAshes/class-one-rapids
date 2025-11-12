@@ -25,6 +25,28 @@ ONLY proceed if validation passes:
 
 **CRITICAL**: Never start task execution if ANY validation step fails. Report errors clearly and exit.
 
+### Step 3: Determine Implementation Directory
+
+**CRITICAL LOCATION RULE**: Implementation files MUST be created in the module folder, not in a new folder based on feature name.
+
+1. **Extract module directory from task file path**:
+   - Task file location: `<module-path>/specs/<task-file>.md`
+   - Implementation directory: `<module-path>/` (parent of specs folder)
+
+2. **Example**:
+   - Task file: `/frontend/modules/attack-button/specs/tasks_core_clicker_20251111.md`
+   - Implementation dir: `/frontend/modules/attack-button/`
+   - ❌ WRONG: `/frontend/modules/clicker/` (do NOT create new module)
+   - ✅ CORRECT: `/frontend/modules/attack-button/`
+
+3. **Validation**:
+   - Parse task file path to extract parent directory of `specs/`
+   - Verify the module directory exists
+   - Set this as the working directory for ALL implementation files
+   - ALL new components, hooks, and tests go in this directory (or subdirectories)
+
+**Why this matters**: The module structure is already established. Tasks are scoped to a specific module. Creating a new module folder breaks the project structure.
+
 ---
 
 ## 📚 MANDATORY ARCHITECTURE GUIDES
@@ -54,7 +76,7 @@ ONLY proceed if validation passes:
    - Hook-based architecture
    - When to use useState vs custom hooks vs Legend-State stores
    - Fine-grained reactivity patterns
-   - Effect hooks in separate files
+   - **Effect hooks**: See §🔄 Advanced Hook Patterns - Effect Hooks Pattern (lines 759-830)
 
 5. **Legend-State Implementation**: @docs/research/expo_legend_state_v3_guide_20250917_225656.md
    - Legend-State v3 patterns
@@ -96,11 +118,15 @@ ONLY proceed if validation passes:
 First, I'll set up the execution environment and understand the task requirements.
 
 1. **Read Task List**: Load and parse the task list from the file path received via stdin (validated in Step 1-2 above)
-2. **Check Task Status**: Look for [COMPLETED] or [PARTIAL] prefixes in task titles
-3. **Identify Target**: Determine which tasks to execute (all tasks from the list)
-4. **Skip Completed Tasks**: Tasks marked [COMPLETED] should be skipped
-5. **Validate Prerequisites**: Check that required tools, dependencies, and environment are ready
-6. **Initialize Progress Tracking**: Set up TodoWrite for tracking task execution
+2. **Determine Implementation Directory**: Extract module directory from task file path (validated in Step 3 above)
+   - Parse the task file path to find the parent of `specs/` folder
+   - This is WHERE ALL implementation files will be created
+   - Example: `modules/attack-button/specs/tasks.md` → implement in `modules/attack-button/`
+3. **Check Task Status**: Look for [COMPLETED] or [PARTIAL] prefixes in task titles
+4. **Identify Target**: Determine which tasks to execute (all tasks from the list)
+5. **Skip Completed Tasks**: Tasks marked [COMPLETED] should be skipped
+6. **Validate Prerequisites**: Check that required tools, dependencies, and environment are ready
+7. **Initialize Progress Tracking**: Set up TodoWrite for tracking task execution
 
 ## Phase 2: Task Analysis & Planning
 
@@ -390,25 +416,32 @@ For each completed task:
 
 ### Code Generation Guidelines
 
-1. **Follow Existing Patterns**:
+1. **File Location** (CRITICAL):
+
+   - ALL implementation files go in the module directory (parent of `specs/` folder)
+   - Extract module path from task file location during Phase 1
+   - NEVER create a new module folder based on feature names in the task
+   - Example: Task at `modules/attack-button/specs/tasks.md` → files go in `modules/attack-button/`
+
+2. **Follow Existing Patterns**:
 
    - Check neighboring files for conventions
    - Use existing utilities and helpers
    - Match code style (indentation, naming, etc.)
 
-2. **Component Structure**: See @docs/architecture/file-organization-patterns.md
+3. **Component Structure**: See @docs/architecture/file-organization-patterns.md
 
    - Co-located tests (NO `__tests__` folders)
    - File naming conventions
    - Module organization
 
-3. **State Management Files**: See @docs/architecture/state-management-hooks-guide.md
+4. **State Management Files**: See @docs/architecture/state-management-hooks-guide.md
 
    - `featureStore.ts` - For cross-feature shared state
    - `useFeature.ts` - For complex single-feature logic
    - `useState` in component - For simple component-local state
 
-4. **Test Placement**: Per @docs/architecture/file-organization-patterns.md
+5. **Test Placement**: Per @docs/architecture/file-organization-patterns.md
    - Tests ALWAYS go next to the file they test
    - Use `.test.ts` or `.test.tsx` extension
    - No separate `__tests__` folders
