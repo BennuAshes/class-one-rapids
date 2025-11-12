@@ -593,6 +593,43 @@ test('component with context', () => {
 });
 ```
 
+### DO: Use testID for Style Verification in React Native
+
+React Native's component tree structure means you cannot access TouchableOpacity styles through child Text elements. Use `testID` for querying components when verifying styles.
+
+```typescript
+// Good - Use testID to access the TouchableOpacity directly
+test('button meets accessibility touch target size', () => {
+  render(
+    <TouchableOpacity testID="feed-button" style={{ minWidth: 44, minHeight: 44 }}>
+      <Text>Feed</Text>
+    </TouchableOpacity>
+  )
+
+  const button = screen.getByTestId('feed-button')
+  const style = Array.isArray(button.props.style)
+    ? Object.assign({}, ...button.props.style)
+    : button.props.style
+
+  expect(style.minWidth).toBeGreaterThanOrEqual(44)
+  expect(style.minHeight).toBeGreaterThanOrEqual(44)
+})
+
+// Bad - Trying to access styles through Text element's parent
+test('button meets accessibility touch target size', () => {
+  const { getByText } = render(
+    <TouchableOpacity style={{ minWidth: 44, minHeight: 44 }}>
+      <Text>Feed</Text>
+    </TouchableOpacity>
+  )
+
+  const button = getByText('Feed').parent // ❌ Won't work!
+  expect(button?.props.style.minWidth).toBeGreaterThanOrEqual(44) // undefined
+})
+```
+
+**Reasoning**: React Native's testing library doesn't expose TouchableOpacity style properties through child element queries. Always use `testID` or `getByRole` for components you need to inspect properties on.
+
 ## 🐛 Troubleshooting
 
 | Error | Cause | Solution |

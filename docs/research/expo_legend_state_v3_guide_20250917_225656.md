@@ -550,6 +550,110 @@ describe('Todo Store', () => {
 })
 ```
 
+### Testing Legend-State with Rapid User Interactions
+
+Legend-State observables update asynchronously. When testing rapid user interactions, always use `waitFor` to ensure state has settled between actions.
+
+```typescript
+import { render, screen, userEvent, waitFor } from '@testing-library/react-native'
+
+// Good - Use waitFor for each interaction
+test('handles multiple rapid taps accurately', async () => {
+  render(<ClickerScreen />)
+  const user = userEvent.setup()
+  const button = screen.getByRole('button', { name: /feed/i })
+
+  for (let i = 0; i < 5; i++) {
+    await user.press(button)
+
+    // Wait for observable state to settle after each tap
+    await waitFor(() => {
+      expect(screen.getByText(`Count: ${i + 1}`)).toBeTruthy()
+    })
+  }
+
+  // Final assertion
+  expect(screen.getByText('Count: 5')).toBeTruthy()
+})
+
+// Bad - No waiting between rapid interactions
+test('handles multiple rapid taps', async () => {
+  render(<ClickerScreen />)
+  const user = userEvent.setup()
+  const button = screen.getByRole('button')
+
+  // Rapid taps without waiting for observables to settle
+  for (let i = 0; i < 5; i++) {
+    await user.press(button)
+  }
+
+  // ❌ May fail with race condition - expected 5, got 6 (or other count)
+  expect(screen.getByText('Count: 5')).toBeTruthy()
+})
+
+// Alternative - Single waitFor after all interactions (less reliable)
+test('handles multiple rapid taps - alternative', async () => {
+  render(<ClickerScreen />)
+  const user = userEvent.setup()
+  const button = screen.getByRole('button')
+
+  for (let i = 0; i < 5; i++) {
+    await user.press(button)
+  }
+
+  // Wait for final state
+  await waitFor(() => {
+    expect(screen.getByText('Count: 5')).toBeTruthy()
+  }, { timeout: 2000 }) // May need longer timeout
+})
+```
+
+### Testing Custom Hooks with Legend-State Observables
+
+When testing custom hooks that return Legend-State observables, ensure you're accessing the observable's value with `.get()` in your assertions.
+
+```typescript
+import { renderHook, act, waitFor } from '@testing-library/react-native'
+import { usePersistedCounter } from './usePersistedCounter'
+
+describe('usePersistedCounter', () => {
+  test('increments count on action', async () => {
+    const { result } = renderHook(() => usePersistedCounter('test-key'))
+
+    act(() => {
+      result.current.actions.increment()
+    })
+
+    // Use waitFor for observable updates in hooks too
+    await waitFor(() => {
+      expect(result.current.count$.get()).toBe(1)
+    })
+  })
+
+  test('handles rapid increments', async () => {
+    const { result } = renderHook(() => usePersistedCounter('test-key'))
+
+    // Rapid actions may need waitFor between each
+    for (let i = 0; i < 5; i++) {
+      act(() => {
+        result.current.actions.increment()
+      })
+
+      await waitFor(() => {
+        expect(result.current.count$.get()).toBe(i + 1)
+      })
+    }
+  })
+})
+```
+
+### Key Principles for Testing Legend-State
+
+1. **Always use `waitFor` when testing state changes from user interactions** - Observables update asynchronously
+2. **For rapid interactions, verify state after EACH action** - Don't just check the final state
+3. **Use `.get()` to access observable values in tests** - Never try to access the value directly
+4. **Increase timeouts if needed** - Complex observable chains may take longer to settle
+
 ## ⚠️ Known Limitations
 
 ### Current Issues (September 2025)
