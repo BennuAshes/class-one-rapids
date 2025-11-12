@@ -1373,6 +1373,79 @@ describe('useTodos Hook', () => {
 })
 ```
 
+### Testing Legend-State Observables with Async Updates
+
+Legend-State observables update asynchronously. Always use `waitFor` when testing state changes.
+
+```typescript
+// __tests__/hooks/usePersistedCounter.test.ts
+import { renderHook, act, waitFor } from '@testing-library/react-native'
+import { usePersistedCounter } from '../../hooks/usePersistedCounter'
+
+describe('usePersistedCounter with async observable updates', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  test('handles single increment', async () => {
+    const { result } = renderHook(() => usePersistedCounter('test-counter'))
+
+    act(() => {
+      result.current.actions.increment()
+    })
+
+    // Wait for observable to update
+    await waitFor(() => {
+      expect(result.current.count$.get()).toBe(1)
+    })
+  })
+
+  test('handles rapid increments accurately', async () => {
+    const { result } = renderHook(() => usePersistedCounter('test-counter'))
+
+    // Test rapid actions with verification after each
+    for (let i = 0; i < 10; i++) {
+      act(() => {
+        result.current.actions.increment()
+      })
+
+      // Critical: Wait for observable to settle after EACH action
+      await waitFor(() => {
+        expect(result.current.count$.get()).toBe(i + 1)
+      })
+    }
+
+    // Final verification
+    expect(result.current.count$.get()).toBe(10)
+  })
+
+  test('handles rapid actions without individual waits (alternative)', async () => {
+    const { result } = renderHook(() => usePersistedCounter('test-counter'))
+
+    // Execute all actions
+    act(() => {
+      for (let i = 0; i < 10; i++) {
+        result.current.actions.increment()
+      }
+    })
+
+    // Wait for final state with longer timeout
+    await waitFor(() => {
+      expect(result.current.count$.get()).toBe(10)
+    }, {
+      timeout: 3000, // Longer timeout for batched updates
+      interval: 100   // Check every 100ms
+    })
+  })
+})
+```
+
+**Why This Matters:**
+- Legend-State observables update asynchronously for performance
+- Without `waitFor`, tests may check state before updates complete
+- Rapid actions can compound timing issues
+- **Test pattern must match the async nature of the state library**
+
 ## 📋 Best Practices
 
 ### ✅ DO
