@@ -46,9 +46,11 @@ The TDD file path is $ARGUMENTS
 4. **State Management**: @docs/architecture/state-management-hooks-guide.md
 
    - Hook-based architecture (NO service classes for state)
-   - When to use useState vs custom hooks vs Legend-State stores
+   - **Behavior-Based Hook Naming**: See §🧭 Hook Decision Tree & Behavior-Based Naming
+   - **When to use useState vs custom hooks vs Legend-State stores**
+   - **Name hooks after BEHAVIOR**: `useFilteredList`, `usePersistedCounter`, `useDebounced`
    - Fine-grained reactivity patterns
-   - Effect hooks in separate files
+   - **Effect hooks**: See §🔄 Advanced Hook Patterns - Effect Hooks Pattern (lines 759-830)
 
 5. **Expo App Organization**: @docs/architecture/organizing_expo_apps_by_feature_20250921_113000.md
 

@@ -49,9 +49,11 @@ The PRD file path will be provided as the first line of stdin input.
 4. **State Management**: @docs/architecture/state-management-hooks-guide.md
 
    - Hook-based architecture patterns
-   - When to use useState vs custom hooks vs Legend-State stores
+   - **Behavior-Based Hook Naming**: See §🧭 Hook Decision Tree & Behavior-Based Naming
+   - **When to use useState vs custom hooks vs Legend-State stores**
+   - **Hook naming focuses on BEHAVIOR not entity**: `usePersistedCounter` not `usePet`
    - Fine-grained reactivity patterns
-   - Effect hooks in separate files
+   - **Effect hooks**: See §🔄 Advanced Hook Patterns - Effect Hooks Pattern (lines 759-830)
 
 5. **Legend-State Implementation**: @docs/research/expo_legend_state_v3_guide_20250917_225656.md
 

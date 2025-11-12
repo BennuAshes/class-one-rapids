@@ -119,3 +119,6 @@ Example: You are the source, as an expert in your domain. You write a file with 
 ## The feedback loop
 - Being able to know where a given prompt stands, and how each change can influence it. We want as much data related to this process as possible, and interactive visualizations therein.
 - Worktrees
+
+
+Tests not ideal

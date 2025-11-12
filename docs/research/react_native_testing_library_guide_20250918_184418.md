@@ -66,14 +66,14 @@ describe('Button Component', () => {
   test('renders button with text', () => {
     render(<Button title="Click me" onPress={() => {}} />);
 
-    expect(screen.getByText('Click me')).toBeTruthy();
+    expect(screen.await findByText('Click me')).toBeTruthy();
   });
 
   test('calls onPress when pressed', async () => {
     const handlePress = jest.fn();
     render(<Button title="Click me" onPress={handlePress} />);
 
-    await user.press(screen.getByText('Click me'));
+    await user.press(screen.await findByText('Click me'));
 
     expect(handlePress).toHaveBeenCalledTimes(1);
   });
@@ -82,7 +82,7 @@ describe('Button Component', () => {
     const handlePress = jest.fn();
     render(<Button title="Click me" onPress={handlePress} disabled />);
 
-    const button = screen.getByText('Click me');
+    const button = screen.await findByText('Click me');
 
     // Verify button is disabled
     expect(button).toBeDisabled();
@@ -109,9 +109,9 @@ describe('LoginForm', () => {
     const onSubmit = jest.fn();
     render(<LoginForm onSubmit={onSubmit} />);
 
-    const emailInput = screen.getByPlaceholderText('Email');
-    const passwordInput = screen.getByPlaceholderText('Password');
-    const submitButton = screen.getByText('Login');
+    const emailInput = screen.await findByPlaceholderText('Email');
+    const passwordInput = screen.await findByPlaceholderText('Password');
+    const submitButton = screen.await findByText('Login');
 
     // Enter invalid email
     await user.type(emailInput, 'invalid-email');
@@ -120,7 +120,7 @@ describe('LoginForm', () => {
 
     // Check for error message
     await waitFor(() => {
-      expect(screen.getByText('Invalid email format')).toBeTruthy();
+      expect(screen.await findByText('Invalid email format')).toBeTruthy();
     });
 
     expect(onSubmit).not.toHaveBeenCalled();
@@ -130,9 +130,9 @@ describe('LoginForm', () => {
     const onSubmit = jest.fn();
     render(<LoginForm onSubmit={onSubmit} />);
 
-    const emailInput = screen.getByPlaceholderText('Email');
-    const passwordInput = screen.getByPlaceholderText('Password');
-    const submitButton = screen.getByText('Login');
+    const emailInput = screen.await findByPlaceholderText('Email');
+    const passwordInput = screen.await findByPlaceholderText('Password');
+    const submitButton = screen.await findByText('Login');
 
     // Enter valid data
     await user.type(emailInput, 'user@example.com');
@@ -150,8 +150,8 @@ describe('LoginForm', () => {
   test('clears form on reset', async () => {
     render(<LoginForm onSubmit={jest.fn()} />);
 
-    const emailInput = screen.getByPlaceholderText('Email');
-    const resetButton = screen.getByText('Reset');
+    const emailInput = screen.await findByPlaceholderText('Email');
+    const resetButton = screen.await findByText('Reset');
 
     await user.type(emailInput, 'test@example.com');
     expect(emailInput.props.value).toBe('test@example.com');
@@ -178,14 +178,14 @@ describe('ProductList', () => {
     render(<ProductList products={mockProducts} />);
 
     // Verify first and last item are rendered
-    expect(screen.getByText(mockProducts[0].name)).toBeTruthy();
-    expect(screen.getByText(mockProducts[mockProducts.length - 1].name)).toBeTruthy();
+    expect(screen.await findByText(mockProducts[0].name)).toBeTruthy();
+    expect(screen.await findByText(mockProducts[mockProducts.length - 1].name)).toBeTruthy();
   });
 
   test('shows empty state when no products', () => {
     render(<ProductList products={[]} />);
 
-    expect(screen.getByText('No products available')).toBeTruthy();
+    expect(screen.await findByText('No products available')).toBeTruthy();
   });
 
   test('handles infinite scroll', async () => {
@@ -198,7 +198,7 @@ describe('ProductList', () => {
       />
     );
 
-    const list = screen.getByTestId('product-list');
+    const list = screen.await findByTestId('product-list');
 
     // Scroll to bottom
     await user.scrollTo(list, {
@@ -221,7 +221,7 @@ describe('ProductList', () => {
       />
     );
 
-    const list = screen.getByTestId('product-list');
+    const list = screen.await findByTestId('product-list');
 
     // Simulate pull to refresh
     await user.scrollTo(list, {
@@ -341,7 +341,7 @@ describe('AsyncDataComponent', () => {
   test('shows loading state initially', () => {
     render(<AsyncDataComponent />);
 
-    expect(screen.getByText('Loading...')).toBeTruthy();
+    expect(screen.await findByText('Loading...')).toBeTruthy();
   });
 
   test('displays data after loading', async () => {
@@ -354,7 +354,7 @@ describe('AsyncDataComponent', () => {
     await waitForElementToBeRemoved(() => screen.queryByText('Loading...'));
 
     // Check data is displayed
-    expect(screen.getByText('Test Item')).toBeTruthy();
+    expect(screen.await findByText('Test Item')).toBeTruthy();
   });
 
   test('handles error state', async () => {
@@ -363,7 +363,7 @@ describe('AsyncDataComponent', () => {
     render(<AsyncDataComponent />);
 
     await waitFor(() => {
-      expect(screen.getByText('Error: Network error')).toBeTruthy();
+      expect(screen.await findByText('Error: Network error')).toBeTruthy();
     });
   });
 
@@ -378,16 +378,16 @@ describe('AsyncDataComponent', () => {
 
     // Wait for error
     await waitFor(() => {
-      expect(screen.getByText('Error: First fail')).toBeTruthy();
+      expect(screen.await findByText('Error: First fail')).toBeTruthy();
     });
 
     // Press retry button
-    const retryButton = screen.getByText('Retry');
+    const retryButton = screen.await findByText('Retry');
     await userEvent.press(retryButton);
 
     // Wait for success
     await waitFor(() => {
-      expect(screen.getByText('Success')).toBeTruthy();
+      expect(screen.await findByText('Success')).toBeTruthy();
     });
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -508,14 +508,14 @@ fireEvent.changeText(input, 'Hello');
 ### DO: Query Elements Like Users Would
 ```typescript
 // Good - User-centric queries
-screen.getByText('Submit');
-screen.getByPlaceholderText('Enter email');
-screen.getByRole('button', { name: 'Save' });
-screen.getByLabelText('Username');
+screen.await findByText('Submit');
+screen.await findByPlaceholderText('Enter email');
+screen.await findByRole('button', { name: 'Save' });
+screen.await findByLabelText('Username');
 
 // Bad - Implementation details
-screen.getByTestId('submit-btn-id');
-screen.getByProps({ id: 'email-input' });
+screen.await findByTestId('submit-btn-id');
+screen.await findByProps({ id: 'email-input' });
 ```
 
 ### DON'T: Test Implementation Details
@@ -525,15 +525,15 @@ expect(component.state.isLoading).toBe(true);
 expect(component.instance().calculateTotal()).toBe(100);
 
 // Good - Test visible behavior
-expect(screen.getByText('Loading...')).toBeTruthy();
-expect(screen.getByText('Total: $100')).toBeTruthy();
+expect(screen.await findByText('Loading...')).toBeTruthy();
+expect(screen.await findByText('Total: $100')).toBeTruthy();
 ```
 
 ### DO: Use Async Utilities Properly
 ```typescript
 // Good - Proper async handling
 await waitFor(() => {
-  expect(screen.getByText('Loaded')).toBeTruthy();
+  expect(screen.await findByText('Loaded')).toBeTruthy();
 });
 
 const element = await screen.findByText('Async Content');
@@ -544,7 +544,7 @@ await waitForElementToBeRemoved(() =>
 
 // Bad - Missing await or wrong usage
 waitFor(() => {  // Missing await!
-  expect(screen.getByText('Loaded')).toBeTruthy();
+  expect(screen.await findByText('Loaded')).toBeTruthy();
 });
 
 await waitFor(() => {
@@ -597,7 +597,7 @@ test('component with context', () => {
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| "Unable to find element with text" | Element not rendered or async timing | Use `findByText` or `waitFor` instead of `getByText` |
+| "Unable to find element with text" | Element not rendered or async timing | Use `findByText` or `waitFor` instead of `await findByText` |
 | "Warning: An update to Component inside a test was not wrapped in act(...)" | Async state update | Wrap async operations in `waitFor` or use `findBy` queries |
 | "Cannot read property 'navigate' of undefined" | Navigation not mocked | Mock `@react-navigation/native` in setup file |
 | "Network request failed" | Unmocked API call | Set up MSW handlers or mock the API module |
@@ -630,9 +630,9 @@ describe('Component', () => {
   });
 
   test('accessibility properties', () => {
-    const { getByRole } = render(<Component />);
+    const { await findByRole } = render(<Component />);
 
-    const button = getByRole('button', { name: 'Submit' });
+    const button = await findByRole('button', { name: 'Submit' });
     expect(button).toHaveAccessibilityHint('Submits the form');
     expect(button).toHaveAccessibilityState({ disabled: false });
   });
@@ -656,21 +656,21 @@ describe('ModalComponent', () => {
     expect(screen.queryByText('Modal Content')).toBeNull();
 
     // Open modal
-    await user.press(screen.getByText('Open Modal'));
+    await user.press(screen.await findByText('Open Modal'));
 
     // Modal should be visible
     await waitFor(() => {
-      expect(screen.getByText('Modal Content')).toBeTruthy();
+      expect(screen.await findByText('Modal Content')).toBeTruthy();
     });
   });
 
   test('closes modal on backdrop press', async () => {
     render(<ModalComponent />);
 
-    await user.press(screen.getByText('Open Modal'));
+    await user.press(screen.await findByText('Open Modal'));
 
     // Press backdrop (usually has a testID)
-    await user.press(screen.getByTestId('modal-backdrop'));
+    await user.press(screen.await findByTestId('modal-backdrop'));
 
     await waitForElementToBeRemoved(() =>
       screen.queryByText('Modal Content')

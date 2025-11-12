@@ -9,6 +9,297 @@
 3. **Single source of truth** - Stores are private, hooks are the public API
 4. **Type-safe throughout** - Full TypeScript with no compromises
 
+## 🧭 Hook Decision Tree & Behavior-Based Naming
+
+### When to Create a Hook
+
+**Decision Flow:**
+
+```
+Is state used by only ONE component?
+├─ YES → Use `useState` in component
+└─ NO → What behavior are you capturing?
+    ├─ Simple state mutation → Custom hook `use[Behavior].ts`
+    ├─ Persistent state → Custom hook `usePersisted[Behavior].ts`
+    ├─ Multi-feature shared state → Store + Hook pattern
+    └─ External system integration → Effect hook `use[System/Behavior].ts`
+```
+
+**Examples:**
+
+| Scenario | Behavior | Hook Name | Rationale |
+|----------|----------|-----------|-----------|
+| Count that persists | Persistent increment | `usePersistedCounter` | Describes persistence + counting behavior |
+| Todo list with filters | Filtered collection | `useFilteredList` | Generic filterable list behavior |
+| Auth session management | Authenticated session | `useAuthSession` | Behavior is session management |
+| Form with validation | Validated form state | `useValidatedForm` | Behavior is validation |
+| Auto-save on change | Auto-saving state | `useAutoSave` | Behavior is automatic saving |
+| WebSocket connection | Real-time sync | `useRealtimeSync` | Behavior is syncing in real-time |
+| Incremental loading | Paginated data | `usePaginatedData` | Behavior is pagination |
+
+### Behavior-Based Naming Conventions
+
+**Format:** `use[Behavior][Modifier?]`
+
+**Principles:**
+1. **Name describes the behavior**, not the entity
+2. **Focus on the action/capability**: What does this hook DO?
+3. **Think reusability**: Could this behavior apply to different entities?
+4. **Be specific about the behavior type**
+
+#### Pattern Categories
+
+**1. State Mutation Behaviors**
+```typescript
+// ✅ Good - describes the mutation behavior
+useToggle()          // Boolean toggle
+useIncrement()       // Numeric increment
+useCounter()         // Full counter (inc/dec/reset)
+useAccumulator()     // Additive accumulation
+
+// ❌ Bad - entity-focused
+usePetFood()
+useScore()
+```
+
+**2. Persistence Behaviors**
+```typescript
+// ✅ Good - clearly states persistence
+usePersistedState()        // Generic persistent state
+usePersistedCounter()      // Persistent counting
+usePersistedToggle()       // Persistent boolean
+useSyncedState()          // State synced to server
+
+// ❌ Bad - unclear about persistence
+useSave()
+useStorage()
+```
+
+**3. Collection Behaviors**
+```typescript
+// ✅ Good - describes collection operations
+useFilteredList()          // List with filtering
+useSortedCollection()      // Collection with sorting
+usePaginatedData()         // Data with pagination
+useInfiniteScroll()        // Infinite loading behavior
+
+// ❌ Bad - too generic
+useList()
+useItems()
+useTodos()  // Entity name, not behavior
+```
+
+**4. Validation Behaviors**
+```typescript
+// ✅ Good - validation is the behavior
+useValidatedInput()        // Input with validation
+useValidatedForm()         // Form with validation
+useAsyncValidation()       // Async validation behavior
+
+// ❌ Bad - unclear behavior
+useForm()
+useCheck()
+```
+
+**5. External System Behaviors**
+```typescript
+// ✅ Good - describes system interaction
+useRealtimeSync()          // Real-time synchronization
+useWebSocketConnection()   // WebSocket behavior
+usePolling()              // Polling behavior
+useDebounced()            // Debouncing behavior
+
+// ❌ Bad - system name without behavior
+useWebSocket()  // What does it do?
+useAPI()        // What behavior?
+```
+
+**6. UI State Behaviors**
+```typescript
+// ✅ Good - describes UI behavior
+useDisclosure()           // Open/close behavior
+useSelection()           // Selection state
+useHover()              // Hover state tracking
+useFocus()              // Focus state tracking
+usePreviousValue()      // Value history tracking
+
+// ❌ Bad - too vague
+useUI()
+useState()  // React built-in
+```
+
+### Real-World Examples
+
+**Singularity Pet Feature:**
+
+Instead of:
+```typescript
+// ❌ Entity-focused
+useSingularityPet()
+```
+
+Use:
+```typescript
+// ✅ Behavior-focused
+usePersistedCounter()     // If it's just counting with persistence
+// OR
+useFeedableCounter()      // If "feeding" is the specific behavior
+// OR
+useIncrementingFeedCount() // If incrementing is the key behavior
+```
+
+**Todo List Feature:**
+
+Instead of:
+```typescript
+// ❌ Entity-focused
+useTodos()
+```
+
+Use:
+```typescript
+// ✅ Behavior-focused - one hook per behavior
+useTaskCollection()       // Managing collection of tasks
+useTaskFilters()         // Filtering behavior
+useTaskSelection()       // Selection behavior
+useBulkTaskActions()     // Bulk operations behavior
+```
+
+**Authentication Feature:**
+
+Instead of:
+```typescript
+// ❌ Entity-focused
+useAuth()
+useUser()
+```
+
+Use:
+```typescript
+// ✅ Behavior-focused
+useAuthSession()          // Session management behavior
+useAuthenticatedRequest() // Authenticated HTTP behavior
+useLoginFlow()           // Login process behavior
+useSessionRefresh()      // Token refresh behavior
+```
+
+### Composition Over Monolithic Hooks
+
+**Anti-pattern - One giant hook:**
+```typescript
+// ❌ Too many behaviors in one hook
+function useGameState() {
+  return {
+    count$,
+    enemies$,
+    player$,
+    settings$,
+    actions: { /* 50 different actions */ }
+  }
+}
+```
+
+**Better - Behavior-specific hooks:**
+```typescript
+// ✅ Each hook has one clear behavior
+function usePersistedCounter() {
+  return { count$, actions: { increment, decrement, reset } }
+}
+
+function useEnemySpawning() {
+  return { enemies$, actions: { spawn, remove, clear } }
+}
+
+function usePlayerStats() {
+  return { stats$, actions: { updateHealth, updateMana } }
+}
+
+function useGameSettings() {
+  return { settings$, actions: { updateVolume, toggleDarkMode } }
+}
+```
+
+### Behavior Identification Checklist
+
+When creating a hook, ask:
+
+- [ ] **What does this hook DO?** (Name should answer this)
+- [ ] **Could this behavior apply to other entities?** (Test for reusability)
+- [ ] **Is the behavior atomic?** (Single responsibility)
+- [ ] **Does the name describe the capability, not the data?**
+
+**Good Test:**
+If you can say "This hook provides [NAME] behavior", it's well-named.
+
+Examples:
+- ✅ "This hook provides **persistent counter** behavior"
+- ✅ "This hook provides **filtered list** behavior"
+- ✅ "This hook provides **debounced input** behavior"
+- ❌ "This hook provides **singularity pet** behavior" (not a behavior!)
+- ❌ "This hook provides **todo** behavior" (not a behavior!)
+
+### When to Break Behavior Rules
+
+**It's okay to use entity names when:**
+
+1. **The entity IS the behavior** (domain-specific concepts)
+   ```typescript
+   useShoppingCart()     // "Shopping cart" is a behavior pattern
+   useAuction()          // "Auction" is a behavior pattern
+   useVoting()           // "Voting" is a behavior pattern
+   ```
+
+2. **The hook is a facade over multiple behaviors** (but prefer composition)
+   ```typescript
+   // Acceptable if it's a well-known pattern
+   useAuth()  // Common enough that behavior is implied
+   ```
+
+3. **Domain language demands it** (ubiquitous language in DDD)
+   ```typescript
+   useCheckout()         // E-commerce domain term
+   useInventory()        // Warehouse domain term
+   ```
+
+### Migration Example
+
+**Before (Entity-based):**
+```typescript
+// useSingularityPet.ts
+function useSingularityPet() {
+  return {
+    count$,
+    actions: { feed }
+  }
+}
+```
+
+**After (Behavior-based):**
+```typescript
+// usePersistedCounter.ts (or useFeedableCounter.ts)
+function usePersistedCounter(storageKey: string) {
+  return {
+    value$,
+    actions: {
+      increment,
+      decrement,
+      reset,
+      set
+    }
+  }
+}
+
+// In component:
+const { value$, actions } = usePersistedCounter('singularity-pet-count')
+// Now this hook can be reused for ANY persistent counter!
+```
+
+**Benefits:**
+- ✅ Reusable for high scores, currencies, experience points, etc.
+- ✅ Clear what it does (persistent counting)
+- ✅ Easier to test (behavior is explicit)
+- ✅ Composable with other behaviors
+
 
 ## 🔧 Storage Configuration
 
