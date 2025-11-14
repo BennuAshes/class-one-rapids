@@ -191,6 +191,9 @@ The PRD must be:
 Generate the complete PRD and save to:
 
 - Filename: `prd_[feature_name_snake_case]_[YYYYMMDD].md`
+  - **IMPORTANT**: Extract `feature_name` from the PRD document title or feature description content, NOT from the folder name
+  - Example: If PRD title is "Passive Resource Generation System", use `prd_passive_resource_generation_20251111.md`
+  - Convert to snake_case: spaces→underscores, lowercase, remove special chars
 - Location: Same directory as the feature description file
 - Include generation timestamp at bottom
 

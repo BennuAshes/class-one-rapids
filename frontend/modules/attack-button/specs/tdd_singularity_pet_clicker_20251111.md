@@ -975,8 +975,8 @@ import { Memo } from '@legendapp/state/react'
 const debouncedSave = configureSynced(synced, {
   persist: {
     plugin: observablePersistAsyncStorage({ AsyncStorage }),
-    debounceSet: 500 // Wait 500ms before writing
-  }
+  },
+  
 })
 
 // 3. Optimize number formatting with memoization

@@ -1,12 +1,17 @@
 import React from 'react'
-import { render, screen, userEvent } from '@testing-library/react-native'
+import { render, screen, userEvent, waitFor } from '@testing-library/react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { ClickerScreen } from './ClickerScreen'
 
 describe('ClickerScreen', () => {
   const user = userEvent.setup()
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks()
+    // Clear AsyncStorage to prevent state persistence between tests
+    await AsyncStorage.clear()
+    // Small delay to ensure storage is fully cleared
+    await new Promise(resolve => setTimeout(resolve, 100))
   })
 
   test('renders feed button', () => {
@@ -34,16 +39,24 @@ describe('ClickerScreen', () => {
   })
 
   test('handles multiple rapid taps accurately', async () => {
-    render(<ClickerScreen />)
+    // Use unique storage key to avoid state pollution from other tests
+    render(<ClickerScreen storageKey={`test-rapid-taps-${Date.now()}`} />)
+    const testUser = userEvent.setup()
+
+    // Verify we start at 0
+    expect(screen.getByText('Singularity Pet Count: 0')).toBeTruthy()
 
     const feedButton = screen.getByText('Feed')
 
     // Tap 5 times rapidly
     for (let i = 0; i < 5; i++) {
-      await user.press(feedButton)
+      await testUser.press(feedButton)
     }
 
-    expect(screen.getByText('Singularity Pet Count: 5')).toBeTruthy()
+    // Wait for all observable updates to settle
+    await waitFor(() => {
+      expect(screen.getByText('Singularity Pet Count: 5')).toBeTruthy()
+    }, { timeout: 3000 })
   })
 
   test('formats large numbers with commas', async () => {
@@ -72,10 +85,10 @@ describe('ClickerScreen', () => {
   })
 
   test('feed button meets accessibility touch target size', () => {
-    const { getByText } = render(<ClickerScreen />)
+    render(<ClickerScreen />)
 
-    const button = getByText('Feed').parent
-    const style = button?.props.style
+    const button = screen.getByTestId('feed-button')
+    const style = button.props.style
 
     // Flatten style array if needed
     const flatStyle = Array.isArray(style)

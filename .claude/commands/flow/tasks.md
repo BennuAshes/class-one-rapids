@@ -1013,7 +1013,10 @@ Before finalizing the task list, verify:
 
 Save the generated task list to:
 - Filename: `tasks_[feature_name_snake_case]_[YYYYMMDD].md`
-- Location: Same directory as the source TDD file (typically `/docs/specs/[feature-name]/`)
+  - **IMPORTANT**: Extract `feature_name` from the task list document title or TDD content, NOT from the folder name
+  - Example: If task list is for "Passive Resource Generation Implementation", use `tasks_passive_resource_generation_20251111.md`
+  - Convert to snake_case: spaces→underscores, lowercase, remove special chars
+- Location: Same directory as the source TDD file
 - Include generation timestamp and source TDD reference
 
 The task list should enable immediate execution by development teams or AI agents with all necessary context and specifications included.
