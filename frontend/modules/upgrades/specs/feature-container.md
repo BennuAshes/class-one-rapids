@@ -1,1 +1,1 @@
-Create an upgrade available in the shop that, when purchased 
+Create an upgrade available in the shop called, "Storage Pouch" that costs 20 scrap that, when purchased, provides a bonus to scrap generated per Pet.
