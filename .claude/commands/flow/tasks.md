@@ -460,6 +460,20 @@ For features with ≥ 10 items (organized by type):
 - Shared UI: `src/shared/components/ui/[ComponentName].tsx`
 - Shared UI Test: `src/shared/components/ui/[ComponentName].test.tsx`
 
+**BEFORE STARTING IMPLEMENTATION**:
+
+**Dependency Validation Checklist**:
+- [ ] Read all files mentioned in task context (App.tsx, stores, services)
+- [ ] Verify assumed infrastructure exists (navigation, state management)
+- [ ] Check that imports referenced in code examples actually exist
+- [ ] Document any missing dependencies that need just-in-time creation
+
+**IF ANY DEPENDENCY IS MISSING**:
+1. Create it as part of this task (just-in-time)
+2. Add to "FILES TO CREATE" section
+3. Include in TDD cycles below
+4. Note in deliverables: "CREATED JUST-IN-TIME: [dependency]"
+
 **TDD IMPLEMENTATION CYCLE** (Repeat for each requirement):
 
 #### Step 1: RED - Write Failing Test First

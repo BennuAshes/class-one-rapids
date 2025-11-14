@@ -176,6 +176,55 @@ For the identified tasks:
 
 **YOU ARE NOW IN THE CODE GENERATION PHASE.** For each task, you will write actual files and run actual tests.
 
+**MANDATORY Pre-Task Validation (BEFORE writing any code)**:
+
+For EACH task, before starting implementation:
+
+1. **Dependency Validation**:
+   ```
+   BEFORE implementing [feature that needs X]:
+   - Use Read tool to check if X exists
+   - Verify X is functional (not just present)
+   - Examples:
+     - Navigation task? Read App.tsx to verify navigation framework exists
+     - Purchase task? Read store files to verify scrap store is functional
+     - Integration task? Read both integration points
+   ```
+
+2. **Architectural Assumptions Check**:
+   ```
+   BEFORE assuming infrastructure exists:
+   - Read the actual files mentioned in task description
+   - Verify they have the structure/exports the task assumes
+   - If task says "use existing X", verify X exists and works as described
+   ```
+
+3. **Just-In-Time Creation Decision**:
+   ```
+   IF dependency doesn't exist AND feature requires it:
+   - Document: "CREATING JUST-IN-TIME: [dependency name]"
+   - Add implementation of dependency to current task
+   - Update deliverables to note infrastructure created
+   - Verify it in functional test
+
+   IF dependency doesn't exist AND feature can work without it:
+   - Document: "SKIPPING OPTIONAL: [dependency name]"
+   - Add TODO comment for future enhancement
+   - Proceed with simplified implementation
+   ```
+
+**RED FLAG - STOP IMMEDIATELY IF**:
+- Task assumes infrastructure that doesn't exist
+- Task describes integration with non-existent systems
+- You discover missing dependencies mid-implementation
+
+**CORRECT ACTION**:
+- Document the gap clearly
+- Ask user or update task to create dependency first
+- Never claim task is complete with broken integration
+
+Then proceed to Pre-execution Check below:
+
 **Pre-execution Check**: For each task, verify it's not already implemented:
 
 Follow @docs/architecture/file-organization-patterns.md for locating files. Use appropriate search tools (Glob, Grep) to check for:
@@ -280,6 +329,27 @@ describe("[ComponentName]", () => {
 3. **Immediately move to the next task** (mark it "in_progress")
 
 Before marking any task complete:
+
+**CRITICAL PRE-COMPLETION VALIDATION**:
+
+1. **Functional Integration Test**:
+   - Run the actual feature manually or with integration test
+   - Verify it works END-TO-END in the actual app context
+   - For navigation: verify you can actually navigate, not just that buttons exist
+   - For purchases: verify you can actually buy, not just that UI renders
+   - **DO NOT** mark complete if feature only works in isolation/unit tests
+
+2. **Dependency Verification**:
+   - ALL required dependencies exist and are functional
+   - No placeholders or mock implementations in production code
+   - Integration points (App.tsx, navigation, stores) are actually wired up
+
+3. **User Experience Validation**:
+   - Feature is accessible from actual user flow (not just in tests)
+   - User can complete the full workflow described in acceptance criteria
+   - No missing wiring or integration steps
+
+**ONLY AFTER** all three validations pass, proceed to test coverage validation below.
 
 1. **Test Coverage Validation**:
 
