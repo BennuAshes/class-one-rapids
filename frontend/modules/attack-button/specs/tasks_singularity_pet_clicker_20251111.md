@@ -356,7 +356,6 @@ export function createCounterStore(storageKey: string, initialValue = 0) {
       initial: validateCount(initialValue),
       persist: {
         name: storageKey,
-        debounceSet: COUNTER_CONSTRAINTS.DEBOUNCE_MS
       }
     })
   })

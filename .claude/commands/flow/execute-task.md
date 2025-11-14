@@ -8,7 +8,25 @@ allowed-tools: "TodoWrite, Read, Write, MultiEdit, Edit, Bash(npm:*), Bash(npx:*
 
 The task list file path is $ARGUMENTS.
 
-**Process**:
+---
+
+## 🚨 IMMEDIATE ACTION REQUIRED: CODE GENERATION
+
+**YOU MUST NOW GENERATE CODE** for all tasks in the task list. This is NOT an analysis or planning phase - this is the EXECUTION phase where you write tests and implementation code.
+
+**Your mission**:
+1. ✅ **Write actual test files** using Write/Edit tools
+2. ✅ **Write actual implementation files** (components, hooks, stores, utilities)
+3. ✅ **Run tests** using Bash to verify they pass
+4. ✅ **Continue until ALL tasks are completed** or you hit a blocker
+
+**DO NOT STOP after reading the task list.** Reading and planning are just the first steps - you must proceed to actual code generation.
+
+---
+
+## Initial Validation Process
+
+Before beginning code generation:
 
 1. Read the file to get the task list file path
 2. Validate the file path is not empty
@@ -33,13 +51,7 @@ ONLY proceed if validation passes:
    - Task file location: `<module-path>/specs/<task-file>.md`
    - Implementation directory: `<module-path>/` (parent of specs folder)
 
-2. **Example**:
-   - Task file: `/frontend/modules/attack-button/specs/tasks_core_clicker_20251111.md`
-   - Implementation dir: `/frontend/modules/attack-button/`
-   - ❌ WRONG: `/frontend/modules/clicker/` (do NOT create new module)
-   - ✅ CORRECT: `/frontend/modules/attack-button/`
-
-3. **Validation**:
+2. **Validation**:
    - Parse task file path to extract parent directory of `specs/`
    - Verify the module directory exists
    - Set this as the working directory for ALL implementation files
@@ -58,6 +70,7 @@ ONLY proceed if validation passes:
    - Prioritize user-visible features
    - Create infrastructure only when needed
    - Just-in-time everything
+
 
 2. **File Organization**: @docs/architecture/file-organization-patterns.md
 
@@ -115,7 +128,7 @@ ONLY proceed if validation passes:
 
 ## Phase 1: Initialize Execution Context
 
-First, I'll set up the execution environment and understand the task requirements.
+**FIRST, SET UP YOUR EXECUTION ENVIRONMENT:**
 
 1. **Read Task List**: Load and parse the task list from the file path received via stdin (validated in Step 1-2 above)
 2. **Determine Implementation Directory**: Extract module directory from task file path (validated in Step 3 above)
@@ -126,7 +139,9 @@ First, I'll set up the execution environment and understand the task requirement
 4. **Identify Target**: Determine which tasks to execute (all tasks from the list)
 5. **Skip Completed Tasks**: Tasks marked [COMPLETED] should be skipped
 6. **Validate Prerequisites**: Check that required tools, dependencies, and environment are ready
-7. **Initialize Progress Tracking**: Set up TodoWrite for tracking task execution
+7. **USE TodoWrite tool NOW**: Create todo items for each task from the task list
+   - Set all tasks to "pending" status initially
+   - You will update these to "in_progress" and "completed" as you work
 
 ## Phase 2: Task Analysis & Planning
 
@@ -159,6 +174,8 @@ For the identified tasks:
 
 ## Phase 3: Test-Driven Development Execution
 
+**YOU ARE NOW IN THE CODE GENERATION PHASE.** For each task, you will write actual files and run actual tests.
+
 **Pre-execution Check**: For each task, verify it's not already implemented:
 
 Follow @docs/architecture/file-organization-patterns.md for locating files. Use appropriate search tools (Glob, Grep) to check for:
@@ -185,7 +202,11 @@ Follow @docs/architecture/file-organization-patterns.md for locating files. Use 
    - Look for custom hooks (`use*.ts` files)
    - Reuse existing patterns before creating new ones
 
-For each task in the execution sequence:
+**NOW EXECUTE EACH TASK** in the sequence using the TDD cycle below:
+
+**BEFORE STARTING EACH TASK:**
+- **USE TodoWrite tool** to mark the task as "in_progress"
+- Only ONE task should be "in_progress" at a time
 
 ### Step 1: RED - Write Failing Tests First
 
@@ -202,12 +223,12 @@ describe("[ComponentName]", () => {
 });
 ```
 
-Actions:
+**YOU MUST NOW:**
 
-1. Create test file in appropriate location
-2. Write test for FIRST requirement only
-3. Run test to confirm it fails with expected error
-4. Commit the failing test (documents the requirement)
+1. **USE Write tool** to create the test file in the appropriate location
+2. **Write the test code** for the FIRST requirement only
+3. **USE Bash tool** to run the test and confirm it fails with expected error
+4. Only then proceed to GREEN phase
 
 ### Step 2: GREEN - Write Minimal Code to Pass
 
@@ -220,36 +241,43 @@ Actions:
 3. Use Legend-State ONLY when state needs sharing across features
 4. NEVER create service classes - use hooks for stateful logic
 
-Actions:
+**YOU MUST NOW:**
 
-1. Implement minimal solution (prefer hooks over services)
-2. No extra features or optimization
-3. Run test to confirm it passes
-4. Keep all existing tests passing
+1. **USE Write/Edit tool** to create the implementation file (component, hook, store, or utility)
+2. **Write minimal code** to make the test pass (prefer hooks over services)
+3. **NO extra features** or premature optimization
+4. **USE Bash tool** to run the test and confirm it now passes
+5. Verify all existing tests still pass
 
 ### Step 3: REFACTOR - Improve Code Quality
 
 **MAINTAIN**: All tests must remain green during refactoring
 
-Actions:
+**IF REFACTORING IS NEEDED:**
 
-1. Extract constants and improve naming
+1. **USE Edit tool** to extract constants and improve naming
 2. Remove duplication
 3. Improve code organization
-4. Run tests after each change
+4. **USE Bash tool** to run tests after each change to ensure they remain green
 
 ### Step 4: Iterate for Next Requirement
 
-Repeat RED-GREEN-REFACTOR for each requirement:
+**CONTINUE THE TDD CYCLE** - Repeat RED-GREEN-REFACTOR for each requirement:
 
-1. Add new failing test for next behavior
-2. Implement code to pass new test
-3. Refactor if needed
-4. Continue until all requirements have tests
+1. **Add new failing test** for next behavior (USE Write/Edit tool)
+2. **Implement code** to pass new test (USE Write/Edit tool)
+3. **Refactor** if needed (USE Edit tool)
+4. **USE Bash tool** to run tests
+5. **Continue until ALL requirements have tests and implementation**
 
 ## Phase 4: Task Validation & Completion
 
 ### Validation Checklist
+
+**AFTER COMPLETING EACH TASK:**
+1. **Verify all criteria below are met**
+2. **USE TodoWrite tool** to mark the task as "completed"
+3. **Immediately move to the next task** (mark it "in_progress")
 
 Before marking any task complete:
 
@@ -372,6 +400,10 @@ For each completed task:
    - Create placeholder/mock for missing dependency
    - Request user intervention if critical
 
+### When Dependencies Don't Exist
+Can the feature work without it? If NO, create it. Never make testable-but-broken code:
+**Critical Rule**: If a feature **requires** a dependency to function (e.g., "passive generation" needs a game tick), CREATE minimal just-in-time implementation. If it's optional (e.g., analytics), SKIP with TODO. The test is simple: **Can the feature work without it?** If NO, create it. Never implement "testable but non-functional" code - if the requirement says "automatic/passive", the implementation must actually be automatic, not require manual actions that only tests call. Document created infrastructure in deliverables with "CREATED JUST-IN-TIME" note.
+
 ## Execution Principles
 
 ### TDD Discipline
@@ -490,13 +522,15 @@ Task execution is successful when:
 
 ## Continuous Execution
 
-The agent will:
+**YOU MUST CONTINUE EXECUTING** until all tasks are complete or you hit a blocker:
 
-1. Execute tasks in dependency order
-2. Validate each task before moving to next
-3. Report progress in real-time
-4. Handle errors gracefully
-5. Complete all tasks in target scope
+1. **Execute tasks** in dependency order
+2. **Validate each task** before moving to next
+3. **Report progress** in real-time using TodoWrite
+4. **Handle errors** gracefully - fix or document blockers
+5. **Complete ALL tasks** in target scope
+
+**DO NOT STOP** after setup or planning phases. The goal is WORKING CODE with PASSING TESTS.
 
 ## Final Output
 

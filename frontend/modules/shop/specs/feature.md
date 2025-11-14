@@ -1,0 +1,1 @@
+We need a way to use the scrap. Create a new screen that links from the main one that allows you to buy upgrades. Don't create any upgrades yet. An upgrade has a scrap cost and increases either the scrap amount gained per pet, or how many pets you gain when you feed.
