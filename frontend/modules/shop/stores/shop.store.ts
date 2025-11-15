@@ -3,6 +3,7 @@ import { configureSynced, synced } from '@legendapp/state/sync'
 import { observablePersistAsyncStorage } from '@legendapp/state/persist-plugins/async-storage'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import type { Upgrade } from '../types'
+import { UpgradeType } from '../types'
 
 /**
  * Shop Store
@@ -23,6 +24,20 @@ const persist = configureSynced(synced, {
 })
 
 /**
+ * Available upgrades catalog (hardcoded for MVP)
+ */
+const AVAILABLE_UPGRADES: Upgrade[] = [
+  {
+    id: 'storage-pouch-1',
+    name: 'Storage Pouch',
+    description: 'Adds +1 scrap per pet',
+    cost: 20,
+    upgradeType: UpgradeType.SCRAP_PER_PET,
+    effectValue: 1
+  }
+]
+
+/**
  * Shop observable store
  *
  * - availableUpgrades: All upgrades that can be purchased (not persisted, hardcoded for MVP)
@@ -31,7 +46,7 @@ const persist = configureSynced(synced, {
  */
 export const shopStore = observable({
   // Available upgrades (hardcoded, not persisted)
-  availableUpgrades: [] as Upgrade[],
+  availableUpgrades: AVAILABLE_UPGRADES as Upgrade[],
 
   // Purchased upgrade IDs (persisted)
   purchasedUpgrades: persist({
