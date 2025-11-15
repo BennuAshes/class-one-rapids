@@ -112,6 +112,161 @@ Generate a comprehensive, executable task list based on the TDD.
 - State management file types (stores, hooks, types)
 - Shared vs feature-specific organization
 
+### Codebase Exploration with Explore Subagent (MANDATORY)
+
+**CRITICAL**: You MUST complete this exploration using the Explore subagent before generating any tasks.
+
+**STEP 1: Launch Explore Subagent**
+
+Use the Task tool to launch an Explore subagent for comprehensive codebase analysis:
+
+```typescript
+Task({
+  subagent_type: "Explore",
+  description: "Explore codebase for TDD components",
+  model: "haiku", // Fast and cost-effective for search tasks
+  prompt: `
+I need to explore the codebase before generating a task list.
+
+**TDD FILE**: Already read (analysis in context above)
+
+**MISSION**: For EVERY component, screen, hook, or store mentioned in the TDD:
+1. Search for existing implementations
+2. Identify integration points
+3. Determine UPDATE vs CREATE decisions
+4. Document exact property names from stores
+
+**THOROUGHNESS**: very thorough
+
+**SEARCH METHODOLOGY**:
+
+For each component/screen mentioned (e.g., ShopScreen, UpgradeCard):
+1. Global search: Glob **/*{ComponentName}*.{ts,tsx}
+2. Search variations: Glob **/*{component-name}*.{ts,tsx}
+3. If found: Read file to understand current implementation
+4. Check integration: Read App.tsx (or app/_layout.tsx for Expo Router)
+5. Find imports: Grep "import.*{ComponentName}"
+
+For stores mentioned:
+1. Find all stores: Glob **/*.store.ts
+2. Read each store file
+3. Document EXACT property names (e.g., "scrap" not "scrapCount")
+4. List observable properties with types
+
+**RETURN FORMAT** (use this exact structure):
+
+## EXPLORATION RESULTS
+
+### Existing Components
+- **ComponentName**:
+  - Path: modules/path/to/Component.tsx
+  - Current state: [empty/partial/complete]
+  - Purpose: [what it currently does]
+
+### Integration Points
+- **App.tsx**:
+  - Imports: [list what's imported]
+  - Navigation: [describe navigation structure]
+  - Current screens: [list active screens]
+
+### Store Properties (EXACT NAMES)
+- **storeName.store.ts**:
+  - property1: Observable<Type>
+  - property2: Observable<Type>
+
+### Architecture Decisions
+For EACH component in TDD, provide:
+
+**Component: ComponentName**
+- ✅ FOUND at: path/to/existing.tsx
+  - DECISION: UPDATE existing file
+  - RATIONALE: [module owns this responsibility, already integrated]
+
+OR
+
+- ❌ NOT FOUND
+  - DECISION: CREATE at: path/to/new.tsx
+  - RATIONALE: [new feature, belongs in X module because...]
+
+**Store Property Validation**:
+- scrapStore.scrap ✅ (verified in scrap.store.ts line 25)
+- shopStore.availableUpgrades ✅ (verified in shop.store.ts line 34)
+
+## CRITICAL QUESTIONS ANSWERED
+- Are there duplicate/similar components that would conflict?
+- Which module owns shop UI? (creates vs displays)
+- Will new components be accessible to users (wired to navigation)?
+`
+})
+```
+
+**STEP 2: Wait for Subagent Results**
+
+The Explore subagent will return a structured report. Do NOT proceed until you receive it.
+
+**STEP 3: Validate Exploration Results**
+
+Check the subagent's report for:
+- [ ] Every component from TDD has a decision (UPDATE or CREATE)
+- [ ] Integration points are clearly identified
+- [ ] Store property names are exact (from actual file reads)
+- [ ] No architectural conflicts (duplicate names, unclear ownership)
+
+**RED FLAG - STOP IF**:
+- Subagent found multiple components with same name in different modules
+- Unclear which component to update vs create new
+- Store properties are missing or uncertain
+- Integration points are not clear
+
+**CORRECT ACTION IF BLOCKED**:
+- Document the conflict/uncertainty clearly
+- Ask user for clarification before proceeding
+- Do NOT guess or make assumptions
+
+**STEP 4: Embed Results in Task List Header**
+
+Add exploration results to the generated task list (before Phase 1 tasks):
+
+```markdown
+## 🔍 Codebase Exploration Results
+
+${exactOutputFromExploreSubagent}
+
+---
+
+## 📐 Architecture Decisions Summary
+
+Based on exploration above:
+- UPDATE: modules/shop/ShopScreen.tsx (shop module owns shop UI)
+- CREATE: modules/upgrades/components/UpgradeCard.tsx (new component)
+- CREATE: modules/upgrades/hooks/useUpgradeEffects.ts (new logic)
+
+Store Properties (verified):
+- scrapStore.scrap (NOT scrapCount)
+- shopStore.availableUpgrades
+- shopStore.purchasedUpgrades
+```
+
+**STEP 5: Use Decisions Throughout Task Generation**
+
+When writing tasks in Phase 2+:
+- Use "UPDATE" or "CREATE" in task titles based on exploration
+- Specify exact file paths from exploration results
+- Include verified store property names in code examples
+- Reference Architecture Decisions Summary
+
+Example CORRECT task title:
+```markdown
+### Task 1.5: UPDATE ShopScreen to Display Upgrades
+**File**: modules/shop/ShopScreen.tsx (UPDATING existing, per exploration)
+```
+
+Example WRONG task title (creates duplicate):
+```markdown
+### Task 1.5: Create ShopScreen with FlatList
+**File**: modules/upgrades/ShopScreen.tsx (❌ WRONG - duplicate!)
+```
+
 ### Implementation Check
 
 1. **Scan for existing files according to architecture**:
@@ -137,8 +292,9 @@ Generate a comprehensive, executable task list based on the TDD.
    - **[COMPLETED]**: Task fully implemented with tests
    - **[PARTIAL]**: Task partially implemented, specify what's missing
    - **No prefix**: Task not started
+   - **[UPDATE]**: Task should update existing file, not create new (NEW)
 
-## Phase 2: TDD Analysis
+## Phase 2: TDD Analysis & Integration Planning
 
 Read and analyze the Technical Design Document to extract:
 
@@ -148,6 +304,28 @@ Read and analyze the Technical Design Document to extract:
 4. **Testing Requirements**: Component testing needs
 5. **Deployment Tasks**: CI/CD, monitoring, operational requirements
 6. **Dependencies**: Order of implementation and blockers
+
+**CRITICAL - Map to Existing Code** (from Phase 1 exploration):
+
+For EACH component mentioned in TDD:
+
+```markdown
+Component Analysis Example:
+
+TDD mentions: "ShopScreen to display upgrades"
+Phase 1 found: modules/shop/ShopScreen.tsx (exists, shows empty state)
+Integration: App.tsx imports from modules/shop/ShopScreen
+
+Decision for tasks:
+✓ DO: Update existing modules/shop/ShopScreen.tsx
+✗ DON'T: Create new modules/upgrades/ShopScreen.tsx
+Reason: Shop module already owns shop UI, avoid duplication
+```
+
+**Before generating ANY task**:
+1. Check Phase 1 exploration results
+2. Determine if task should UPDATE existing or CREATE new
+3. Document this decision in task's "FILES TO CREATE/UPDATE" section
 
 ## Phase 3: Task Decomposition
 
@@ -170,6 +348,35 @@ Each task should follow the COSTAR framework:
 - **Tone**: Professional, technical
 - **Audience**: Development team
 - **Response**: Expected deliverable
+
+### File Location Specification (NEW - CRITICAL)
+
+For EACH task that creates/modifies files, include explicit location guidance:
+
+**Template for File Instructions**:
+```markdown
+**FILES TO CREATE/UPDATE** (based on Phase 1 exploration):
+
+IF updating existing:
+- UPDATE: modules/shop/ShopScreen.tsx
+  - Reason: Shop module owns shop UI, found via App.tsx import
+  - Changes: Add upgrade list display using UpgradeCard components
+
+IF creating new:
+- CREATE: modules/upgrades/components/UpgradeCard.tsx
+  - Reason: Reusable upgrade-specific component
+  - Location: Task's module (modules/upgrades/)
+
+- CREATE: modules/upgrades/hooks/useUpgradeEffects.ts
+  - Reason: New business logic for upgrade effects
+  - Location: Task's module (modules/upgrades/)
+```
+
+**Decision Criteria to Document**:
+1. Does component/file already exist? (from Phase 1 exploration)
+2. If YES: Should we UPDATE or CREATE with different name?
+3. Module ownership: Which module owns this responsibility?
+4. Integration: Where is this component used/imported?
 
 ## Phase 4: Task List Generation
 
@@ -476,7 +683,22 @@ For features with ≥ 10 items (organized by type):
 
 **TDD IMPLEMENTATION CYCLE** (Repeat for each requirement):
 
-#### Step 1: RED - Write Failing Test First
+**CRITICAL: Integration-First Testing Strategy**
+
+Before writing ANY tests, if your feature uses existing stores:
+
+1. **USE Read tool to read the store files** the feature depends on
+2. **Document exact property names** from those stores (never guess!)
+3. **Write integration test FIRST** using real stores
+4. **Test through components**, not isolated hooks (per CLAUDE.md)
+
+**Why Integration-First**:
+- Catches property name mismatches immediately (e.g., `scrap` vs `scrapCount`)
+- Forces use of real stores, not mocked/isolated environments
+- Verifies feature works with actual system, not just in tests
+- Prevents bugs where tests pass but app breaks
+
+#### Step 1: RED - Write Failing Test First (Integration-First)
 
 ```typescript
 // Test file co-located with component: [ComponentName].test.tsx
@@ -484,16 +706,57 @@ For features with ≥ 10 items (organized by type):
 import { render, screen, userEvent } from '@testing-library/react-native';
 import { [ComponentName] } from './[ComponentName]';  // Import from same directory
 
+// CRITICAL: If using stores, import REAL stores (read files first to verify names!)
+import { realStore } from '../path/to/real.store';  // ✅ Real store
+// ❌ DO NOT create mocks for first integration test
+
 describe('[ComponentName]', () => {
+  beforeEach(() => {
+    // Reset REAL store using VERIFIED property names
+    // Example: After reading scrap.store.ts, saw property is "scrap" not "scrapCount"
+    realStore.scrap.set(0);  // ✅ Correct: matches store definition
+    // realStore.scrapCount.set(0);  // ❌ Wrong: creates new property, hides bugs
+  });
+
   test('should [specific behavior from requirement]', async () => {
-    // Write test for ONE specific behavior ONLY
-    // Test should FAIL initially (component doesn't exist yet)
+    // INTEGRATION TEST: Use REAL store with VERIFIED property name
+    realStore.scrap.set(150);  // ✅ Must match actual store property
 
     const user = userEvent.setup();
     render(<ComponentName />);
 
-    // Example: Test that a button displays correct text
-    expect(screen.getByText('Expected Text')).toBeTruthy();
+    // Test user-visible behavior
+    // If implementation uses wrong property name, this test WILL FAIL
+    expect(screen.getByText('Scrap: 150')).toBeTruthy();
+  });
+});
+```
+
+**For Features with Hooks**:
+```typescript
+// ❌ WRONG: Standalone hook test (hides integration bugs)
+// useFeature.test.ts - DO NOT CREATE THIS
+import { renderHook } from '@testing-library/react-native';
+import { useFeature } from './useFeature';
+
+// ✅ CORRECT: Test hook through component
+// FeatureScreen.test.tsx
+import { render, screen } from '@testing-library/react-native';
+import { FeatureScreen } from './FeatureScreen';  // Component uses the hook
+import { realStore } from '../stores/real.store';
+
+describe('FeatureScreen (tests useFeature hook)', () => {
+  beforeEach(() => {
+    // Use REAL store property (verified from reading store file)
+    realStore.actualProperty.set(0);
+  });
+
+  test('displays data from hook correctly', () => {
+    realStore.actualProperty.set(42);
+    render(<FeatureScreen />);  // Component uses useFeature() internally
+
+    // This will FAIL if hook uses wrong property name
+    expect(screen.getByText('Value: 42')).toBeTruthy();
   });
 });
 ```
