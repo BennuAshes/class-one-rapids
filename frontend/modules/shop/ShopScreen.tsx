@@ -2,7 +2,7 @@ import React from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { observer } from '@legendapp/state/react'
 import { scrapStore } from '../scrap/stores/scrap.store'
-import { EmptyState } from './EmptyState'
+import { UpgradeList } from './components/UpgradeList'
 
 /**
  * Shop screen component
@@ -33,7 +33,7 @@ export const ShopScreen = observer(({ onBack }: { onBack?: () => void } = {}) =>
         </View>
         <Text style={styles.scrapBalance}>Scrap: {scrap}</Text>
       </View>
-      <EmptyState />
+      <UpgradeList />
     </View>
   )
 })
