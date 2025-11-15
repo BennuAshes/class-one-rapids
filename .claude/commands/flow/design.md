@@ -100,7 +100,124 @@ ONLY proceed if validation passes:
 
 Generate a comprehensive Technical Design Document based on the PRD.
 
-## Phase 1: PRD Analysis
+## Phase 1: Codebase Exploration (MANDATORY)
+
+**CRITICAL**: Before analyzing the PRD, explore the existing codebase to understand current implementations and integration points. This exploration will be documented in the TDD as Section 2.
+
+### Step 1: Extract Components from PRD
+
+Read the PRD to identify all components, screens, hooks, stores, and features mentioned:
+- UI Components (buttons, screens, cards, etc.)
+- State management (stores, hooks)
+- Services and utilities
+- Integration points
+
+### Step 2: Launch Explore Subagent
+
+Use the Task tool to launch an Explore subagent for comprehensive codebase analysis:
+
+```typescript
+Task({
+  subagent_type: "Explore",
+  description: "Explore codebase for PRD components",
+  model: "haiku", // Fast and cost-effective for search tasks
+  prompt: `
+I need to explore the codebase before generating the Technical Design Document.
+
+**PRD FILE**: Already read (analysis in context above)
+
+**MISSION**: For EVERY component, screen, hook, store, or feature mentioned in the PRD:
+1. Search for existing implementations
+2. Identify integration points
+3. Determine UPDATE vs CREATE decisions
+4. Document exact property names from stores
+
+**THOROUGHNESS**: very thorough
+
+**SEARCH METHODOLOGY**:
+
+For each component/screen mentioned (e.g., ShopScreen, UpgradeCard):
+1. Global search: Glob **/*{ComponentName}*.{ts,tsx}
+2. Search variations: Glob **/*{component-name}*.{ts,tsx}
+3. If found: Read file to understand current implementation
+4. Check integration: Read App.tsx (or app/_layout.tsx for Expo Router)
+5. Find imports: Grep "import.*{ComponentName}"
+
+For stores mentioned:
+1. Find all stores: Glob **/*.store.ts
+2. Read each store file
+3. Document EXACT property names (e.g., "scrap" not "scrapCount")
+4. List observable properties with types
+
+For hooks mentioned:
+1. Global search: Glob **/*use{HookName}*.{ts,tsx}
+2. Read existing hooks to understand patterns
+3. Identify if UPDATE or CREATE new hook
+
+**RETURN FORMAT** (use this exact structure):
+
+## EXPLORATION RESULTS
+
+### Existing Components
+- **ComponentName**:
+  - Path: modules/path/to/Component.tsx
+  - Current state: [empty/partial/complete]
+  - Purpose: [what it currently does]
+  - Integration: [where it's used/imported]
+
+OR
+
+- **ComponentName**: NOT FOUND
+
+### Existing Hooks
+- **useHookName**:
+  - Path: modules/path/to/useHook.ts
+  - Purpose: [what it does]
+
+### Store Properties (EXACT NAMES)
+- **storeName.store.ts** (path):
+  - property1: Observable<Type> (line X)
+  - property2: Observable<Type> (line Y)
+
+### Integration Points
+- **App.tsx** (or app/_layout.tsx):
+  - Imports: [list what's imported]
+  - Navigation: [describe navigation structure]
+  - Current screens: [list active screens]
+
+### Architecture Decisions
+For EACH component/feature in PRD, provide:
+
+**Component: ComponentName**
+- ✅ FOUND at: path/to/existing.tsx
+  - DECISION: UPDATE existing file
+  - RATIONALE: [module owns this responsibility, already integrated]
+
+OR
+
+- ❌ NOT FOUND
+  - DECISION: CREATE at: path/to/new.tsx
+  - RATIONALE: [new feature, belongs in X module because...]
+
+**Store Property Validation**:
+- storeName.property ✅ (verified in store.ts line X)
+
+## CRITICAL QUESTIONS ANSWERED
+- Are there duplicate/similar components that would conflict?
+- Which module owns which functionality?
+- Will new components be accessible to users (wired to navigation)?
+- What are the exact property names in existing stores?
+`
+})
+```
+
+### Step 3: Document Exploration Results
+
+The Explore subagent will return structured exploration results. These results MUST be included in the TDD as Section 2 "Codebase Exploration & Integration Analysis" so that tasks.md and execute-task.md can reference them.
+
+**CRITICAL**: Do NOT proceed with TDD generation until exploration is complete and results are ready to embed.
+
+## Phase 2: PRD Analysis
 
 Analyze the PRD to extract:
 
@@ -161,7 +278,66 @@ Generate a comprehensive Technical Design Document with these sections:
 
 [Technical metrics aligned with PRD business metrics]
 
-## 2. Requirements Analysis
+## 2. Codebase Exploration & Integration Analysis
+
+**CRITICAL**: This section contains the authoritative exploration results from Phase 1. All implementation decisions (UPDATE vs CREATE) are documented here for reference by task generation and execution phases.
+
+### Existing Components
+
+[From Explore subagent - list all found components with paths and current state]
+
+- **ComponentName**:
+  - Path: `modules/path/to/Component.tsx`
+  - Current state: [empty/partial/complete]
+  - Purpose: [what it currently does]
+  - Integration: [where it's used/imported]
+
+### Existing Hooks
+
+[From Explore subagent - list all found hooks]
+
+- **useHookName**:
+  - Path: `modules/path/to/useHook.ts`
+  - Purpose: [what it does]
+  - Used by: [which components]
+
+### Store Properties (Verified)
+
+[From Explore subagent - EXACT property names from store files]
+
+- **storeName.store.ts** (`modules/path/to/store.ts`):
+  - `propertyName`: Observable<Type> (line X)
+  - `anotherProperty`: Observable<Type> (line Y)
+
+### Integration Points
+
+[From Explore subagent - navigation and app structure]
+
+- **App.tsx** (or `app/_layout.tsx`):
+  - Current imports: [list]
+  - Navigation structure: [describe]
+  - Active screens: [list]
+
+### Architecture Decisions (UPDATE vs CREATE)
+
+[From Explore subagent - authoritative decisions for each component]
+
+**Component: ComponentName**
+- ✅ **DECISION: UPDATE** existing file at `modules/path/to/Component.tsx`
+  - RATIONALE: [module owns this responsibility, already integrated]
+
+OR
+
+- ❌ **DECISION: CREATE** new file at `modules/path/to/NewComponent.tsx`
+  - RATIONALE: [new feature, belongs in X module because...]
+
+### Integration Validation
+
+- Are there duplicate/similar components? [Yes/No + details]
+- Module ownership clarity: [which modules own which features]
+- Navigation accessibility: [how new features will be accessed by users]
+
+## 3. Requirements Analysis
 
 ### Functional Requirements
 
@@ -175,7 +351,7 @@ Generate a comprehensive Technical Design Document with these sections:
 - Availability: [Uptime requirements]
 - Compliance: [Regulatory requirements if any]
 
-## 3. System Architecture
+## 4. System Architecture
 
 ### High-Level Architecture
 
@@ -198,7 +374,7 @@ Generate a comprehensive Technical Design Document with these sections:
 
 [Sequence diagrams for critical user flows from PRD]
 
-## 4. API Design
+## 5. API Design
 
 ### Internal APIs
 
@@ -210,7 +386,7 @@ Generate a comprehensive Technical Design Document with these sections:
 
 [Any third-party services or APIs]
 
-## 5. Data Model
+## 6. Data Model
 
 ### Entity Design
 ```
@@ -234,7 +410,7 @@ Generate a comprehensive Technical Design Document with these sections:
 - Caching strategy
 - Data consistency approach
 
-## 6. Security Design
+## 7. Security Design
 ### Authentication & Authorization
 - Authentication method: [OAuth, JWT, etc.]
 - Authorization model: [RBAC, ABAC, etc.]
@@ -252,7 +428,7 @@ Generate a comprehensive Technical Design Document with these sections:
 - CORS policies
 - Security headers
 
-## 7. Test-Driven Development (TDD) Strategy
+## 8. Test-Driven Development (TDD) Strategy
 ### TDD Approach (MANDATORY)
 **All implementation must follow Red-Green-Refactor cycle**
 
@@ -319,7 +495,7 @@ For each feature/component, follow this strict order:
 - [ ] Async operations use waitFor/findBy
 - [ ] All tests pass before next feature
 
-## 8. Infrastructure & Deployment
+## 9. Infrastructure & Deployment
 
 ### Infrastructure Requirements
 
@@ -356,7 +532,7 @@ For each feature/component, follow this strict order:
 | ------------ | --------- | -------- | ---------- |
 | [Alert name] | [Trigger] | P0/P1/P2 | [Response] |
 
-## 9. Scalability & Performance
+## 10. Scalability & Performance
 
 ### Performance Requirements
 
@@ -380,7 +556,7 @@ For each feature/component, follow this strict order:
 - Code-level optimizations
 - Resource pooling
 
-## 10. Risk Assessment & Mitigation
+## 11. Risk Assessment & Mitigation
 
 ### Technical Risks
 
@@ -392,7 +568,7 @@ For each feature/component, follow this strict order:
 
 [Map PRD dependencies to technical components]
 
-## 11. Implementation Plan (TDD-Driven)
+## 12. Implementation Plan (TDD-Driven)
 
 ### Development Phases
 
@@ -459,7 +635,7 @@ Example Feature Breakdown:
 | --------- | ----------------------- | ------ | --------------- |
 | M1        | [Technical deliverable] | [Date] | [What's needed] |
 
-## 12. Decision Log
+## 13. Decision Log
 
 ### Architecture Decisions
 
@@ -473,7 +649,7 @@ Example Feature Breakdown:
 - [Trade-off 1]: Chose [X] over [Y] because [reason]
 - [Trade-off 2]: Accepted [limitation] for [benefit]
 
-## 13. Open Questions
+## 14. Open Questions
 
 Technical questions requiring resolution:
 
@@ -481,7 +657,7 @@ Technical questions requiring resolution:
 - [ ] [Architecture decision pending]
 - [ ] [Integration clarification needed]
 
-## 14. Appendices
+## 15. Appendices
 
 ### A. Technical Glossary
 

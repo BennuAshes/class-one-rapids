@@ -1,3 +1,6 @@
+---
+description: Execute the full flow from PRD to code generation, auto-approving along the way. Optimized with subagents.
+---
 **YOU MUST NOW EXECUTE THE COMPLETE WORKFLOW** from feature description to working code.
 
 **FIRST: USE TodoWrite tool** to create these 4 workflow steps as todos:

@@ -183,167 +183,50 @@ ONLY proceed if validation passes:
    - Set all tasks to "pending" status initially
    - You will update these to "in_progress" and "completed" as you work
 
-## Phase 1.5: MANDATORY Codebase Exploration with Subagent
+## Phase 1.5: Read Architecture Decisions from Task List
 
-**CRITICAL**: You CANNOT proceed to Phase 3 (code generation) without completing this exploration.
+**CRITICAL**: The task list contains a summary of TDD Section 2 "Codebase Exploration & Integration Analysis" in its header. This section contains all architectural decisions made during the design phase.
 
-**Why This Matters**:
-- Prevents creating duplicate components (e.g., modules/upgrades/ShopScreen.tsx when modules/shop/ShopScreen.tsx exists)
-- Ensures correct property names (e.g., scrap vs scrapCount)
-- Identifies integration points (App.tsx, navigation)
-- Determines UPDATE vs CREATE decisions
+**What the Task List Header Contains** (from TDD Section 2):
+- **Architecture Decisions Summary**: UPDATE vs CREATE for each component
+- **File Paths**: Exact paths for all components
+- **Store Properties**: Verified property names from store files
+- **Integration Points**: How components wire together
+- **Module Ownership**: Which module owns which features
 
-**STEP 1: Extract Components from Task List**
+**STEP 1: Extract Architecture Decisions from Task List Header**
 
-From the task list, identify all components/screens/hooks/stores to be implemented:
-```
-Example from task list:
-- Components: ShopScreen, UpgradeCard, ClickerScreen
-- Hooks: useShopActions, useUpgradeEffects
-- Stores: shopStore, scrapStore
-```
-
-**STEP 2: Launch Explore Subagent**
-
-Use the Task tool to launch an Explore subagent:
-
-```typescript
-Task({
-  subagent_type: "Explore",
-  description: "Explore codebase architecture",
-  model: "haiku", // Fast and cost-effective
-  prompt: `
-I'm about to implement these components from the task list:
-${componentListFromTasks}
-
-**MISSION**: Comprehensive codebase exploration to prevent duplicates and ensure correct integration.
-
-**THOROUGHNESS**: very thorough
-
-**FOR EACH COMPONENT, SEARCH**:
-
-1. **Global Search** (find existing implementations):
-   - Glob **/*{ComponentName}*.tsx
-   - Glob **/*{component-name}*.tsx
-   - Glob **/*{ComponentName}*.ts
-
-2. **If Found**:
-   - Read file to understand purpose
-   - Note current implementation state
-   - Identify if this is THE component or a different one
-
-3. **Integration Discovery**:
-   - Read App.tsx (or app/_layout.tsx)
-   - Grep "import.*{ComponentName}"
-   - Map navigation structure
-
-4. **Store Property Verification**:
-   - For each store: Glob **/${storeName}.store.ts
-   - Read store file
-   - List EXACT property names (critical for Legend-State)
-
-**RETURN FORMAT**:
-
-## EXPLORATION RESULTS
-
-### Components Found
-${componentName}:
-- Exists: YES at modules/shop/ShopScreen.tsx
-- Purpose: Main shop UI (currently shows empty state)
-- Integration: App.tsx line 9 imports this
-- Decision: UPDATE this file (shop module owns shop UI)
-
-OR
-
-- Exists: NO
-- Decision: CREATE at modules/upgrades/UpgradeCard.tsx
-- Rationale: New reusable component, belongs in upgrades module
-
-### Store Properties (EXACT)
-scrapStore (modules/scrap/stores/scrap.store.ts):
-- scrap: Observable<number> (line 25) ✅
-- lastTickTime: number (line 32) ✅
-
-shopStore (modules/shop/stores/shop.store.ts):
-- availableUpgrades: Observable<Upgrade[]> (line 34) ✅
-- purchasedUpgrades: Observable<string[]> (line 37) ✅
-
-### Integration Map
-App.tsx:
-- Current screens: ClickerScreen (default), ShopScreen (via navigation)
-- Navigation: onNavigateToShop callback pattern
-- ShopScreen imported from: modules/shop/ShopScreen
-
-### Conflicts/Risks
-- ⚠️ ShopScreen exists in modules/shop/ AND tasks want to create in modules/upgrades/
-  → RESOLUTION: Update existing modules/shop/ShopScreen.tsx
-
-## CRITICAL QUESTIONS ANSWERED
-- Are there duplicate/similar components that would conflict?
-- Which module owns shop UI? (creates vs displays)
-- Will new components be accessible to users (wired to navigation)?
-`
-})
-```
-
-**STEP 3: Document Exploration Decisions**
-
-After subagent returns, create your integration plan:
+The task list should have a section like:
 
 ```markdown
-## 🔍 INTEGRATION PLAN (from Explore subagent)
+## 🔍 Architecture Decisions (from TDD Section 2)
 
-### Files to UPDATE (existing):
-✏️ modules/shop/ShopScreen.tsx
-   - Current: Shows empty state
-   - Change: Add upgrade list display
-   - Reason: Shop module owns shop UI, wired to App.tsx
+Based on codebase exploration in TDD:
+- UPDATE: modules/shop/ShopScreen.tsx (shop module owns shop UI)
+- CREATE: modules/upgrades/components/UpgradeCard.tsx (new component)
+- CREATE: modules/upgrades/hooks/useUpgradeEffects.ts (new logic)
 
-✏️ modules/attack-button/ClickerScreen.tsx
-   - Current: Has Feed button
-   - Change: Integrate upgrade effects
-   - Reason: Feed button needs bonus calculation
-
-### Files to CREATE (new):
-✨ modules/upgrades/components/UpgradeCard.tsx
-   - Reason: Reusable upgrade display component
-
-✨ modules/upgrades/hooks/useUpgradeEffects.ts
-   - Reason: New business logic for upgrade bonuses
-
-### Store Properties (VERIFIED):
-✅ scrapStore.scrap (NOT scrapCount)
-✅ shopStore.availableUpgrades
-✅ shopStore.purchasedUpgrades
-
-### Integration Verified:
-✅ ShopScreen accessible via ClickerScreen → onNavigateToShop → ShopScreen
-✅ Navigation pattern exists and functional
+Store Properties (verified in TDD):
+- scrapStore.scrap (NOT scrapCount)
+- shopStore.availableUpgrades
+- shopStore.purchasedUpgrades
 ```
 
-**STEP 4: Validate Before Proceeding**
-
-Before writing ANY code, verify:
-- [ ] Every component has clear UPDATE vs CREATE decision
-- [ ] No duplicate file paths
-- [ ] Store property names are exact (from file reads, not guessed)
-- [ ] Integration points are wired and functional
-- [ ] Module ownership is clear (who owns what)
-
-**RED FLAG - STOP IMMEDIATELY IF**:
-- ❌ Subagent couldn't find clear answer for any component
-- ❌ Multiple components with same name found (conflict)
-- ❌ Store property names uncertain
-- ❌ Integration points not wired (orphaned components)
-
-**STEP 5: Use This Plan Throughout Execution**
+**STEP 2: Use These Decisions Throughout Execution**
 
 When implementing each task:
-- Refer to Integration Plan for decisions
-- Use exact file paths from exploration
-- Use exact property names from verification
-- Update existing files when plan says UPDATE
-- Create new files only when plan says CREATE
+- **Trust the architectural decisions** from TDD Section 2
+- Use exact file paths specified
+- Use exact property names from verified stores
+- UPDATE existing files when specified
+- CREATE new files only when specified
+
+**STEP 3: Light Validation Only (Optional)**
+
+If you want to double-check before implementing:
+- Read the file mentioned (e.g., verify `modules/shop/ShopScreen.tsx` exists)
+- Verify basic structure matches expectations
+- **DO NOT** run full exploration or duplicate the design phase work
 
 ## Phase 2: Task Analysis & Planning
 
@@ -378,95 +261,33 @@ For the identified tasks:
 
 **YOU ARE NOW IN THE CODE GENERATION PHASE.** For each task, you will write actual files and run actual tests.
 
-**MANDATORY Pre-Task Validation (BEFORE writing any code)**:
+**Light Pre-Task Validation (BEFORE writing any code)**:
 
 For EACH task, before starting implementation:
 
-0. **Architecture Alignment Check** (NEW - MUST DO FIRST):
-   ```
-   For EACH file the task wants you to create:
+**1. Trust TDD Section 2 Architectural Decisions**:
+   - Task list header contains UPDATE vs CREATE decisions from TDD Section 2
+   - Use the file paths and decisions specified
+   - **DO NOT** re-search for duplicates or re-make architectural decisions
+   - Those decisions were made during design phase with comprehensive exploration
 
-   1. Search for existing files with same/similar name:
-      - Glob: `**/*{ComponentName}*.{ts,tsx}`
+**2. Light Dependency Check (Optional)**:
+   - If task mentions updating an existing file, optionally verify it exists:
+     - Example: `Read modules/shop/ShopScreen.tsx` to confirm it exists
+   - If file doesn't exist when it should, flag for user review
+   - Keep this light - just file existence, not full analysis
 
-   2. If found, decide:
-      - Same purpose? → UPDATE existing, don't create new
-      - Different purpose? → Use distinct name or different location
-      - Integration point? → Code should live where it integrates
-
-   3. Module ownership question:
-      - Who owns this UI/feature?
-      - Should this be in task's module or existing module?
-      - Example: Upgrade display in shop → modules/shop/ owns it
-                Upgrade calculation logic → modules/upgrades/ owns it
-
-   4. Document decision:
-      "DECISION: Updating modules/shop/ShopScreen.tsx instead of creating
-       modules/upgrades/ShopScreen.tsx because shop module owns shop UI"
+**3. Just-In-Time Creation for Missing Dependencies**:
    ```
-
-1. **Dependency Validation**:
-   ```
-   BEFORE implementing [feature that needs X]:
-   - Use Read tool to check if X exists
-   - Verify X is functional (not just present)
-   - Examples:
-     - Navigation task? Read App.tsx to verify navigation framework exists
-     - Purchase task? Read store files to verify scrap store is functional
-     - Integration task? Read both integration points
-   ```
-
-2. **Architectural Assumptions Check**:
-   ```
-   BEFORE assuming infrastructure exists:
-   - Read the actual files mentioned in task description
-   - Verify they have the structure/exports the task assumes
-   - If task says "use existing X", verify X exists and works as described
-   ```
-
-3. **Just-In-Time Creation Decision**:
-   ```
-   IF dependency doesn't exist AND feature requires it:
+   IF task requires dependency that doesn't exist:
    - Document: "CREATING JUST-IN-TIME: [dependency name]"
-   - Add implementation of dependency to current task
+   - Add implementation to current task
    - Update deliverables to note infrastructure created
-   - Verify it in functional test
 
-   IF dependency doesn't exist AND feature can work without it:
+   IF dependency is optional:
    - Document: "SKIPPING OPTIONAL: [dependency name]"
    - Add TODO comment for future enhancement
-   - Proceed with simplified implementation
    ```
-
-**RED FLAG - STOP IMMEDIATELY IF**:
-- Task assumes infrastructure that doesn't exist
-- Task describes integration with non-existent systems
-- You discover missing dependencies mid-implementation
-
-**CORRECT ACTION**:
-- Document the gap clearly
-- Ask user or update task to create dependency first
-- Never claim task is complete with broken integration
-
-Then proceed to Pre-execution Check below:
-
-**Pre-execution Check**: For each task, verify it's not already implemented:
-
-1. **Global Duplicate Check** (CRITICAL):
-   - Use Glob to search ENTIRE codebase for components/screens with same name
-   - Example: Before creating `ShopScreen.tsx`, run `Glob **/*ShopScreen.tsx`
-   - If duplicates found, STOP and analyze:
-     - Is the existing component in a different module?
-     - Should we UPDATE the existing component instead of creating new one?
-     - Is there a naming conflict that needs resolution?
-   - Document decision: "UPDATING EXISTING: modules/shop/ShopScreen.tsx" or "CREATING NEW: modules/upgrades/ShopScreen.tsx (distinct from shop screen)"
-
-2. **Module-Specific Check**:
-   Follow @docs/architecture/file-organization-patterns.md for locating files within target module. Use appropriate search tools (Glob, Grep) to check for:
-   - Existing components, hooks, and utilities
-   - Co-located test files
-   - Existing state management (stores, hooks)
-   - Anti-patterns (Context API usage, service classes, barrel exports)
 
 **CRITICAL: Pre-execution Property Validation**
 

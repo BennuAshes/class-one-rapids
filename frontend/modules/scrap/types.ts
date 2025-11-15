@@ -1,6 +1,0 @@
-export const SCRAP_CONSTRAINTS = {
-  MIN_VALUE: 0,
-  MAX_VALUE: Number.MAX_SAFE_INTEGER,
-  TICK_INTERVAL_MS: 1000,
-  DEBOUNCE_MS: 1000,
-} as const
