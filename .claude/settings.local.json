@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(cmd.exe /c \"cd /d C:\\dev\\cor-worktrees\\upgrade-factory\\frontend && node node_modules/jest/bin/jest.js modules/upgrades/constants.test.ts\")",
+      "Bash(cmd.exe /c \"cd /d C:\\dev\\cor-worktrees\\upgrade-factory\\frontend && node node_modules/jest/bin/jest.js modules/upgrades/constants.test.ts modules/shop/stores/shop.store.test.ts\")",
+      "Bash(cmd.exe /c \"cd /d C:\\dev\\cor-worktrees\\upgrade-factory\\frontend && node node_modules/jest/bin/jest.js modules/upgrades/hooks/useShopActions.test.ts\")",
+      "Bash(cmd.exe /c \"cd /d C:\\dev\\cor-worktrees\\upgrade-factory\\frontend && node node_modules/jest/bin/jest.js modules/upgrades/hooks/useUpgradeEffects.test.ts\")",
+      "Bash(git show:*)"
     ],
     "deny": [],
     "ask": []

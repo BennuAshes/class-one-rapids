@@ -43,21 +43,56 @@ ONLY proceed if validation passes:
 
 **CRITICAL**: Never start task execution if ANY validation step fails. Report errors clearly and exit.
 
-### Step 3: Determine Implementation Directory
+### Step 3: Codebase Exploration & Integration Planning
 
-**CRITICAL LOCATION RULE**: Implementation files MUST be created in the module folder, not in a new folder based on feature name.
+**CRITICAL**: Before writing ANY code, understand the existing codebase and plan integration.
 
-1. **Extract module directory from task file path**:
+1. **Explore Existing Code**:
+   - Use Glob/Grep to find components/screens mentioned in task
+   - Example: Task mentions "ShopScreen" → Search: `Glob **/*Shop*.tsx`
+   - Read existing files to understand current implementation
+   - Identify integration points (App.tsx, navigation, existing screens)
+
+2. **Architectural Decision**:
+   For EACH component/feature in the task, decide:
+
+   **Decision Tree**:
+   ```
+   Does component with this name/purpose already exist?
+   ├─ YES → Should I update existing or create new?
+   │   ├─ Same purpose → UPDATE existing component
+   │   │   └─ Document: "UPDATING: modules/shop/ShopScreen.tsx (adding upgrade functionality)"
+   │   └─ Different purpose → CREATE new with distinct name
+   │       └─ Document: "CREATING: modules/upgrades/UpgradeManagementScreen.tsx (distinct from shop)"
+   │
+   └─ NO → Where should new component live?
+       ├─ Task spec location (modules/upgrades/) if it's primary owner
+       ├─ Related module (modules/shop/) if it extends existing feature
+       └─ Shared location if used across features
+   ```
+
+3. **Integration Plan Document**:
+   Before writing code, create mental model:
+   ```
+   INTEGRATION PLAN:
+   ✓ Explored: modules/shop/ShopScreen.tsx exists (currently shows empty state)
+   ✓ Analyzed: App.tsx imports from modules/shop/ShopScreen.tsx
+   ✓ Decision: UPDATE existing ShopScreen to show upgrades
+   ✓ Location: modules/shop/ShopScreen.tsx (owns shop UI)
+   ✓ New files: modules/upgrades/components/UpgradeCard.tsx (reusable component)
+   ✓ Rationale: Shop screen is the integration point, upgrades are feature components
+   ```
+
+4. **Validation**:
+   - Verify integration points are wired correctly
+   - Confirm component will be visible to user (not orphaned)
+   - Check module boundaries make architectural sense
+
+5. **Default Location Fallback**:
+   - If no existing integration point found, extract module directory from task file path
    - Task file location: `<module-path>/specs/<task-file>.md`
-   - Implementation directory: `<module-path>/` (parent of specs folder)
-
-2. **Validation**:
-   - Parse task file path to extract parent directory of `specs/`
-   - Verify the module directory exists
-   - Set this as the working directory for ALL implementation files
-   - ALL new components, hooks, and tests go in this directory (or subdirectories)
-
-**Why this matters**: The module structure is already established. Tasks are scoped to a specific module. Creating a new module folder breaks the project structure.
+   - Default implementation directory: `<module-path>/` (parent of specs folder)
+   - But ALWAYS prefer architectural fit over task file location
 
 ---
 
@@ -126,6 +161,11 @@ ONLY proceed if validation passes:
 - ✅ Implement minimal code (GREEN)
 - ✅ Refactor with tests passing (REFACTOR)
 
+**Test Execution Environment**:
+
+- ⚠️ **Use cmd.exe to run jest tests** due to performance issues with WSL and Windows
+- Example: `cmd.exe /c "cd /d C:\path\to\frontend && node node_modules/jest/bin/jest.js test-file.test.ts"`
+
 ## Phase 1: Initialize Execution Context
 
 **FIRST, SET UP YOUR EXECUTION ENVIRONMENT:**
@@ -142,6 +182,168 @@ ONLY proceed if validation passes:
 7. **USE TodoWrite tool NOW**: Create todo items for each task from the task list
    - Set all tasks to "pending" status initially
    - You will update these to "in_progress" and "completed" as you work
+
+## Phase 1.5: MANDATORY Codebase Exploration with Subagent
+
+**CRITICAL**: You CANNOT proceed to Phase 3 (code generation) without completing this exploration.
+
+**Why This Matters**:
+- Prevents creating duplicate components (e.g., modules/upgrades/ShopScreen.tsx when modules/shop/ShopScreen.tsx exists)
+- Ensures correct property names (e.g., scrap vs scrapCount)
+- Identifies integration points (App.tsx, navigation)
+- Determines UPDATE vs CREATE decisions
+
+**STEP 1: Extract Components from Task List**
+
+From the task list, identify all components/screens/hooks/stores to be implemented:
+```
+Example from task list:
+- Components: ShopScreen, UpgradeCard, ClickerScreen
+- Hooks: useShopActions, useUpgradeEffects
+- Stores: shopStore, scrapStore
+```
+
+**STEP 2: Launch Explore Subagent**
+
+Use the Task tool to launch an Explore subagent:
+
+```typescript
+Task({
+  subagent_type: "Explore",
+  description: "Explore codebase architecture",
+  model: "haiku", // Fast and cost-effective
+  prompt: `
+I'm about to implement these components from the task list:
+${componentListFromTasks}
+
+**MISSION**: Comprehensive codebase exploration to prevent duplicates and ensure correct integration.
+
+**THOROUGHNESS**: very thorough
+
+**FOR EACH COMPONENT, SEARCH**:
+
+1. **Global Search** (find existing implementations):
+   - Glob **/*{ComponentName}*.tsx
+   - Glob **/*{component-name}*.tsx
+   - Glob **/*{ComponentName}*.ts
+
+2. **If Found**:
+   - Read file to understand purpose
+   - Note current implementation state
+   - Identify if this is THE component or a different one
+
+3. **Integration Discovery**:
+   - Read App.tsx (or app/_layout.tsx)
+   - Grep "import.*{ComponentName}"
+   - Map navigation structure
+
+4. **Store Property Verification**:
+   - For each store: Glob **/${storeName}.store.ts
+   - Read store file
+   - List EXACT property names (critical for Legend-State)
+
+**RETURN FORMAT**:
+
+## EXPLORATION RESULTS
+
+### Components Found
+${componentName}:
+- Exists: YES at modules/shop/ShopScreen.tsx
+- Purpose: Main shop UI (currently shows empty state)
+- Integration: App.tsx line 9 imports this
+- Decision: UPDATE this file (shop module owns shop UI)
+
+OR
+
+- Exists: NO
+- Decision: CREATE at modules/upgrades/UpgradeCard.tsx
+- Rationale: New reusable component, belongs in upgrades module
+
+### Store Properties (EXACT)
+scrapStore (modules/scrap/stores/scrap.store.ts):
+- scrap: Observable<number> (line 25) ✅
+- lastTickTime: number (line 32) ✅
+
+shopStore (modules/shop/stores/shop.store.ts):
+- availableUpgrades: Observable<Upgrade[]> (line 34) ✅
+- purchasedUpgrades: Observable<string[]> (line 37) ✅
+
+### Integration Map
+App.tsx:
+- Current screens: ClickerScreen (default), ShopScreen (via navigation)
+- Navigation: onNavigateToShop callback pattern
+- ShopScreen imported from: modules/shop/ShopScreen
+
+### Conflicts/Risks
+- ⚠️ ShopScreen exists in modules/shop/ AND tasks want to create in modules/upgrades/
+  → RESOLUTION: Update existing modules/shop/ShopScreen.tsx
+
+## CRITICAL QUESTIONS ANSWERED
+- Are there duplicate/similar components that would conflict?
+- Which module owns shop UI? (creates vs displays)
+- Will new components be accessible to users (wired to navigation)?
+`
+})
+```
+
+**STEP 3: Document Exploration Decisions**
+
+After subagent returns, create your integration plan:
+
+```markdown
+## 🔍 INTEGRATION PLAN (from Explore subagent)
+
+### Files to UPDATE (existing):
+✏️ modules/shop/ShopScreen.tsx
+   - Current: Shows empty state
+   - Change: Add upgrade list display
+   - Reason: Shop module owns shop UI, wired to App.tsx
+
+✏️ modules/attack-button/ClickerScreen.tsx
+   - Current: Has Feed button
+   - Change: Integrate upgrade effects
+   - Reason: Feed button needs bonus calculation
+
+### Files to CREATE (new):
+✨ modules/upgrades/components/UpgradeCard.tsx
+   - Reason: Reusable upgrade display component
+
+✨ modules/upgrades/hooks/useUpgradeEffects.ts
+   - Reason: New business logic for upgrade bonuses
+
+### Store Properties (VERIFIED):
+✅ scrapStore.scrap (NOT scrapCount)
+✅ shopStore.availableUpgrades
+✅ shopStore.purchasedUpgrades
+
+### Integration Verified:
+✅ ShopScreen accessible via ClickerScreen → onNavigateToShop → ShopScreen
+✅ Navigation pattern exists and functional
+```
+
+**STEP 4: Validate Before Proceeding**
+
+Before writing ANY code, verify:
+- [ ] Every component has clear UPDATE vs CREATE decision
+- [ ] No duplicate file paths
+- [ ] Store property names are exact (from file reads, not guessed)
+- [ ] Integration points are wired and functional
+- [ ] Module ownership is clear (who owns what)
+
+**RED FLAG - STOP IMMEDIATELY IF**:
+- ❌ Subagent couldn't find clear answer for any component
+- ❌ Multiple components with same name found (conflict)
+- ❌ Store property names uncertain
+- ❌ Integration points not wired (orphaned components)
+
+**STEP 5: Use This Plan Throughout Execution**
+
+When implementing each task:
+- Refer to Integration Plan for decisions
+- Use exact file paths from exploration
+- Use exact property names from verification
+- Update existing files when plan says UPDATE
+- Create new files only when plan says CREATE
 
 ## Phase 2: Task Analysis & Planning
 
@@ -179,6 +381,29 @@ For the identified tasks:
 **MANDATORY Pre-Task Validation (BEFORE writing any code)**:
 
 For EACH task, before starting implementation:
+
+0. **Architecture Alignment Check** (NEW - MUST DO FIRST):
+   ```
+   For EACH file the task wants you to create:
+
+   1. Search for existing files with same/similar name:
+      - Glob: `**/*{ComponentName}*.{ts,tsx}`
+
+   2. If found, decide:
+      - Same purpose? → UPDATE existing, don't create new
+      - Different purpose? → Use distinct name or different location
+      - Integration point? → Code should live where it integrates
+
+   3. Module ownership question:
+      - Who owns this UI/feature?
+      - Should this be in task's module or existing module?
+      - Example: Upgrade display in shop → modules/shop/ owns it
+                Upgrade calculation logic → modules/upgrades/ owns it
+
+   4. Document decision:
+      "DECISION: Updating modules/shop/ShopScreen.tsx instead of creating
+       modules/upgrades/ShopScreen.tsx because shop module owns shop UI"
+   ```
 
 1. **Dependency Validation**:
    ```
@@ -227,12 +452,59 @@ Then proceed to Pre-execution Check below:
 
 **Pre-execution Check**: For each task, verify it's not already implemented:
 
-Follow @docs/architecture/file-organization-patterns.md for locating files. Use appropriate search tools (Glob, Grep) to check for:
+1. **Global Duplicate Check** (CRITICAL):
+   - Use Glob to search ENTIRE codebase for components/screens with same name
+   - Example: Before creating `ShopScreen.tsx`, run `Glob **/*ShopScreen.tsx`
+   - If duplicates found, STOP and analyze:
+     - Is the existing component in a different module?
+     - Should we UPDATE the existing component instead of creating new one?
+     - Is there a naming conflict that needs resolution?
+   - Document decision: "UPDATING EXISTING: modules/shop/ShopScreen.tsx" or "CREATING NEW: modules/upgrades/ShopScreen.tsx (distinct from shop screen)"
 
-- Existing components, hooks, and utilities
-- Co-located test files
-- Existing state management (stores, hooks)
-- Anti-patterns (Context API usage, service classes, barrel exports)
+2. **Module-Specific Check**:
+   Follow @docs/architecture/file-organization-patterns.md for locating files within target module. Use appropriate search tools (Glob, Grep) to check for:
+   - Existing components, hooks, and utilities
+   - Co-located test files
+   - Existing state management (stores, hooks)
+   - Anti-patterns (Context API usage, service classes, barrel exports)
+
+**CRITICAL: Pre-execution Property Validation**
+
+Before implementing ANY feature that reads from or writes to existing stores:
+
+1. **USE Read tool to read the store file first**
+   - Never assume or guess property names
+   - Example: Read `scrap.store.ts` before using scrapStore
+2. **Document the exact observable property names**
+   - Example: Store defines `scrap` NOT `scrapCount`
+   - Copy the exact property names from the file
+3. **Use those exact names in implementation AND tests**
+   - Both implementation and tests must use the same names as the store
+4. **Verify in integration test with real store**
+   - Don't mock the store in your first test
+   - Test will fail immediately if property names don't match
+
+**RED FLAG - STOP IMMEDIATELY IF**:
+- You're guessing property names without reading the file
+- You haven't used Read tool on the store file
+- Your test uses different property names than the store defines
+- You're creating new properties on a store (e.g., `store.newProp.set()` when store doesn't define `newProp`)
+
+**Example of CORRECT validation**:
+```typescript
+// 1. Read scrap.store.ts first - see it defines: scrap: persist({...})
+// 2. Use exact property name in implementation:
+const currentScrap = scrapStore.scrap.get()  // ✅ Matches store
+// 3. Use exact property name in test:
+scrapStore.scrap.set(150)  // ✅ Matches store
+```
+
+**Example of WRONG approach (causes bugs)**:
+```typescript
+// ❌ Never read scrap.store.ts, guessed "scrapCount"
+const currentScrap = scrapStore.scrapCount.get()  // Creates new property!
+scrapStore.scrapCount.set(150)  // Test passes but feature broken
+```
 
 **Pre-implementation State Management Check** (see @docs/architecture/state-management-hooks-guide.md):
 
@@ -261,6 +533,61 @@ Follow @docs/architecture/file-organization-patterns.md for locating files. Use 
 
 **CRITICAL**: Always write tests BEFORE implementation
 
+**Hook Testing Strategy** (MANDATORY - per CLAUDE.md):
+
+⚠️ **DO NOT create standalone hook test files** (e.g., `useFeature.test.ts`)
+
+The guideline in CLAUDE.md states: "Don't make tests just for hooks, they should be tested through the component that uses them"
+
+**Why This Rule Exists**:
+- Standalone hook tests can use wrong property names in BOTH test and implementation
+- Legend-State observables allow dynamic property creation: `store.wrongName.set(10)` creates a new property
+- Tests pass because they're consistently wrong (both use `wrongName`)
+- Real app breaks because actual store uses different property name (`rightName`)
+- Component tests force integration with REAL stores, catching property name mismatches immediately
+
+**Testing Hierarchy**:
+1. ✅ **PRIMARY: Test hooks through components** - `FeatureScreen.test.tsx` tests `useFeature()` indirectly
+2. ✅ **SECONDARY: Integration tests** - Multiple components using same store
+3. ❌ **NEVER: Isolated hook tests** - `useFeature.test.ts` testing hook alone
+
+**Example of BUG (what happened with scrapCount vs scrap)**:
+```typescript
+// ❌ BAD: Standalone hook test - BUG HIDDEN
+// useShopActions.test.ts
+beforeEach(() => {
+  scrapStore.scrapCount.set(0)  // Creates NEW property (wrong name)
+})
+test('can afford upgrade', () => {
+  scrapStore.scrapCount.set(150)  // Uses wrong property
+  const { result } = renderHook(() => useShopActions())
+  expect(result.current.canAfford(upgrade)).toBe(true)  // ✅ Passes!
+})
+
+// useShopActions.ts implementation
+const canAfford = () => scrapStore.scrapCount.get() >= cost  // Wrong property
+
+// RESULT: Test passes, but real app broken because actual store uses "scrap"
+```
+
+**Example of CORRECT approach**:
+```typescript
+// ✅ GOOD: Test through component using REAL store
+// ShopScreen.test.tsx
+beforeEach(() => {
+  scrapStore.scrap.set(0)  // MUST use real property (from store file)
+})
+test('purchase button enabled when affordable', () => {
+  scrapStore.scrap.set(150)  // Real property
+  render(<ShopScreen />)  // Component uses useShopActions hook
+  expect(screen.getByTestId('purchase-button').props.disabled).toBe(false)
+})
+
+// If implementation uses wrong property, test FAILS immediately:
+// "Cannot read property 'get' of undefined" because scrapCount doesn't exist
+```
+
+**Test Structure**:
 ```typescript
 // Example test structure based on React Native Testing Library guide
 describe("[ComponentName]", () => {
@@ -268,16 +595,23 @@ describe("[ComponentName]", () => {
     // Test ONE specific behavior
     // Test MUST fail initially (component doesn't exist)
     // Use user-centric queries (getByText, getByRole, etc.)
+    // Use REAL stores with VERIFIED property names (read store files first!)
   });
 });
 ```
 
 **YOU MUST NOW:**
 
-1. **USE Write tool** to create the test file in the appropriate location
-2. **Write the test code** for the FIRST requirement only
-3. **USE Bash tool** to run the test and confirm it fails with expected error
-4. Only then proceed to GREEN phase
+1. **USE Read tool to read any store files** the feature depends on
+2. **Document exact property names** from those stores
+3. **USE Write tool** to create the test file in the appropriate location
+   - For hooks: Test through component (e.g., `ComponentScreen.test.tsx`)
+   - Use real stores with verified property names
+4. **Write the test code** for the FIRST requirement only
+5. **USE Bash tool** to run the test and confirm it fails with expected error
+   - **IMPORTANT**: Use cmd.exe to run jest tests for better performance on Windows/WSL
+   - Example: `cmd.exe /c "cd /d C:\dev\cor-worktrees\upgrade-factory\frontend && node node_modules/jest/bin/jest.js modules/path/to/test.test.ts"`
+6. Only then proceed to GREEN phase
 
 ### Step 2: GREEN - Write Minimal Code to Pass
 
@@ -296,6 +630,8 @@ describe("[ComponentName]", () => {
 2. **Write minimal code** to make the test pass (prefer hooks over services)
 3. **NO extra features** or premature optimization
 4. **USE Bash tool** to run the test and confirm it now passes
+   - **IMPORTANT**: Use cmd.exe to run jest tests for better performance on Windows/WSL
+   - Example: `cmd.exe /c "cd /d C:\dev\cor-worktrees\upgrade-factory\frontend && node node_modules/jest/bin/jest.js modules/path/to/test.test.ts"`
 5. Verify all existing tests still pass
 
 ### Step 3: REFACTOR - Improve Code Quality
@@ -308,6 +644,7 @@ describe("[ComponentName]", () => {
 2. Remove duplication
 3. Improve code organization
 4. **USE Bash tool** to run tests after each change to ensure they remain green
+   - **IMPORTANT**: Use cmd.exe to run jest tests for better performance on Windows/WSL
 
 ### Step 4: Iterate for Next Requirement
 
@@ -520,10 +857,15 @@ Can the feature work without it? If NO, create it. Never make testable-but-broke
 
 1. **File Location** (CRITICAL):
 
-   - ALL implementation files go in the module directory (parent of `specs/` folder)
-   - Extract module path from task file location during Phase 1
-   - NEVER create a new module folder based on feature names in the task
-   - Example: Task at `modules/attack-button/specs/tasks.md` → files go in `modules/attack-button/`
+   - Files go where they make ARCHITECTURAL SENSE (determined in Phase 1.5)
+   - Prefer updating existing components over creating duplicates
+   - If extending existing feature → update existing module (e.g., modules/shop/)
+   - If new standalone feature → create in task's module (e.g., modules/upgrades/)
+   - If reusable components → create in appropriate module based on ownership
+   - Example: Task in `modules/upgrades/specs/` wants ShopScreen
+     - Found existing: `modules/shop/ShopScreen.tsx`
+     - Decision: UPDATE `modules/shop/ShopScreen.tsx` (shop owns UI)
+     - Also CREATE: `modules/upgrades/components/UpgradeCard.tsx` (upgrades own component)
 
 2. **Follow Existing Patterns**:
 
