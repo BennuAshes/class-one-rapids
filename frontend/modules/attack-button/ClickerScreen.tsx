@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { Memo } from '@legendapp/state/react'
 import { usePersistedCounter } from './hooks/usePersistedCounter'
+import { useUpgradeBonuses } from '../shop/useUpgradeBonuses'
 import { formatNumber } from './utils/formatNumber'
 import { ScrapCounter } from '../scrap/ScrapCounter'
 
@@ -20,6 +21,13 @@ export function ClickerScreen({
 } = {}) {
   // Get counter state and actions from hook
   const { count$, actions } = usePersistedCounter(storageKey, 0)
+  const { petsPerFeedBonus$ } = useUpgradeBonuses()
+
+  // Feed button handler with bonus
+  const handleFeedPress = useCallback(() => {
+    const bonus = petsPerFeedBonus$.get()
+    actions.incrementBy(1 + bonus)
+  }, [petsPerFeedBonus$, actions])
 
   return (
     <View style={styles.container}>
@@ -43,7 +51,7 @@ export function ClickerScreen({
       <TouchableOpacity
         testID="feed-button"
         style={styles.feedButton}
-        onPress={actions.increment}
+        onPress={handleFeedPress}
         activeOpacity={0.7}
         accessibilityLabel="Feed button"
         accessibilityHint="Tap to increase Singularity Pet Count"
