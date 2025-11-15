@@ -112,159 +112,54 @@ Generate a comprehensive, executable task list based on the TDD.
 - State management file types (stores, hooks, types)
 - Shared vs feature-specific organization
 
-### Codebase Exploration with Explore Subagent (MANDATORY)
+### Read TDD Section 2: Codebase Exploration & Integration Analysis
 
-**CRITICAL**: You MUST complete this exploration using the Explore subagent before generating any tasks.
+**CRITICAL**: The TDD file (from design.md) contains authoritative codebase exploration results in Section 2 "Codebase Exploration & Integration Analysis". This section was generated during the design phase and contains all architectural decisions.
 
-**STEP 1: Launch Explore Subagent**
+**What Section 2 Contains**:
+- **Existing Components**: All found components with paths and current state
+- **Existing Hooks**: All found hooks with paths and purposes
+- **Store Properties (Verified)**: EXACT property names from store files
+- **Integration Points**: App.tsx/navigation structure
+- **Architecture Decisions**: Authoritative UPDATE vs CREATE decisions for each component
+- **Integration Validation**: Conflict checks and module ownership
 
-Use the Task tool to launch an Explore subagent for comprehensive codebase analysis:
-
-```typescript
-Task({
-  subagent_type: "Explore",
-  description: "Explore codebase for TDD components",
-  model: "haiku", // Fast and cost-effective for search tasks
-  prompt: `
-I need to explore the codebase before generating a task list.
-
-**TDD FILE**: Already read (analysis in context above)
-
-**MISSION**: For EVERY component, screen, hook, or store mentioned in the TDD:
-1. Search for existing implementations
-2. Identify integration points
-3. Determine UPDATE vs CREATE decisions
-4. Document exact property names from stores
-
-**THOROUGHNESS**: very thorough
-
-**SEARCH METHODOLOGY**:
-
-For each component/screen mentioned (e.g., ShopScreen, UpgradeCard):
-1. Global search: Glob **/*{ComponentName}*.{ts,tsx}
-2. Search variations: Glob **/*{component-name}*.{ts,tsx}
-3. If found: Read file to understand current implementation
-4. Check integration: Read App.tsx (or app/_layout.tsx for Expo Router)
-5. Find imports: Grep "import.*{ComponentName}"
-
-For stores mentioned:
-1. Find all stores: Glob **/*.store.ts
-2. Read each store file
-3. Document EXACT property names (e.g., "scrap" not "scrapCount")
-4. List observable properties with types
-
-**RETURN FORMAT** (use this exact structure):
-
-## EXPLORATION RESULTS
-
-### Existing Components
-- **ComponentName**:
-  - Path: modules/path/to/Component.tsx
-  - Current state: [empty/partial/complete]
-  - Purpose: [what it currently does]
-
-### Integration Points
-- **App.tsx**:
-  - Imports: [list what's imported]
-  - Navigation: [describe navigation structure]
-  - Current screens: [list active screens]
-
-### Store Properties (EXACT NAMES)
-- **storeName.store.ts**:
-  - property1: Observable<Type>
-  - property2: Observable<Type>
-
-### Architecture Decisions
-For EACH component in TDD, provide:
-
-**Component: ComponentName**
-- ✅ FOUND at: path/to/existing.tsx
-  - DECISION: UPDATE existing file
-  - RATIONALE: [module owns this responsibility, already integrated]
-
-OR
-
-- ❌ NOT FOUND
-  - DECISION: CREATE at: path/to/new.tsx
-  - RATIONALE: [new feature, belongs in X module because...]
-
-**Store Property Validation**:
-- scrapStore.scrap ✅ (verified in scrap.store.ts line 25)
-- shopStore.availableUpgrades ✅ (verified in shop.store.ts line 34)
-
-## CRITICAL QUESTIONS ANSWERED
-- Are there duplicate/similar components that would conflict?
-- Which module owns shop UI? (creates vs displays)
-- Will new components be accessible to users (wired to navigation)?
-`
-})
-```
-
-**STEP 2: Wait for Subagent Results**
-
-The Explore subagent will return a structured report. Do NOT proceed until you receive it.
-
-**STEP 3: Validate Exploration Results**
-
-Check the subagent's report for:
-- [ ] Every component from TDD has a decision (UPDATE or CREATE)
-- [ ] Integration points are clearly identified
-- [ ] Store property names are exact (from actual file reads)
-- [ ] No architectural conflicts (duplicate names, unclear ownership)
-
-**RED FLAG - STOP IF**:
-- Subagent found multiple components with same name in different modules
-- Unclear which component to update vs create new
-- Store properties are missing or uncertain
-- Integration points are not clear
-
-**CORRECT ACTION IF BLOCKED**:
-- Document the conflict/uncertainty clearly
-- Ask user for clarification before proceeding
-- Do NOT guess or make assumptions
-
-**STEP 4: Embed Results in Task List Header**
-
-Add exploration results to the generated task list (before Phase 1 tasks):
-
-```markdown
-## 🔍 Codebase Exploration Results
-
-${exactOutputFromExploreSubagent}
-
----
-
-## 📐 Architecture Decisions Summary
-
-Based on exploration above:
-- UPDATE: modules/shop/ShopScreen.tsx (shop module owns shop UI)
-- CREATE: modules/upgrades/components/UpgradeCard.tsx (new component)
-- CREATE: modules/upgrades/hooks/useUpgradeEffects.ts (new logic)
-
-Store Properties (verified):
-- scrapStore.scrap (NOT scrapCount)
-- shopStore.availableUpgrades
-- shopStore.purchasedUpgrades
-```
-
-**STEP 5: Use Decisions Throughout Task Generation**
+**How to Use Section 2**:
 
 When writing tasks in Phase 2+:
-- Use "UPDATE" or "CREATE" in task titles based on exploration
-- Specify exact file paths from exploration results
-- Include verified store property names in code examples
-- Reference Architecture Decisions Summary
+- Use "UPDATE" or "CREATE" in task titles based on TDD Section 2 decisions
+- Specify exact file paths from Section 2 exploration results
+- Include verified store property names from Section 2 in code examples
+- Reference Architecture Decisions from Section 2
 
 Example CORRECT task title:
 ```markdown
 ### Task 1.5: UPDATE ShopScreen to Display Upgrades
-**File**: modules/shop/ShopScreen.tsx (UPDATING existing, per exploration)
+**File**: modules/shop/ShopScreen.tsx (UPDATING existing, per TDD Section 2)
 ```
 
-Example WRONG task title (creates duplicate):
+Example WRONG task title (ignores TDD decisions):
 ```markdown
 ### Task 1.5: Create ShopScreen with FlatList
-**File**: modules/upgrades/ShopScreen.tsx (❌ WRONG - duplicate!)
+**File**: modules/upgrades/ShopScreen.tsx (❌ WRONG - TDD Section 2 says UPDATE existing!)
+```
+
+**Embed Section 2 Summary in Task List Header**:
+
+Copy the relevant parts of TDD Section 2 into the generated task list header:
+
+```markdown
+## 🔍 Architecture Decisions (from TDD Section 2)
+
+Based on codebase exploration in TDD:
+- UPDATE: modules/shop/ShopScreen.tsx (shop module owns shop UI)
+- CREATE: modules/upgrades/components/UpgradeCard.tsx (new component)
+- CREATE: modules/upgrades/hooks/useUpgradeEffects.ts (new logic)
+
+Store Properties (verified in TDD):
+- scrapStore.scrap (NOT scrapCount)
+- shopStore.availableUpgrades
+- shopStore.purchasedUpgrades
 ```
 
 ### Implementation Check
@@ -305,27 +200,29 @@ Read and analyze the Technical Design Document to extract:
 5. **Deployment Tasks**: CI/CD, monitoring, operational requirements
 6. **Dependencies**: Order of implementation and blockers
 
-**CRITICAL - Map to Existing Code** (from Phase 1 exploration):
+**CRITICAL - Use TDD Section 2 Architectural Decisions**:
 
-For EACH component mentioned in TDD:
+For EACH component mentioned in TDD, Section 2 "Codebase Exploration & Integration Analysis" contains the authoritative decisions:
 
 ```markdown
-Component Analysis Example:
+Component Analysis Example (from TDD Section 2):
 
-TDD mentions: "ShopScreen to display upgrades"
-Phase 1 found: modules/shop/ShopScreen.tsx (exists, shows empty state)
-Integration: App.tsx imports from modules/shop/ShopScreen
+TDD Section 2 documents: "ShopScreen"
+- Existing: modules/shop/ShopScreen.tsx (shows empty state)
+- Integration: App.tsx imports from modules/shop/ShopScreen
+- DECISION: UPDATE existing file
+- RATIONALE: Shop module owns shop UI, avoid duplication
 
 Decision for tasks:
-✓ DO: Update existing modules/shop/ShopScreen.tsx
+✓ DO: Update existing modules/shop/ShopScreen.tsx (per TDD Section 2)
 ✗ DON'T: Create new modules/upgrades/ShopScreen.tsx
-Reason: Shop module already owns shop UI, avoid duplication
+Reason: TDD Section 2 specifies UPDATE decision
 ```
 
 **Before generating ANY task**:
-1. Check Phase 1 exploration results
-2. Determine if task should UPDATE existing or CREATE new
-3. Document this decision in task's "FILES TO CREATE/UPDATE" section
+1. Read TDD Section 2 "Codebase Exploration & Integration Analysis"
+2. Use the UPDATE vs CREATE decisions documented there
+3. Reference TDD Section 2 in task's "FILES TO CREATE/UPDATE" section
 
 ## Phase 3: Task Decomposition
 
@@ -355,28 +252,28 @@ For EACH task that creates/modifies files, include explicit location guidance:
 
 **Template for File Instructions**:
 ```markdown
-**FILES TO CREATE/UPDATE** (based on Phase 1 exploration):
+**FILES TO CREATE/UPDATE** (based on TDD Section 2):
 
-IF updating existing:
+IF updating existing (per TDD Section 2):
 - UPDATE: modules/shop/ShopScreen.tsx
-  - Reason: Shop module owns shop UI, found via App.tsx import
+  - Reason: Shop module owns shop UI (documented in TDD Section 2)
   - Changes: Add upgrade list display using UpgradeCard components
 
-IF creating new:
+IF creating new (per TDD Section 2):
 - CREATE: modules/upgrades/components/UpgradeCard.tsx
-  - Reason: Reusable upgrade-specific component
+  - Reason: Reusable upgrade-specific component (documented in TDD Section 2)
   - Location: Task's module (modules/upgrades/)
 
 - CREATE: modules/upgrades/hooks/useUpgradeEffects.ts
-  - Reason: New business logic for upgrade effects
+  - Reason: New business logic for upgrade effects (documented in TDD Section 2)
   - Location: Task's module (modules/upgrades/)
 ```
 
-**Decision Criteria to Document**:
-1. Does component/file already exist? (from Phase 1 exploration)
-2. If YES: Should we UPDATE or CREATE with different name?
-3. Module ownership: Which module owns this responsibility?
-4. Integration: Where is this component used/imported?
+**Decision Criteria (from TDD Section 2)**:
+1. Does component/file already exist? (TDD Section 2 documents this)
+2. If YES: TDD Section 2 specifies UPDATE or CREATE with different name
+3. Module ownership: TDD Section 2 identifies which module owns what
+4. Integration: TDD Section 2 maps integration points
 
 ## Phase 4: Task List Generation
 
