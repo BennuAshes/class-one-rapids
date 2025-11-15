@@ -34,6 +34,15 @@ const AVAILABLE_UPGRADES: Upgrade[] = [
     cost: 20,
     upgradeType: UpgradeType.SCRAP_PER_PET,
     effectValue: 1
+  },
+  // Bot Factory upgrade
+  {
+    id: 'bot-factory-1',
+    name: 'Bot Factory',
+    description: 'Adds +1 AI Bot per Feed click',
+    cost: 100,
+    upgradeType: UpgradeType.PETS_PER_FEED,
+    effectValue: 1
   }
 ]
 

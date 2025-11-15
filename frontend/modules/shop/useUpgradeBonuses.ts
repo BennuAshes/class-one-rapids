@@ -11,6 +11,7 @@ interface UpgradeBonuses {
 interface UseUpgradeBonusesReturn {
   bonuses$: Observable<UpgradeBonuses>
   scrapPerPetBonus$: Observable<number>
+  petsPerFeedBonus$: Observable<number>
 }
 
 export function useUpgradeBonuses(): UseUpgradeBonusesReturn {
@@ -32,7 +33,8 @@ export function useUpgradeBonuses(): UseUpgradeBonusesReturn {
     })
 
     const scrapPerPetBonus$ = computed(() => bonuses$.get().scrapPerPet)
+    const petsPerFeedBonus$ = computed(() => bonuses$.get().petsPerFeed)
 
-    return { bonuses$, scrapPerPetBonus$ }
+    return { bonuses$, scrapPerPetBonus$, petsPerFeedBonus$ }
   }, [])
 }

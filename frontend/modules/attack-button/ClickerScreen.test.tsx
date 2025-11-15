@@ -2,6 +2,8 @@ import React from 'react'
 import { render, screen, userEvent, waitFor } from '@testing-library/react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { ClickerScreen } from './ClickerScreen'
+import { shopStore } from '../shop/stores/shop.store'
+import { UpgradeType } from '../shop/types'
 
 describe('ClickerScreen', () => {
   const user = userEvent.setup()
@@ -107,5 +109,157 @@ describe('ClickerScreen', () => {
 
     // Verify text color is defined (actual contrast checked manually)
     expect(style.color).toBeDefined()
+  })
+})
+
+describe('ClickerScreen - Bot Factory Integration', () => {
+  const user = userEvent.setup()
+
+  beforeEach(async () => {
+    jest.clearAllMocks()
+    // Restore any mocked modules
+    jest.restoreAllMocks()
+    await AsyncStorage.clear()
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    // Reset shop state
+    shopStore.purchasedUpgrades.set([])
+
+    // Restore hardcoded upgrades
+    shopStore.availableUpgrades.set([
+      {
+        id: 'storage-pouch-1',
+        name: 'Storage Pouch',
+        description: 'Adds +1 scrap per pet',
+        cost: 20,
+        upgradeType: UpgradeType.SCRAP_PER_PET,
+        effectValue: 1
+      },
+      {
+        id: 'bot-factory-1',
+        name: 'Bot Factory',
+        description: 'Adds +1 AI Bot per Feed click',
+        cost: 100,
+        upgradeType: UpgradeType.PETS_PER_FEED,
+        effectValue: 1
+      }
+    ])
+  })
+
+  test('should increment by 1 when no bonus (no Bot Factory)', async () => {
+    render(<ClickerScreen storageKey={`test-clicker-no-bonus-${Date.now()}`} />)
+
+    const feedButton = screen.getByTestId('feed-button')
+
+    // Initial state
+    await waitFor(() => {
+      expect(screen.getByText('Singularity Pet Count: 0')).toBeTruthy()
+    })
+
+    // Press Feed button
+    await user.press(feedButton)
+
+    // Should increment by 1 (base amount, no bonus)
+    await waitFor(() => {
+      expect(screen.getByText('Singularity Pet Count: 1')).toBeTruthy()
+    })
+  })
+
+  test('should increment by 2 when Bot Factory owned (1 base + 1 bonus)', async () => {
+    // Purchase Bot Factory
+    shopStore.purchasedUpgrades.set(['bot-factory-1'])
+
+    render(<ClickerScreen storageKey={`test-clicker-with-bonus-${Date.now()}`} />)
+
+    const feedButton = screen.getByTestId('feed-button')
+
+    // Initial state
+    await waitFor(() => {
+      expect(screen.getByText('Singularity Pet Count: 0')).toBeTruthy()
+    })
+
+    // Press Feed button - WILL FAIL initially (still using increment())
+    await user.press(feedButton)
+
+    // Should increment by 2 (1 base + 1 bonus)
+    await waitFor(() => {
+      expect(screen.getByText('Singularity Pet Count: 2')).toBeTruthy()
+    })
+  })
+
+  test('full integration: purchase Bot Factory → feed gains 2 pets', async () => {
+    render(<ClickerScreen storageKey={`test-full-integration-${Date.now()}`} />)
+
+    const feedButton = screen.getByTestId('feed-button')
+
+    // Feed without bonus
+    await user.press(feedButton)
+    await waitFor(() => {
+      expect(screen.getByText('Singularity Pet Count: 1')).toBeTruthy()
+    })
+
+    // Purchase Bot Factory mid-session
+    shopStore.purchasedUpgrades.set(['bot-factory-1'])
+
+    // Feed with bonus should add 2
+    await user.press(feedButton)
+    await waitFor(() => {
+      expect(screen.getByText('Singularity Pet Count: 3')).toBeTruthy() // 1 + 2 = 3
+    })
+
+    // Another feed with bonus
+    await user.press(feedButton)
+    await waitFor(() => {
+      expect(screen.getByText('Singularity Pet Count: 5')).toBeTruthy() // 3 + 2 = 5
+    })
+  })
+
+  test('multiple rapid feeds with bonus apply correctly', async () => {
+    shopStore.purchasedUpgrades.set(['bot-factory-1'])
+
+    render(<ClickerScreen storageKey={`test-rapid-feeds-${Date.now()}`} />)
+
+    const feedButton = screen.getByTestId('feed-button')
+
+    // Rapid taps
+    for (let i = 0; i < 5; i++) {
+      await user.press(feedButton)
+    }
+
+    // Should be 10 (5 taps × 2 pets per tap)
+    await waitFor(() => {
+      expect(screen.getByText('Singularity Pet Count: 10')).toBeTruthy()
+    }, { timeout: 3000 })
+  })
+
+  test('bonus persists across component remounts', async () => {
+    shopStore.purchasedUpgrades.set(['bot-factory-1'])
+
+    const storageKey = `test-persistence-${Date.now()}`
+    let renderResult = render(
+      <ClickerScreen storageKey={storageKey} />
+    )
+
+    let feedButton = screen.getByTestId('feed-button')
+
+    // Feed once with bonus
+    await user.press(feedButton)
+    await waitFor(() => {
+      expect(screen.getByText('Singularity Pet Count: 2')).toBeTruthy()
+    })
+
+    // Simulate app restart (unmount + remount)
+    renderResult.unmount()
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    // Re-render with same storage key
+    renderResult = render(<ClickerScreen storageKey={storageKey} />)
+
+    // Feed again - bonus should still apply
+    feedButton = screen.getByTestId('feed-button')
+    await user.press(feedButton)
+    await waitFor(() => {
+      expect(screen.getByText('Singularity Pet Count: 4')).toBeTruthy() // 2 + 2
+    })
   })
 })

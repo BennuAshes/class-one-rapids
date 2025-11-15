@@ -16,6 +16,7 @@ export interface UsePersistedCounterReturn {
   count$: Observable<number>
   actions: {
     increment: () => void
+    incrementBy: (amount: number) => void
     reset: () => void
     set: (value: number) => void
   }

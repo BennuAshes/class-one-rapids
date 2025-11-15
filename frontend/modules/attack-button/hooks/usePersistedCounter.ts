@@ -40,6 +40,11 @@ export function usePersistedCounter(
         store.count.set(validateCount(current + 1))
       },
 
+      incrementBy: (amount: number) => {
+        const current = store.count.get()
+        store.count.set(validateCount(current + amount))
+      },
+
       reset: () => {
         store.count.set(validateCount(initialValue))
       },
