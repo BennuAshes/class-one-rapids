@@ -38,15 +38,51 @@ Generate a lean, actionable Product Requirements Document based on the file at $
 
 ---
 
-## Analysis Phase
+## Analysis Phase - LEAN APPROACH
+
+**CRITICAL PRINCIPLE**: Only document features explicitly requested by the user. Do NOT infer or add features based on "typical" patterns for this type of application.
 
 First, analyze the feature description to extract (following @docs/architecture/lean-task-generation-guide.md principles):
 
-1. **Core Problem**: What user problem does this solve?
-2. **Target Users**: Who will benefit from this feature?
-3. **Business Value**: Why is this worth building?
-4. **Technical Scope**: What systems/components are involved?
-5. **Success Indicators**: How will we know it's successful?
+1. **Explicitly Requested Features**: What did the user specifically ask for?
+2. **Core Problem**: What user problem does this solve?
+3. **Target Users**: Who will benefit from this feature?
+4. **Minimal Technical Scope**: What's the MINIMUM needed to deliver requested features?
+5. **Success Indicators**: How will we know the REQUESTED features work?
+
+**FORBIDDEN ASSUMPTIONS - DO NOT ADD UNLESS USER EXPLICITLY REQUESTED**:
+- ❌ DO NOT add persistence/storage if user didn't mention saving data, "remembering", or "across sessions"
+- ❌ DO NOT add authentication if user didn't mention users/accounts/login
+- ❌ DO NOT add analytics/tracking if user didn't mention metrics/monitoring
+- ❌ DO NOT add undo/redo if user didn't mention it
+- ❌ DO NOT add multi-device sync if user didn't mention it
+- ❌ DO NOT add offline support if user didn't mention it
+- ❌ DO NOT add complex error recovery beyond preventing crashes
+
+**WHEN TO ADD BEYOND USER REQUEST** (minimal platform requirements only):
+- ✅ Basic error states (loading, error) - ONLY to prevent crashes, not comprehensive error handling
+- ✅ Accessibility minimums (WCAG touch targets ≥44x44pt, contrast ratios) - required by platform standards
+- ✅ Performance baselines (60fps, <100ms interactions) - expected by platform, not custom benchmarks
+- ✅ Input validation - ONLY to prevent crashes, not business rules
+
+**Example Analysis**:
+```
+User Request: "I want a button that increments a counter"
+
+✅ CORRECT PRD Scope:
+- Button component
+- Counter display
+- Increment action on button press
+- Basic styling (touch target, contrast)
+- Platform performance (60fps, responsive)
+
+❌ INCORRECT PRD Scope (adds unrequested features):
+- + localStorage persistence (user didn't ask to save)
+- + error recovery mechanisms (beyond crash prevention)
+- + analytics tracking (user didn't mention)
+- + undo/redo functionality (user didn't mention)
+- + custom animations (user didn't specify)
+```
 
 ## PRD Generation Requirements
 
@@ -110,20 +146,24 @@ Organize by feature area:
 
 #### 7. Non-Functional Requirements
 
-- **Performance**: [Specific benchmarks, e.g., <2s load time, that are relevant to the technology used]
-- **Security**: [Authentication, data protection requirements]
-- **Accessibility**: [WCAG standards compliance]
-- **Scalability**: [User/data volume requirements]
-- **Browser/Device Support**: [Specific requirements]
+**ONLY include platform baselines unless user explicitly requested custom requirements**:
+
+- **Performance**: Platform baselines only (60fps UI, <100ms interactions). NO custom benchmarks unless user specified.
+- **Security**: ONLY include if user mentioned security, authentication, or sensitive data
+- **Accessibility**: WCAG minimums only (≥44x44pt touch targets, 4.5:1 contrast). NO custom accessibility unless user requested.
+- **Scalability**: ONLY include if user mentioned scale, volume, or concurrent users
+- **Browser/Device Support**: Platform defaults (iOS/Android/Web). NO specific versions unless user mentioned.
 
 #### 8. Scope Definition
 
 Following @docs/architecture/lean-task-generation-guide.md - focus on deliverable features, not infrastructure:
 
-**MVP (Must Have):**
+**MVP (Must Have - USER REQUESTED FEATURES ONLY):**
 
-- P0: [Critical user-visible feature]
-- P0: [Critical user-visible feature]
+- P0: [Feature explicitly requested by user]
+- P0: [Feature explicitly requested by user]
+
+**CRITICAL**: Do NOT add features user didn't request. If a feature isn't in the original user request, it goes in "Out of Scope" or "Future Enhancements".
 
 **Nice to Have:**
 
