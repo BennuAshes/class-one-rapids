@@ -124,7 +124,25 @@ Generate a comprehensive Technical Design Document based on the PRD.
    - ❌ If PRD added systems (shop, inventory, etc.) not in original request → STOP and report
    - ✅ If PRD only contains requested features + platform minimums → PROCEED
 
-5. **Architecture Creep Check**:
+5. **Explicit Exclusion Check** (NEW - CRITICAL):
+   - **Read original feature description** and search for exclusion keywords:
+     - "don't", "not yet", "skip", "without", "except", "avoid", "no need for"
+   - **Extract all explicitly excluded items** from original request
+   - **Check PRD MVP/P0 features** against exclusion list:
+     - ❌ If PRD includes ANY explicitly excluded item → STOP and report
+     - Example: Original says "Don't create upgrades yet" but PRD MVP includes "5 upgrade definitions" → STOP
+   - **Quote the exclusion** in error message for clarity
+
+   **Exclusion Detection Example**:
+   ```
+   Original: "Create a shop screen. Don't create any upgrades yet."
+   Excluded items: ["upgrade definitions", "specific upgrades"]
+   PRD MVP includes: "Define 5 initial upgrades with costs"
+   Result: STOP - "ERROR: PRD includes excluded feature 'upgrade definitions'.
+           Original request explicitly said: 'Don't create any upgrades yet'"
+   ```
+
+6. **Architecture Creep Check**:
    - ❌ If original request is single-component, but PRD adds multi-screen architecture → STOP
    - ❌ If PRD adds "wrapper screens" not mentioned in original → STOP
    - ❌ If PRD adds navigation scaffolding for single component → STOP
