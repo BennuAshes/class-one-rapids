@@ -63,6 +63,12 @@ The TDD file path is $ARGUMENTS
    - Testing Library query priorities
    - Async handling patterns
 
+7. **React Native UI Guidelines**: @docs/architecture/react-native-ui-guidelines.md
+   - Safe area handling (use react-native-safe-area-context, NOT deprecated SafeAreaView)
+   - Component selection (Pressable over TouchableOpacity)
+   - Accessibility (44pt minimum touch targets, screen reader support)
+   - Layout patterns (View/ScrollView/FlatList decision tree)
+
 ---
 
 **Error Handling**:

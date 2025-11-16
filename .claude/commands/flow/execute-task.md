@@ -140,6 +140,12 @@ ONLY proceed if validation passes:
    - Observable primitives
    - React integration
 
+6. **React Native UI Guidelines**: @docs/architecture/react-native-ui-guidelines.md
+   - **CRITICAL**: Use SafeAreaView from 'react-native-safe-area-context', NOT from 'react-native'
+   - Component selection (Pressable over TouchableOpacity)
+   - Accessibility requirements (44pt touch targets)
+   - Layout component decision tree
+
 ---
 
 ## 🚀 QUICK DECISION TREE

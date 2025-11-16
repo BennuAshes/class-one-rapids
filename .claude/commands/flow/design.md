@@ -64,6 +64,12 @@ The PRD file path will be provided as the first line of stdin input.
    - Testing best practices for TDD strategy
    - Query priorities and async handling
 
+7. **React Native UI Guidelines**: @docs/architecture/react-native-ui-guidelines.md
+   - Safe area handling (avoid deprecated SafeAreaView)
+   - Component selection patterns (Pressable vs TouchableOpacity)
+   - Accessibility requirements (44pt touch targets, WCAG)
+   - Platform-specific considerations
+
 ---
 
 **Error Handling**:
