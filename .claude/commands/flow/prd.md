@@ -180,10 +180,38 @@ Organize by feature area:
 
 Following @docs/architecture/lean-task-generation-guide.md - focus on deliverable features, not infrastructure:
 
+**CRITICAL VALIDATION BEFORE LISTING MVP**:
+
+Before writing ANY feature in the MVP section below, you MUST:
+
+1. **Re-read the original feature description word-by-word**
+2. **For EACH feature you plan to list as P0/MVP**:
+   - Find and quote the EXACT text from the feature description that requested it
+   - If you cannot find explicit mention in the original request, it MUST go in "Out of Scope" instead
+3. **Check for explicit EXCLUSIONS** in the feature description:
+   - Look for phrases like: "Don't [do X]", "Not yet", "Skip [Y]", "Without [Z]", "Except", "Avoid"
+   - Any feature explicitly excluded MUST be listed in "Out of Scope" section
+   - Example: "Don't create any upgrades yet" → upgrade definitions go in "Out of Scope"
+
+**Validation Example**:
+```
+Original request: "Create a shop screen that links from the main one. Don't create any upgrades yet."
+
+✅ CORRECT MVP:
+- P0: Shop screen with navigation from main screen (quoted: "Create a shop screen that links from the main one")
+- P0: Empty/placeholder upgrade list (infrastructure for future upgrades)
+
+✅ CORRECT Out of Scope:
+- Specific upgrade definitions (quoted exclusion: "Don't create any upgrades yet")
+
+❌ WRONG MVP:
+- P0: 5 upgrade definitions with costs and effects (EXPLICITLY EXCLUDED!)
+```
+
 **MVP (Must Have - USER REQUESTED FEATURES ONLY):**
 
-- P0: [Feature explicitly requested by user]
-- P0: [Feature explicitly requested by user]
+- P0: [Feature explicitly requested - QUOTE REQUEST: "..."]
+- P0: [Feature explicitly requested - QUOTE REQUEST: "..."]
 
 **CRITICAL**: Do NOT add features user didn't request. If a feature isn't in the original user request, it goes in "Out of Scope" or "Future Enhancements".
 
