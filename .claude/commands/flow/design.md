@@ -100,6 +100,37 @@ ONLY proceed if validation passes:
 
 Generate a comprehensive Technical Design Document based on the PRD.
 
+## Phase 0: Validate PRD Against Original Feature Request (MANDATORY)
+
+**CRITICAL**: Before doing ANY work, validate that the PRD scope matches the original user request.
+
+### Step 0: Scope Validation
+
+1. **Read the Original Feature File**: Use Read tool to load the original feature description file (same directory as PRD, typically named `feature-*.md`)
+2. **Extract Original Request**: Identify exactly what the user asked for
+3. **Compare PRD Scope to Original**:
+   - List all features in PRD MVP scope
+   - Check if each feature was mentioned in original request
+   - Flag any features NOT in original request
+4. **Scope Creep Check**:
+   - ❌ If PRD added screens not in original request → STOP and report
+   - ❌ If PRD added navigation not in original request → STOP and report
+   - ❌ If PRD added systems (shop, inventory, etc.) not in original request → STOP and report
+   - ✅ If PRD only contains requested features + platform minimums → PROCEED
+
+5. **Architecture Creep Check**:
+   - ❌ If original request is single-component, but PRD adds multi-screen architecture → STOP
+   - ❌ If PRD adds "wrapper screens" not mentioned in original → STOP
+   - ❌ If PRD adds navigation scaffolding for single component → STOP
+   - ✅ If PRD scope exactly matches original request scope → PROCEED
+
+**IF SCOPE CREEP DETECTED**:
+- Output: "ERROR: PRD contains unrequested features. Original request: [summary]. PRD added: [list of extra features]. Please revise PRD to match original scope."
+- DO NOT proceed with TDD generation
+- EXIT
+
+**ONLY IF VALIDATION PASSES**: Proceed to Phase 1.
+
 ## Phase 1: Codebase Exploration (MANDATORY)
 
 **CRITICAL**: Before analyzing the PRD, explore the existing codebase to understand current implementations and integration points. This exploration will be documented in the TDD as Section 2.
@@ -464,6 +495,76 @@ For each feature/component, follow this strict order:
 
 #### Test Categories (in order of implementation)
 
+### App-Level Integration Testing (TDD Zero Layer - MANDATORY FIRST)
+
+**CRITICAL**: Before implementing any feature components, write integration tests at the App.tsx level that validate the complete user journey including navigation and screen transitions.
+
+#### Why App-Level Tests First?
+- Catches missing imports/modules immediately (prevents "Unable to resolve" errors)
+- Validates navigation integration works end-to-end
+- Ensures all screens are actually accessible to users
+- Tests fail until ALL required components exist (prevents orphaned features)
+
+#### Required App-Level Integration Tests
+
+```typescript
+// App.test.tsx - Write these BEFORE implementing feature screens
+
+describe('App Navigation Integration', () => {
+  test('renders default screen without import errors', () => {
+    // This test FAILS if any imported screen module doesn't exist
+    const { getByText } = render(<App />);
+    expect(getByText(/count/i)).toBeTruthy(); // Or whatever default screen shows
+  });
+
+  test('can navigate to shop screen', () => {
+    const { getByText } = render(<App />);
+
+    // This test FAILS if ShopScreen doesn't exist or isn't imported
+    const shopButton = getByText(/shop/i);
+    fireEvent.press(shopButton);
+
+    // Verify shop screen is displayed
+    expect(getByText(/shop screen/i)).toBeTruthy();
+  });
+
+  test('can navigate back to clicker screen', () => {
+    const { getByText } = render(<App />);
+
+    // Navigate to shop
+    fireEvent.press(getByText(/shop/i));
+
+    // Navigate back to clicker
+    const clickerButton = getByText(/clicker/i);
+    fireEvent.press(clickerButton);
+
+    // Verify clicker screen is displayed
+    expect(getByText(/feed/i)).toBeTruthy();
+  });
+
+  test('all navigation targets are importable', () => {
+    // This test fails at import time if modules are missing
+    expect(() => render(<App />)).not.toThrow();
+  });
+});
+```
+
+#### App Integration Test Checklist (MUST COMPLETE FIRST)
+
+- [ ] App.test.tsx created with navigation tests
+- [ ] Tests verify all screens referenced in App.tsx can be imported
+- [ ] Tests validate user can navigate to each screen
+- [ ] Tests verify navigation state persists correctly
+- [ ] All App-level tests are FAILING (RED phase) before implementation
+- [ ] Create skeleton components to make import tests pass
+- [ ] Then implement features to make behavior tests pass
+
+**Test Execution Order**:
+1. **App-Level Integration Tests** (validates imports & navigation) ← START HERE
+2. Unit Tests (individual screen components)
+3. Component Integration Tests (parent-child data flow)
+4. E2E Tests (complete user workflows)
+
 ### Unit Testing (TDD First Layer)
 
 - **Render Tests**: Component displays correctly
@@ -472,12 +573,12 @@ For each feature/component, follow this strict order:
 - Coverage target: > 80% for new code
 - Testing approach: Test behavior, not implementation
 
-### Integration Testing (TDD Second Layer)
+### Component Integration Testing (TDD Second Layer)
 
 - **Component Integration**: Parent-child data flow
 - **API Integration**: MSW mock handlers
-- **Navigation Testing**: Screen transitions
-- **Context/State Management**: Global state updates
+- **State Management**: Global state updates
+- **Hook Integration**: Hooks working with components
 
 ### End-to-End Testing (TDD Third Layer)
 
@@ -586,33 +687,75 @@ Following @docs/architecture/lean-task-generation-guide.md principles - prioriti
 
 [Map to PRD MVP features - each with TDD cycle]
 
-**For Each Feature:**
+**CRITICAL FIRST STEP: App-Level Integration Tests**
 
-1. **Day 1-2: Test Planning**
+Before implementing ANY feature screens, follow this strict order:
+
+**Step 0: App Integration Test Setup (MANDATORY)**
+1. Create `App.test.tsx` if it doesn't exist
+2. Write failing tests for ALL navigation paths mentioned in PRD
+3. Write tests that verify all screen imports resolve
+4. Run tests - they MUST fail (RED phase)
+5. Create skeleton/stub components for all screens to make import tests pass
+6. Navigation behavior tests still fail - ready for feature implementation
+
+Example App Integration Tests:
+```typescript
+// App.test.tsx - WRITE FIRST, BEFORE ANY FEATURE IMPLEMENTATION
+
+describe('App Navigation Integration', () => {
+  test('renders without import errors', () => {
+    expect(() => render(<App />)).not.toThrow();
+  });
+
+  test('displays clicker screen by default', () => {
+    const { getByText } = render(<App />);
+    expect(getByText(/feed/i)).toBeTruthy();
+  });
+
+  test('can navigate to shop screen', () => {
+    const { getByText } = render(<App />);
+    fireEvent.press(getByText(/shop/i));
+    expect(getByText(/shop/i)).toBeTruthy();
+  });
+});
+```
+
+**For Each Feature (After App Tests Are Written):**
+
+1. **Step 1: App Integration Tests (MUST BE FIRST)**
+
+   - Write App.test.tsx tests for this feature's navigation
+   - Write tests for screen transitions involving this feature
+   - Verify tests FAIL (screens don't exist yet or are stubs)
+   - Create skeleton component to pass import tests
+
+2. **Step 2: Component Test Planning**
 
    - Break down feature into testable behaviors
-   - Write all failing tests for feature
+   - Write all failing component tests for feature
    - Review tests against requirements
 
-2. **Day 3-4: Implementation**
+3. **Step 3: Implementation**
 
    - Implement code to pass each test
    - Follow Red-Green-Refactor for each behavior
-   - Keep all previous tests green
+   - Keep all previous tests green (including App tests!)
 
-3. **Day 5: Integration**
-   - Write integration tests
-   - Connect feature to system
+4. **Step 4: Integration Validation**
+   - Verify App.test.tsx navigation tests now pass
+   - Run full test suite (App + Component + Integration)
    - Ensure end-to-end flow works
 
 Example Feature Breakdown:
 
-- **[Feature 1]**: User Authentication
-  - Test 1: Login form renders with email/password fields
-  - Test 2: Validation shows errors for invalid email
-  - Test 3: Successful login navigates to home
-  - Test 4: Failed login shows error message
-  - Test 5: Token stored securely after login
+- **[Feature 1]**: Shop Screen
+  - **App Test 1**: Can navigate from clicker to shop (WRITE FIRST)
+  - **App Test 2**: Can navigate from shop back to clicker (WRITE FIRST)
+  - Component Test 1: Shop screen renders upgrade list
+  - Component Test 2: Selecting upgrade shows details
+  - Component Test 3: Purchase button works correctly
+  - Integration Test 1: Purchasing upgrade updates global state
 
 #### Phase 3: Enhancement with TDD [X weeks]
 

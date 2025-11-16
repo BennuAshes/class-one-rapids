@@ -57,8 +57,8 @@
       "/node_modules/"
     ],
     "collectCoverageFrom": [
+      "*.{ts,tsx}",
       "modules/**/*.{ts,tsx}",
-      "shared/**/*.{ts,tsx}",
       "!**/*.d.ts",
       "!**/*.test.{ts,tsx}",
       "!**/node_modules/**"
