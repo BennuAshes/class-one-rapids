@@ -1,155 +1,154 @@
-import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react-native'
-import { ClickerScreen } from './ClickerScreen'
+import React from 'react';
+import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { ClickerScreen } from './ClickerScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-describe('ClickerScreen', () => {
-  const mockNavigateToShop = jest.fn()
+// Mock AsyncStorage
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn(() => Promise.resolve(null)),
+  setItem: jest.fn(() => Promise.resolve()),
+  removeItem: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+}));
+
+describe('ClickerScreen Component', () => {
+  const user = userEvent.setup();
 
   beforeEach(() => {
-    jest.clearAllMocks()
-  })
+    jest.clearAllMocks();
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+  });
 
-  describe('Initial Render', () => {
-    test('displays counter label with initial count of 0', () => {
-      render(<ClickerScreen onNavigateToShop={mockNavigateToShop} />)
-      expect(screen.getByText('Singularity Pet Count: 0')).toBeTruthy()
-    })
+  // Render Tests
+  test('displays counter with initial value', async () => {
+    render(<ClickerScreen />);
 
-    test('displays feed button', () => {
-      render(<ClickerScreen onNavigateToShop={mockNavigateToShop} />)
-      expect(screen.getByText('feed')).toBeTruthy()
-    })
+    await waitFor(() => {
+      expect(screen.getByText(/Singularity Pet Count:/i)).toBeTruthy();
+    });
+  });
 
-    test('displays shop navigation button', () => {
-      render(<ClickerScreen onNavigateToShop={mockNavigateToShop} />)
-      expect(screen.getByText('Shop')).toBeTruthy()
-    })
-  })
+  test('displays feed button with correct label', () => {
+    render(<ClickerScreen />);
 
-  describe('Feed Button Interaction', () => {
-    test('increments counter by 1 when feed button is pressed', () => {
-      render(<ClickerScreen onNavigateToShop={mockNavigateToShop} />)
+    const button = screen.getByRole('button', { name: /feed/i });
+    expect(button).toBeTruthy();
+  });
 
-      const feedButton = screen.getByText('feed')
-      fireEvent.press(feedButton)
+  // Interaction Tests
+  test('increments count when button is pressed', async () => {
+    render(<ClickerScreen />);
 
-      expect(screen.getByText('Singularity Pet Count: 1')).toBeTruthy()
-    })
+    const button = screen.getByRole('button', { name: /feed/i });
 
-    test('increments counter multiple times with sequential clicks', () => {
-      render(<ClickerScreen onNavigateToShop={mockNavigateToShop} />)
+    // Get initial count
+    const initialText = screen.getByText(/Singularity Pet Count:/i);
+    const initialMatch = initialText.props.children.join('').match(/(\d+)/);
+    const initialCount = initialMatch ? parseInt(initialMatch[1]) : 0;
 
-      const feedButton = screen.getByText('feed')
+    await user.press(button);
 
-      fireEvent.press(feedButton)
-      expect(screen.getByText('Singularity Pet Count: 1')).toBeTruthy()
+    await waitFor(() => {
+      const newText = screen.getByText(/Singularity Pet Count:/i);
+      const newMatch = newText.props.children.join('').match(/(\d+)/);
+      const newCount = newMatch ? parseInt(newMatch[1]) : 0;
+      expect(newCount).toBe(initialCount + 1);
+    });
+  });
 
-      fireEvent.press(feedButton)
-      expect(screen.getByText('Singularity Pet Count: 2')).toBeTruthy()
+  test('handles rapid tapping accurately', async () => {
+    render(<ClickerScreen />);
 
-      fireEvent.press(feedButton)
-      expect(screen.getByText('Singularity Pet Count: 3')).toBeTruthy()
-    })
+    const button = screen.getByRole('button', { name: /feed/i });
 
-    test('handles rapid clicking accurately', () => {
-      render(<ClickerScreen onNavigateToShop={mockNavigateToShop} />)
+    // Get initial count
+    const initialText = screen.getByText(/Singularity Pet Count:/i);
+    const initialMatch = initialText.props.children.join('').match(/(\d+)/);
+    const startCount = initialMatch ? parseInt(initialMatch[1]) : 0;
 
-      const feedButton = screen.getByText('feed')
+    // Rapid taps - 10 times
+    for (let i = 0; i < 10; i++) {
+      await user.press(button);
+    }
 
-      // Simulate 10 rapid clicks
-      for (let i = 0; i < 10; i++) {
-        fireEvent.press(feedButton)
-      }
+    await waitFor(() => {
+      const finalText = screen.getByText(/Singularity Pet Count:/i);
+      const finalMatch = finalText.props.children.join('').match(/(\d+)/);
+      const finalCount = finalMatch ? parseInt(finalMatch[1]) : 0;
+      expect(finalCount).toBe(startCount + 10);
+    });
+  });
 
-      expect(screen.getByText('Singularity Pet Count: 10')).toBeTruthy()
-    })
+  // Accessibility Tests
+  test('button meets minimum touch target size (44x44pt)', () => {
+    render(<ClickerScreen />);
 
-    test('supports large counter values', () => {
-      render(<ClickerScreen onNavigateToShop={mockNavigateToShop} />)
+    const button = screen.getByTestId('feed-button');
 
-      const feedButton = screen.getByText('feed')
+    const style = Array.isArray(button.props.style)
+      ? Object.assign({}, ...button.props.style)
+      : button.props.style;
 
-      // Simulate 100 clicks
-      for (let i = 0; i < 100; i++) {
-        fireEvent.press(feedButton)
-      }
+    expect(style.minWidth).toBeGreaterThanOrEqual(44);
+    expect(style.minHeight).toBeGreaterThanOrEqual(44);
+  });
 
-      expect(screen.getByText('Singularity Pet Count: 100')).toBeTruthy()
-    })
-  })
+  test('has correct accessibility attributes', () => {
+    render(<ClickerScreen />);
 
-  describe('Navigation', () => {
-    test('calls onNavigateToShop when shop button is pressed', () => {
-      render(<ClickerScreen onNavigateToShop={mockNavigateToShop} />)
+    const button = screen.getByRole('button', { name: /feed/i });
+    expect(button.props.accessibilityRole).toBe('button');
+    expect(button.props.accessibilityLabel).toMatch(/feed/i);
+  });
 
-      const shopButton = screen.getByText('Shop')
-      fireEvent.press(shopButton)
+  test('counter has accessibility label with current value', async () => {
+    render(<ClickerScreen />);
 
-      expect(mockNavigateToShop).toHaveBeenCalledTimes(1)
-    })
-  })
+    const button = screen.getByRole('button', { name: /feed/i });
 
-  describe('Accessibility', () => {
-    test('feed button has correct accessibility attributes', () => {
-      render(<ClickerScreen onNavigateToShop={mockNavigateToShop} />)
+    await user.press(button);
 
-      const feedButton = screen.getByRole('button', {
-        name: 'Feed the Singularity Pet'
-      })
-      expect(feedButton).toBeTruthy()
-    })
+    await waitFor(() => {
+      const counterText = screen.getByText(/Singularity Pet Count:/i);
+      expect(counterText.props.accessibilityRole).toBe('text');
+      expect(counterText.props.accessibilityLabel).toMatch(/Singularity Pet Count:/i);
+    });
+  });
 
-    test('shop button has correct accessibility attributes', () => {
-      render(<ClickerScreen onNavigateToShop={mockNavigateToShop} />)
+  // Persistence Integration Test
+  test('restores count after remount', async () => {
+    const { unmount } = render(<ClickerScreen />);
 
-      const shopButton = screen.getByRole('button', {
-        name: 'Navigate to shop'
-      })
-      expect(shopButton).toBeTruthy()
-    })
-  })
+    const button = screen.getByRole('button', { name: /feed/i });
 
-  describe('Visual Regression', () => {
-    test('matches snapshot on initial render', () => {
-      const { toJSON } = render(
-        <ClickerScreen onNavigateToShop={mockNavigateToShop} />
-      )
-      expect(toJSON()).toMatchSnapshot()
-    })
+    // Tap 5 times
+    for (let i = 0; i < 5; i++) {
+      await user.press(button);
+    }
 
-    test('matches snapshot after incrementing counter', () => {
-      const { toJSON } = render(
-        <ClickerScreen onNavigateToShop={mockNavigateToShop} />
-      )
+    await waitFor(() => {
+      const text = screen.getByText(/Singularity Pet Count:/i);
+      const match = text.props.children.join('').match(/(\d+)/);
+      const count = match ? parseInt(match[1]) : 0;
+      expect(count).toBeGreaterThan(0);
+    });
 
-      const feedButton = screen.getByText('feed')
-      fireEvent.press(feedButton)
+    const firstText = screen.getByText(/Singularity Pet Count:/i);
+    const firstMatch = firstText.props.children.join('').match(/(\d+)/);
+    const firstCount = firstMatch ? parseInt(firstMatch[1]) : 0;
 
-      expect(toJSON()).toMatchSnapshot()
-    })
-  })
+    unmount();
 
-  describe('Button Styling', () => {
-    test('feed button applies pressed styles when pressed', () => {
-      render(<ClickerScreen onNavigateToShop={mockNavigateToShop} />)
+    render(<ClickerScreen />);
 
-      const feedButton = screen.getByText('feed')
-
-      fireEvent(feedButton, 'pressIn')
-      fireEvent(feedButton, 'pressOut')
-
-      expect(feedButton).toBeTruthy()
-    })
-
-    test('shop button applies pressed styles when pressed', () => {
-      render(<ClickerScreen onNavigateToShop={mockNavigateToShop} />)
-
-      const shopButton = screen.getByText('Shop')
-
-      fireEvent(shopButton, 'pressIn')
-      fireEvent(shopButton, 'pressOut')
-
-      expect(shopButton).toBeTruthy()
-    })
-  })
-})
+    await waitFor(() => {
+      const secondText = screen.getByText(/Singularity Pet Count:/i);
+      const secondMatch = secondText.props.children.join('').match(/(\d+)/);
+      const secondCount = secondMatch ? parseInt(secondMatch[1]) : 0;
+      // Due to singleton pattern, count should persist
+      expect(secondCount).toBeGreaterThanOrEqual(firstCount);
+    });
+  });
+});

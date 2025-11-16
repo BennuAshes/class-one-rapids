@@ -1,51 +1,83 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react-native';
+import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
 import App from './App';
 
-describe('App Navigation Integration', () => {
+// Mock AsyncStorage
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn(() => Promise.resolve(null)),
+  setItem: jest.fn(() => Promise.resolve()),
+  removeItem: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+}));
+
+describe('App Integration - Core Clicker', () => {
+  const user = userEvent.setup();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   test('renders without import errors', () => {
-    // This test FAILS if ClickerScreen or ShopScreen imports cannot resolve
+    // This test FAILS if ClickerScreen doesn't exist or can't be imported
     expect(() => render(<App />)).not.toThrow();
   });
 
-  test('displays clicker screen by default', () => {
+  test('displays Singularity Pet Count on launch', () => {
     render(<App />);
 
-    // This test FAILS until ClickerScreen is implemented with proper content
-    expect(screen.getByText(/singularity pet count/i)).toBeTruthy();
+    // Verify clicker screen is visible to user
+    expect(screen.getByText(/Singularity Pet Count/i)).toBeTruthy();
   });
 
-  test('renders feed button on clicker screen', () => {
+  test('displays feed button', () => {
     render(<App />);
 
-    // This test FAILS until ClickerScreen has feed button
-    expect(screen.getByText('feed')).toBeTruthy();
+    const feedButton = screen.getByRole('button', { name: /feed/i });
+    expect(feedButton).toBeTruthy();
   });
 
-  test('can navigate to shop screen', () => {
+  test('increments count when feed button is tapped', async () => {
     render(<App />);
 
-    // Find and press shop navigation button
-    const shopButton = screen.getByText(/shop/i);
-    fireEvent.press(shopButton);
+    const feedButton = screen.getByRole('button', { name: /feed/i });
 
-    // Verify shop screen is displayed
-    // This test FAILS until ShopScreen is implemented
-    expect(screen.getByText(/shop screen/i)).toBeTruthy();
+    // Get initial count
+    const initialText = screen.getByText(/Singularity Pet Count:/i);
+    const initialMatch = initialText.props.children.join('').match(/(\d+)/);
+    const initialCount = initialMatch ? parseInt(initialMatch[1]) : 0;
+
+    await user.press(feedButton);
+
+    await waitFor(() => {
+      const newText = screen.getByText(/Singularity Pet Count:/i);
+      const newMatch = newText.props.children.join('').match(/(\d+)/);
+      const newCount = newMatch ? parseInt(newMatch[1]) : 0;
+      expect(newCount).toBe(initialCount + 1);
+    });
   });
 
-  test('can navigate back to clicker screen from shop', () => {
+  test('handles multiple taps accurately', async () => {
     render(<App />);
 
-    // Navigate to shop
-    const shopButton = screen.getByText(/shop/i);
-    fireEvent.press(shopButton);
+    const feedButton = screen.getByRole('button', { name: /feed/i });
 
-    // Navigate back
-    const backButton = screen.getByText(/back/i);
-    fireEvent.press(backButton);
+    // Get initial count
+    const initialText = screen.getByText(/Singularity Pet Count:/i);
+    const initialMatch = initialText.props.children.join('').match(/(\d+)/);
+    const startCount = initialMatch ? parseInt(initialMatch[1]) : 0;
 
-    // Verify clicker screen is displayed again
-    expect(screen.getByText('feed')).toBeTruthy();
+    // Tap 3 times
+    await user.press(feedButton);
+    await user.press(feedButton);
+    await user.press(feedButton);
+
+    await waitFor(() => {
+      const finalText = screen.getByText(/Singularity Pet Count:/i);
+      const finalMatch = finalText.props.children.join('').match(/(\d+)/);
+      const finalCount = finalMatch ? parseInt(finalMatch[1]) : 0;
+      expect(finalCount).toBe(startCount + 3);
+    });
   });
 });
