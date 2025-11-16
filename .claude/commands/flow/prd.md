@@ -36,6 +36,11 @@ Generate a lean, actionable Product Requirements Document based on the file at $
    - Inform technical requirements and architecture decisions
    - Hook-based patterns for feature state
 
+4. **React Native UI Guidelines**: @docs/architecture/react-native-ui-guidelines.md
+   - UI component requirements (use modern, non-deprecated components)
+   - Accessibility baselines (44pt touch targets, WCAG compliance)
+   - Platform compatibility considerations
+
 ---
 
 ## Analysis Phase - LEAN APPROACH
