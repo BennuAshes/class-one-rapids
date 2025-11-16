@@ -90,3 +90,124 @@ describe('usePersistedCounter Hook', () => {
     expect(typeof result.current.count$.get()).toBe('number');
   });
 });
+
+describe('usePersistedCounter Pet Bonus Integration', () => {
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+
+    // Reset count$ and scrap$
+    const { result: counterResult, unmount: counterUnmount } = renderHook(() => usePersistedCounter());
+    act(() => {
+      counterResult.current.count$.set(0);
+    });
+    counterUnmount();
+
+    // Reset scrap$ and purchased upgrades
+    const petCount$ = require('@legendapp/state').observable(0);
+    const { result: scrapResult, unmount: scrapUnmount } = renderHook(() => {
+      const { useScrapGeneration } = require('../scrap/useScrapGeneration');
+      return useScrapGeneration(petCount$);
+    });
+    act(() => {
+      scrapResult.current.scrap$.set(0);
+    });
+
+    const { result: upgradeResult, unmount: upgradeUnmount } = renderHook(() => {
+      const { useUpgrades } = require('../shop/useUpgrades');
+      return useUpgrades(scrapResult.current.scrap$);
+    });
+    act(() => {
+      upgradeResult.current.purchasedUpgradeIds$.set([]);
+    });
+
+    scrapUnmount();
+    upgradeUnmount();
+  });
+
+  test('increment applies pet bonus from upgrades', async () => {
+    // Set up purchased upgrade with +1 bonus
+    const petCount$ = require('@legendapp/state').observable(0);
+    const { result: scrapResult, unmount: scrapUnmount } = renderHook(() => {
+      const { useScrapGeneration } = require('../scrap/useScrapGeneration');
+      return useScrapGeneration(petCount$);
+    });
+
+    const { result: upgradeResult, unmount: upgradeUnmount } = renderHook(() => {
+      const { useUpgrades } = require('../shop/useUpgrades');
+      return useUpgrades(scrapResult.current.scrap$);
+    });
+
+    act(() => {
+      // Mock purchased upgrade 'pet-boost-1' with +1 bonus
+      upgradeResult.current.purchasedUpgradeIds$.set(['pet-boost-1']);
+    });
+
+    scrapUnmount();
+    upgradeUnmount();
+
+    // Now render the counter hook
+    const { result } = renderHook(() => usePersistedCounter());
+
+    const initialCount = result.current.count$.get();
+
+    act(() => {
+      result.current.actions.increment();
+    });
+
+    await waitFor(() => {
+      // 1 base + 1 bonus = 2 total pets added
+      expect(result.current.count$.get()).toBe(initialCount + 2);
+    });
+  });
+
+  test('stacks multiple pet bonuses', async () => {
+    // Set up multiple purchased upgrades with +1 and +2 bonuses
+    const petCount$ = require('@legendapp/state').observable(0);
+    const { result: scrapResult, unmount: scrapUnmount } = renderHook(() => {
+      const { useScrapGeneration } = require('../scrap/useScrapGeneration');
+      return useScrapGeneration(petCount$);
+    });
+
+    const { result: upgradeResult, unmount: upgradeUnmount } = renderHook(() => {
+      const { useUpgrades } = require('../shop/useUpgrades');
+      return useUpgrades(scrapResult.current.scrap$);
+    });
+
+    act(() => {
+      // Mock two pet bonus upgrades (+1 and +2)
+      upgradeResult.current.purchasedUpgradeIds$.set(['pet-boost-1', 'pet-boost-2']);
+    });
+
+    scrapUnmount();
+    upgradeUnmount();
+
+    const { result } = renderHook(() => usePersistedCounter());
+
+    const initialCount = result.current.count$.get();
+
+    act(() => {
+      result.current.actions.increment();
+    });
+
+    await waitFor(() => {
+      // 1 base + 3 total bonus (1+2) = 4 total pets added
+      expect(result.current.count$.get()).toBe(initialCount + 4);
+    });
+  });
+
+  test('works with no bonuses purchased', async () => {
+    const { result } = renderHook(() => usePersistedCounter());
+
+    const initialCount = result.current.count$.get();
+
+    act(() => {
+      result.current.actions.increment();
+    });
+
+    await waitFor(() => {
+      // 1 base + 0 bonus = 1 total pet added
+      expect(result.current.count$.get()).toBe(initialCount + 1);
+    });
+  });
+});

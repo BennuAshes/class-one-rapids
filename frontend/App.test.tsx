@@ -1,6 +1,9 @@
 import React from 'react';
 import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { renderHook, act } from '@testing-library/react-native';
 import App from './App';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from './shared/hooks/useNavigation';
 
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -17,6 +20,7 @@ describe('App Integration - Core Clicker', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
   });
 
   test('renders without import errors', () => {
@@ -78,6 +82,56 @@ describe('App Integration - Core Clicker', () => {
       const finalMatch = finalText.props.children.join('').match(/(\d+)/);
       const finalCount = finalMatch ? parseInt(finalMatch[1]) : 0;
       expect(finalCount).toBe(startCount + 3);
+    });
+  });
+});
+
+describe('App Navigation Integration', () => {
+  const user = userEvent.setup();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+    // Reset navigation state before each test
+    const { result } = renderHook(() => useNavigation());
+    act(() => {
+      result.current.actions.reset();
+    });
+  });
+
+  test('starts on clicker screen', () => {
+    render(<App />);
+    expect(screen.getByText(/Singularity Pet Count/i)).toBeTruthy();
+  });
+
+  test('navigates to shop when shop button pressed', async () => {
+    render(<App />);
+
+    const shopButton = screen.getByRole('button', { name: /shop/i });
+    await user.press(shopButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/available upgrades/i)).toBeTruthy();
+    });
+  });
+
+  test('navigates back to clicker when back button pressed', async () => {
+    render(<App />);
+
+    // Navigate to shop
+    const shopButton = screen.getByRole('button', { name: /shop/i });
+    await user.press(shopButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/available upgrades/i)).toBeTruthy();
+    });
+
+    // Navigate back
+    const backButton = screen.getByRole('button', { name: /back/i });
+    await user.press(backButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Singularity Pet Count/i)).toBeTruthy();
     });
   });
 });
