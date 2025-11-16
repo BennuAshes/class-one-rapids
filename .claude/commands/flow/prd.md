@@ -42,6 +42,19 @@ Generate a lean, actionable Product Requirements Document based on the file at $
 
 **CRITICAL PRINCIPLE**: Only document features explicitly requested by the user. Do NOT infer or add features based on "typical" patterns for this type of application.
 
+**STRICT RULE**: If the user's request describes a single screen/view, the PRD scope MUST be limited to that single screen. Do NOT assume multi-screen architecture, navigation, or additional views unless explicitly requested.
+
+**SINGLE-SCREEN DETECTION**: Before adding ANY navigation or additional screens:
+1. Count how many distinct screens/views the user explicitly mentioned
+2. If count = 1 (or 0), the PRD MUST NOT include:
+   - Navigation between screens
+   - Additional placeholder screens
+   - Multi-screen architecture
+   - "Coming soon" screens for future features
+3. Integration with existing App.tsx should be MINIMAL:
+   - Mount the component directly in App.tsx
+   - Do NOT create wrapper screens unless explicitly needed for the component to function
+
 First, analyze the feature description to extract (following @docs/architecture/lean-task-generation-guide.md principles):
 
 1. **Explicitly Requested Features**: What did the user specifically ask for?
@@ -58,6 +71,10 @@ First, analyze the feature description to extract (following @docs/architecture/
 - ❌ DO NOT add multi-device sync if user didn't mention it
 - ❌ DO NOT add offline support if user didn't mention it
 - ❌ DO NOT add complex error recovery beyond preventing crashes
+- ❌ DO NOT add navigation/routing if user didn't mention multiple screens or navigation
+- ❌ DO NOT add additional screens/views beyond what user specified
+- ❌ DO NOT add shop/store/inventory systems unless explicitly requested
+- ❌ DO NOT add multi-screen architecture for single-screen requests
 
 **WHEN TO ADD BEYOND USER REQUEST** (minimal platform requirements only):
 - ✅ Basic error states (loading, error) - ONLY to prevent crashes, not comprehensive error handling

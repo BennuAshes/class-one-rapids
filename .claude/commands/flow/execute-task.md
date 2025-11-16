@@ -83,6 +83,15 @@ ONLY proceed if validation passes:
    ✓ Rationale: Shop screen is the integration point, upgrades are feature components
    ```
 
+   **Integration Simplicity Check**:
+   - Does the original feature request mention navigation/multiple screens?
+   - NO → Use MINIMAL integration (direct mount in App.tsx, no new screens)
+   - YES → Plan full navigation integration
+
+   Example:
+   - Request: "button and counter" → Mount SingularityPet directly in App.tsx
+   - Request: "shop screen with upgrades" → Create screen + navigation
+
 4. **Validation**:
    - Verify integration points are wired correctly
    - Confirm component will be visible to user (not orphaned)
