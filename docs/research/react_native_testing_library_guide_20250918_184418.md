@@ -46,7 +46,6 @@ module.exports = {
 | `npm test` | Run all tests | `npm test` |
 | `npm test -- --watch` | Run tests in watch mode | `npm test -- --watch` |
 | `npm test -- --coverage` | Generate coverage report | `npm test -- --coverage` |
-| `npm test -- --updateSnapshot` | Update snapshots | `npm test -- -u` |
 | `npm test -- ComponentName` | Test specific file | `npm test -- Button.test` |
 
 ## 💻 Code Examples
@@ -644,38 +643,6 @@ test('button meets accessibility touch target size', () => {
 
 ## 🔍 Testing Patterns
 
-### Snapshot Testing with Accessibility
-```typescript
-// Component.test.tsx
-import React from 'react';
-import { render } from '@testing-library/react-native';
-import { axe, toHaveNoViolations } from 'jest-axe-native';
-import { Component } from './Component';
-
-expect.extend(toHaveNoViolations);
-
-describe('Component', () => {
-  test('matches snapshot', () => {
-    const { toJSON } = render(<Component />);
-    expect(toJSON()).toMatchSnapshot();
-  });
-
-  test('has no accessibility violations', async () => {
-    const { container } = render(<Component />);
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
-  });
-
-  test('accessibility properties', () => {
-    const { await findByRole } = render(<Component />);
-
-    const button = await findByRole('button', { name: 'Submit' });
-    expect(button).toHaveAccessibilityHint('Submits the form');
-    expect(button).toHaveAccessibilityState({ disabled: false });
-  });
-});
-```
-
 ### Modal Testing
 ```typescript
 // Modal.test.tsx
@@ -768,7 +735,6 @@ describe('Performance', () => {
 ### Current Limitations (2024-2025)
 - **fireEvent.scroll** issues with React Native 0.73+ for FlatList render window updates
 - **User Event** doesn't support all gesture types yet (swipe, pinch, rotate)
-- **Snapshot testing** doesn't capture native component visual appearance
 - **Animations** are difficult to test reliably - usually need to be mocked
 - **Native modules** require manual mocking for each module
 

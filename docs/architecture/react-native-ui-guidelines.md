@@ -546,19 +546,6 @@ Screen with notch/safe areas?
 
 ## Testing UI Components
 
-### Visual Regression Testing
-
-```typescript
-// Component.test.tsx
-import { render } from '@testing-library/react-native';
-import { Component } from './Component';
-
-test('renders correctly', () => {
-  const { toJSON } = render(<Component />);
-  expect(toJSON()).toMatchSnapshot();
-});
-```
-
 ### Accessibility Testing
 
 ```typescript
