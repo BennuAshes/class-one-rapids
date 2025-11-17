@@ -294,6 +294,40 @@ Generate the task list with this structure:
 - **Generated**: [timestamp]
 - **Total Tasks**: [count]
 
+## 📋 TASK COMPLETION TRACKING
+
+**CRITICAL**: The execute-task agent MUST check off tasks as they are completed by editing this file.
+
+**Instructions for execute-task agent**:
+1. When you START a task, check the "🔄 In Progress" box
+2. When you COMPLETE a task, check the "✅ Completed" box
+3. Use the Edit tool to update this file after each task status change
+4. DO NOT mark a task complete until ALL its acceptance criteria are met
+
+### Phase 1: [Phase Name]
+- [ ] 🔄 Task 1.1: [Task Name] - [ ] ✅ Completed
+- [ ] 🔄 Task 1.2: [Task Name] - [ ] ✅ Completed
+- [ ] 🔄 Task 1.3: [Task Name] - [ ] ✅ Completed
+
+### Phase 2: [Phase Name]
+- [ ] 🔄 Task 2.1: [Task Name] - [ ] ✅ Completed
+- [ ] 🔄 Task 2.2: [Task Name] - [ ] ✅ Completed
+
+### Phase 3: [Phase Name]
+- [ ] 🔄 Task 3.1: [Task Name] - [ ] ✅ Completed
+- [ ] 🔄 Task 3.2: [Task Name] - [ ] ✅ Completed
+
+### Phase 4: [Phase Name]
+- [ ] 🔄 Task 4.1: [Task Name] - [ ] ✅ Completed
+
+### Phase 5: [Phase Name]
+- [ ] 🔄 Task 5.1: [Task Name] - [ ] ✅ Completed
+- [ ] 🔄 Task 5.2: [Task Name] - [ ] ✅ Completed
+
+**Progress**: 0/[total] tasks completed (0%)
+
+---
+
 ## Phase 1: First User-Visible Feature (Per @docs/architecture/lean-task-generation-guide.md)
 
 _Duration: [X] days | Priority: P0 | Prerequisites: None_

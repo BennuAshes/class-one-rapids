@@ -1,187 +1,160 @@
 import { observable, computed } from '@legendapp/state';
-import { Upgrade } from '../../modules/upgrades/types';
-import { UPGRADE_DEFINITIONS } from '../../modules/upgrades/upgradeDefinitions';
-import { PurchaseResult, PurchaseError } from '../../modules/upgrades/types';
-import { savePurchases, loadPurchases } from './persistence';
+import { GameState } from '../types/game';
+import { loadGameState, saveGameState } from './persistence';
+import { UPGRADES } from '../../modules/shop/upgradeDefinitions';
 
 /**
- * Type of upgrade available in the shop
- * @deprecated Use Upgrade from upgrades module instead
+ * Maximum value for pet count (JavaScript safe integer limit)
  */
-export type UpgradeType = 'scrap-per-pet' | 'pets-per-feed';
+export const maxPetCount = Number.MAX_SAFE_INTEGER;
 
 /**
- * Shared game state observable
- * Contains cross-feature game progression state
+ * Debounce delay for saving state to storage (in milliseconds)
  */
-export const gameState$ = observable({
-  petCount: 0,  // Singularity Pet Count (shared with ClickerScreen)
-  scrap: 0,     // Passive resource (scrap system)
-  upgrades: UPGRADE_DEFINITIONS as Upgrade[],
-  purchasedUpgrades: [] as string[],
+const SAVE_DEBOUNCE_MS = 1000;
+
+/**
+ * Timeout handle for debounced save operations
+ */
+let saveTimeout: NodeJS.Timeout | null = null;
+
+/**
+ * Central game state observable using Legend State.
+ * This observable holds all game state and automatically triggers UI updates.
+ */
+export const gameState$ = observable<GameState>({
+  petCount: 0,
+  scrap: 0,
+  upgrades: [],
+  purchasedUpgrades: [],
 });
 
 /**
- * Computed total scrap multiplier from all purchased scrapMultiplier upgrades
- * Base: 0 (no bonuses)
- * With upgrades: sum of all purchased scrapMultiplier effectValues
+ * Computed observable that calculates the total scrap multiplier from purchased upgrades.
+ * Sums up all scrapMultiplier effectValues from purchased upgrades.
+ *
+ * @returns The total scrap multiplier as a decimal (0.1 = 10%, 0.5 = 50%, etc.)
+ *
+ * @example
+ * ```typescript
+ * // With scrap-boost-1 (0.1) and scrap-boost-2 (0.15) purchased:
+ * const multiplier = totalScrapMultiplier$.get(); // 0.25
+ * const scrapGenerated = basePets * (1 + multiplier); // basePets * 1.25
+ * ```
  */
-export const totalScrapBonus$ = computed(() => {
-  const purchasedIds = gameState$.purchasedUpgrades.get();
+export const totalScrapMultiplier$ = computed(() => {
+  const purchased = gameState$.purchasedUpgrades.get();
   const upgrades = gameState$.upgrades.get();
 
-  const scrapUpgrades = upgrades.filter(
-    u => u.effectType === 'scrapMultiplier' && purchasedIds.includes(u.id)
-  );
-
-  return scrapUpgrades.reduce((sum, upgrade) => sum + upgrade.effectValue, 0);
+  return upgrades
+    .filter(u => purchased.includes(u.id) && u.effectType === 'scrapMultiplier')
+    .reduce((sum, u) => sum + u.effectValue, 0);
 });
 
 /**
- * Computed total pet bonus from all purchased petBonus upgrades
- * Base: 0 (no bonuses, just base 1 pet per feed)
- * With upgrades: sum of all purchased petBonus effectValues
+ * Computed observable that calculates the total pet bonus from purchased upgrades.
+ * Sums up all petBonus effectValues from purchased upgrades.
+ *
+ * @returns The total pet bonus as an integer (number of additional pets per feed)
+ *
+ * @example
+ * ```typescript
+ * // With pet-boost-1 (1) and pet-boost-2 (2) purchased:
+ * const bonus = totalPetBonus$.get(); // 3
+ * const petsToAdd = 1 + bonus; // 4 total pets per feed
+ * ```
  */
 export const totalPetBonus$ = computed(() => {
-  const purchasedIds = gameState$.purchasedUpgrades.get();
+  const purchased = gameState$.purchasedUpgrades.get();
   const upgrades = gameState$.upgrades.get();
 
-  const petUpgrades = upgrades.filter(
-    u => u.effectType === 'petBonus' && purchasedIds.includes(u.id)
-  );
+  return upgrades
+    .filter(u => purchased.includes(u.id) && u.effectType === 'petBonus')
+    .reduce((sum, u) => sum + u.effectValue, 0);
+});
 
-  return petUpgrades.reduce((sum, upgrade) => sum + upgrade.effectValue, 0);
+// Set up auto-persistence with debouncing
+// This will save the state 1 second after the last change
+gameState$.onChange(() => {
+  // Clear existing timeout if there is one
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+  }
+
+  // Set new timeout to save state
+  saveTimeout = setTimeout(() => {
+    const state = gameState$.get();
+    saveGameState(state).catch((error) => {
+      console.error('Error auto-saving game state:', error);
+    });
+  }, SAVE_DEBOUNCE_MS);
 });
 
 /**
- * Helper function for scrap multiplier calculation
- * Used in scrapRate$ computed observable
- */
-export function getScrapMultiplier(): number {
-  return 1.0 + totalScrapBonus$.get();
-}
-
-/**
- * Computed scrap generation rate (scrap per second)
- * Auto-recomputes when petCount or purchased upgrades change
- */
-export const scrapRate$ = computed(() => {
-  const petCount = gameState$.petCount.get();
-  const scrapMultiplier = getScrapMultiplier();
-  return Math.floor(petCount * scrapMultiplier);
-});
-
-/**
- * Computed observable that filters out purchased upgrades
- * Returns only upgrades that haven't been purchased yet
- */
-export const availableUpgrades$ = computed(() => {
-  const allUpgrades = gameState$.upgrades.get();
-  const purchased = gameState$.purchasedUpgrades.get();
-  return allUpgrades.filter(u => !purchased.includes(u.id));
-});
-
-/**
- * Purchase an upgrade
- * Validates affordability and purchase state, then commits transaction
+ * Increments the pet count by a specified amount.
  *
- * @param upgradeId - ID of upgrade to purchase
- * @returns Purchase result with success status and optional error
+ * @param amount - The amount to increment by (default: 1)
  */
-export async function purchaseUpgrade(upgradeId: string): Promise<PurchaseResult> {
-  const upgrade = gameState$.upgrades.get().find(u => u.id === upgradeId);
-
-  // Validation: upgrade exists
-  if (!upgrade) {
-    return { success: false, error: PurchaseError.INVALID_UPGRADE_ID };
-  }
-
-  // Validation: not already purchased
-  const alreadyPurchased = gameState$.purchasedUpgrades.get().includes(upgradeId);
-  if (alreadyPurchased) {
-    return { success: false, error: PurchaseError.ALREADY_PURCHASED };
-  }
-
-  // Validation: sufficient scrap
-  const currentScrap = gameState$.scrap.get();
-  if (currentScrap < upgrade.scrapCost) {
-    return { success: false, error: PurchaseError.INSUFFICIENT_SCRAP };
-  }
-
-  // Atomic transaction: deduct scrap and record purchase
-  try {
-    gameState$.scrap.set(prev => prev - upgrade.scrapCost);
-    gameState$.purchasedUpgrades.set(prev => [...prev, upgradeId]);
-
-    return { success: true };
-  } catch (error) {
-    console.error('Purchase transaction failed:', error);
-    return { success: false, error: PurchaseError.PERSISTENCE_FAILED };
-  }
+export function incrementPetCount(amount: number = 1): void {
+  gameState$.petCount.set((prev) => prev + amount);
 }
 
 /**
- * Check if player can afford an upgrade
- * @param upgradeId - Unique upgrade identifier
- * @returns True if player has sufficient scrap
+ * Resets the pet count to zero.
  */
-export function canAffordUpgrade(upgradeId: string): boolean {
-  const upgrade = gameState$.upgrades.get().find(u => u.id === upgradeId);
-  if (!upgrade) return false;
-
-  const currentScrap = gameState$.scrap.get();
-  return currentScrap >= upgrade.scrapCost;
+export function resetPetCount(): void {
+  gameState$.petCount.set(0);
 }
 
 /**
- * Check if upgrade is already purchased
- * @param upgradeId - Unique upgrade identifier
- * @returns True if upgrade is owned
+ * Resets all game state to default values.
  */
-export function isUpgradePurchased(upgradeId: string): boolean {
-  return gameState$.purchasedUpgrades.get().includes(upgradeId);
-}
-
-/**
- * Get human-readable error message for purchase failure
- * @param error - Purchase error enum value
- * @returns User-friendly error message
- */
-export function getPurchaseErrorMessage(error?: PurchaseError): string {
-  switch (error) {
-    case PurchaseError.INSUFFICIENT_SCRAP:
-      return "Not enough scrap to purchase this upgrade.";
-    case PurchaseError.ALREADY_PURCHASED:
-      return "You already own this upgrade.";
-    case PurchaseError.INVALID_UPGRADE_ID:
-      return "Upgrade not found. Please restart the app.";
-    case PurchaseError.PERSISTENCE_FAILED:
-      return "Purchase successful, but failed to save. Your purchase may be lost.";
-    default:
-      return "An unknown error occurred.";
-  }
-}
-
-/**
- * Initialize purchases from storage on app launch
- */
-export async function initializePurchases(): Promise<void> {
-  try {
-    const savedPurchases = await loadPurchases();
-    gameState$.purchasedUpgrades.set(savedPurchases);
-  } catch (error) {
-    console.error('Failed to initialize purchases:', error);
-    gameState$.purchasedUpgrades.set([]);
-  }
-}
-
-// Auto-persist purchases when they change (with debounce)
-gameState$.purchasedUpgrades.onChange((changes) => {
-  const newPurchases = changes.value;
-  savePurchases(newPurchases).catch(error => {
-    console.error('Failed to persist purchases:', error);
+export function resetGameState(): void {
+  gameState$.set({
+    petCount: 0,
+    scrap: 0,
+    upgrades: [],
+    purchasedUpgrades: [],
   });
-});
+}
 
-// Re-export Upgrade type for backwards compatibility
-export type { Upgrade };
+/**
+ * Checks if the pet count is at the maximum value.
+ *
+ * @returns true if pet count is at or exceeds maximum
+ */
+export function isPetCountAtMax(): boolean {
+  return gameState$.petCount.get() >= maxPetCount;
+}
+
+/**
+ * Initializes the game state from persistent storage.
+ * Loads saved state if available, otherwise continues with defaults.
+ * Populates upgrades array from UPGRADES definition if empty.
+ * Never throws errors - failures are logged and gracefully handled.
+ */
+export async function initializeGameState(): Promise<void> {
+  try {
+    const savedState = await loadGameState();
+
+    if (savedState) {
+      // Merge saved state with current state
+      gameState$.set({
+        ...gameState$.get(),
+        ...savedState,
+      });
+    }
+
+    // Populate upgrades array if empty (first load or missing from saved state)
+    if (gameState$.upgrades.get().length === 0) {
+      gameState$.upgrades.set(UPGRADES);
+    }
+  } catch (error) {
+    console.error('Error initializing game state:', error);
+
+    // On error, still try to ensure upgrades are populated for playable state
+    if (gameState$.upgrades.get().length === 0) {
+      gameState$.upgrades.set(UPGRADES);
+    }
+  }
+}

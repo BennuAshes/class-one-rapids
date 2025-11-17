@@ -1,180 +1,307 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { ShopScreen } from './ShopScreen';
-import { gameState$ } from '../../shared/store/gameStore';
+import { gameState$, resetGameState, totalScrapMultiplier$, totalPetBonus$ } from '../../shared/store/gameStore';
+import { Upgrade } from '../../shared/types/game';
+import { UPGRADES } from './upgradeDefinitions';
+
+const mockUpgrade: Upgrade = {
+  id: 'test-upgrade-1',
+  name: 'Test Upgrade',
+  description: 'A test upgrade',
+  cost: 100,
+  effectType: 'scrapMultiplier',
+  effectValue: 2,
+};
 
 describe('ShopScreen', () => {
+  const mockNavigateBack = jest.fn();
+
   beforeEach(() => {
-    gameState$.scrap.set(0);
-    gameState$.upgrades.set([]);
-    gameState$.purchasedUpgrades.set([]);
+    resetGameState();
+    mockNavigateBack.mockClear();
   });
 
-  describe('Initial Render', () => {
-    test('renders without crashing', () => {
-      render(<ShopScreen onNavigateBack={() => {}} />);
-      expect(screen.toJSON()).toBeTruthy();
+  describe('header rendering', () => {
+    test('renders shop title', () => {
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+      expect(screen.getByText('Shop')).toBeTruthy();
     });
 
-    test('accepts onNavigateBack prop', () => {
-      const mockCallback = jest.fn();
-      render(<ShopScreen onNavigateBack={mockCallback} />);
-      // Component should render without error
-      expect(screen.toJSON()).toBeTruthy();
-    });
-  });
-
-  describe('Header', () => {
-    test('displays shop title', () => {
-      render(<ShopScreen onNavigateBack={() => {}} />);
-      expect(screen.getByText(/shop/i)).toBeTruthy();
+    test('renders back button', () => {
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+      expect(screen.getByText('← Back')).toBeTruthy();
     });
 
-    test('title has header accessibility role', () => {
-      render(<ShopScreen onNavigateBack={() => {}} />);
-      const title = screen.getByRole('header');
-      expect(title).toBeTruthy();
-      expect(title.props.children).toMatch(/shop/i);
-    });
-  });
-
-  describe('Navigation', () => {
-    test('displays back button', () => {
-      render(<ShopScreen onNavigateBack={() => {}} />);
-      const backButton = screen.getByRole('button', { name: /back/i });
-      expect(backButton).toBeTruthy();
+    test('renders scrap balance in header', () => {
+      gameState$.scrap.set(500);
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+      expect(screen.getByText('500')).toBeTruthy();
     });
 
     test('calls onNavigateBack when back button pressed', () => {
-      const mockNavigateBack = jest.fn();
       render(<ShopScreen onNavigateBack={mockNavigateBack} />);
-
-      const backButton = screen.getByRole('button', { name: /back/i });
+      const backButton = screen.getByText('← Back');
       fireEvent.press(backButton);
-
       expect(mockNavigateBack).toHaveBeenCalledTimes(1);
     });
-
-    test('back button has accessible label', () => {
-      render(<ShopScreen onNavigateBack={() => {}} />);
-      const backButton = screen.getByRole('button', { name: /back/i });
-      expect(backButton.props.accessibilityLabel).toMatch(/back/i);
-    });
   });
 
-  describe('Scrap Balance Display', () => {
-    test('displays scrap balance', () => {
-      gameState$.scrap.set(100);
-      render(<ShopScreen onNavigateBack={() => {}} />);
-      expect(screen.getByText(/scrap: 100/i)).toBeTruthy();
-    });
-
-    test('displays zero scrap initially', () => {
-      gameState$.scrap.set(0);
-      render(<ShopScreen onNavigateBack={() => {}} />);
-      expect(screen.getByText(/scrap: 0/i)).toBeTruthy();
-    });
-
-    test('updates when scrap changes', () => {
-      const { rerender } = render(<ShopScreen onNavigateBack={() => {}} />);
-
-      gameState$.scrap.set(250);
-      rerender(<ShopScreen onNavigateBack={() => {}} />);
-
-      expect(screen.getByText(/scrap: 250/i)).toBeTruthy();
-    });
-
-    test('handles large scrap numbers', () => {
-      gameState$.scrap.set(999999);
-      render(<ShopScreen onNavigateBack={() => {}} />);
-      expect(screen.getByText(/scrap: 999999/i)).toBeTruthy();
-    });
-
-    test('scrap balance has accessibility attributes', () => {
-      gameState$.scrap.set(100);
-      render(<ShopScreen onNavigateBack={() => {}} />);
-
-      const scrapText = screen.getByText(/scrap: 100/i);
-      expect(scrapText.props.accessibilityRole).toBe('text');
-    });
-  });
-
-  describe('Empty State', () => {
-    test('displays empty state when no upgrades', () => {
+  describe('empty state', () => {
+    test('displays empty state when no upgrades available', () => {
       gameState$.upgrades.set([]);
-      render(<ShopScreen onNavigateBack={() => {}} />);
-      expect(screen.getByText(/no upgrades available/i)).toBeTruthy();
-    });
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
 
-    test('displays empty state subtext', () => {
-      gameState$.upgrades.set([]);
-      render(<ShopScreen onNavigateBack={() => {}} />);
-      expect(screen.getByText(/check back soon/i)).toBeTruthy();
-    });
-
-    test('empty state text has accessibility role', () => {
-      gameState$.upgrades.set([]);
-      render(<ShopScreen onNavigateBack={() => {}} />);
-
-      const emptyText = screen.getByText(/no upgrades available/i);
-      expect(emptyText.props.accessibilityRole).toBe('text');
+      expect(screen.getByText('No upgrades available yet.')).toBeTruthy();
+      expect(screen.getByText('Check back soon for new upgrades!')).toBeTruthy();
     });
 
     test('does not display empty state when upgrades exist', () => {
-      gameState$.upgrades.set([
-        {
-          id: 'test',
-          name: 'Test Upgrade',
-          description: 'Test',
-          scrapCost: 100,
-          type: 'scrap-per-pet',
-          effectValue: 0.5,
-        },
-      ]);
+      gameState$.upgrades.set([mockUpgrade]);
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
 
-      render(<ShopScreen onNavigateBack={() => {}} />);
-      expect(screen.queryByText(/no upgrades available/i)).toBeNull();
+      expect(screen.queryByText('No upgrades available yet.')).toBeNull();
     });
   });
 
-  describe('Accessibility', () => {
-    test('header has correct accessibility role', () => {
-      render(<ShopScreen onNavigateBack={() => {}} />);
-      const header = screen.getByRole('header');
-      expect(header.props.accessibilityRole).toBe('header');
+  describe('upgrade card rendering', () => {
+    test('renders upgrade name, description, and cost', () => {
+      gameState$.upgrades.set([mockUpgrade]);
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      expect(screen.getByText('Test Upgrade')).toBeTruthy();
+      expect(screen.getByText('A test upgrade')).toBeTruthy();
+      expect(screen.getByText('Cost: 100 scrap')).toBeTruthy();
     });
 
-    test('back button has accessible label', () => {
-      render(<ShopScreen onNavigateBack={() => {}} />);
-      const backButton = screen.getByRole('button', { name: /back/i });
-      expect(backButton.props.accessibilityLabel).toMatch(/back/i);
+    test('renders upgrade effect for scrapMultiplier', () => {
+      gameState$.upgrades.set([mockUpgrade]);
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      expect(screen.getByText(/Scrap Multiplier x2/)).toBeTruthy();
     });
 
-    test('back button meets minimum touch target size', () => {
-      render(<ShopScreen onNavigateBack={() => {}} />);
-      const backButton = screen.getByRole('button', { name: /back/i });
+    test('renders upgrade effect for petBonus', () => {
+      const petBonusUpgrade: Upgrade = {
+        id: 'pet-bonus-1',
+        name: 'Pet Bonus',
+        description: 'Bonus for pets',
+        cost: 50,
+        effectType: 'petBonus',
+        effectValue: 5,
+      };
 
-      // Extract style (may be array or object)
-      const style = Array.isArray(backButton.props.style)
-        ? backButton.props.style.reduce((acc, s) => ({ ...acc, ...s }), {})
-        : backButton.props.style;
+      gameState$.upgrades.set([petBonusUpgrade]);
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
 
-      expect(style.minWidth).toBeGreaterThanOrEqual(44);
-      expect(style.minHeight).toBeGreaterThanOrEqual(44);
+      expect(screen.getByText(/Pet Bonus \+5/)).toBeTruthy();
     });
 
-    test('all text elements have appropriate roles', () => {
+    test('renders multiple upgrade cards', () => {
+      const upgrade1: Upgrade = { ...mockUpgrade, id: 'up1', name: 'Upgrade 1' };
+      const upgrade2: Upgrade = { ...mockUpgrade, id: 'up2', name: 'Upgrade 2' };
+
+      gameState$.upgrades.set([upgrade1, upgrade2]);
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      expect(screen.getByText('Upgrade 1')).toBeTruthy();
+      expect(screen.getByText('Upgrade 2')).toBeTruthy();
+    });
+  });
+
+  describe('purchase button states', () => {
+    test('shows "Buy" button when scrap is sufficient and not owned', () => {
+      gameState$.scrap.set(200);
+      gameState$.upgrades.set([mockUpgrade]);
+      gameState$.purchasedUpgrades.set([]);
+
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      expect(screen.getByText('Buy')).toBeTruthy();
+    });
+
+    test('shows "Not enough scrap" when scrap is insufficient', () => {
+      gameState$.scrap.set(50);
+      gameState$.upgrades.set([mockUpgrade]);
+      gameState$.purchasedUpgrades.set([]);
+
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      expect(screen.getByText('Not enough scrap')).toBeTruthy();
+    });
+
+    test('shows "Owned" when upgrade already purchased', () => {
+      gameState$.scrap.set(200);
+      gameState$.upgrades.set([mockUpgrade]);
+      gameState$.purchasedUpgrades.set(['test-upgrade-1']);
+
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      expect(screen.getByText('Owned')).toBeTruthy();
+    });
+  });
+
+  describe('purchase flow', () => {
+    test('deducts scrap when purchase button pressed', () => {
+      gameState$.scrap.set(200);
+      gameState$.upgrades.set([mockUpgrade]);
+      gameState$.purchasedUpgrades.set([]);
+
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      const buyButton = screen.getByText('Buy');
+      fireEvent.press(buyButton);
+
+      expect(gameState$.scrap.get()).toBe(100);
+    });
+
+    test('adds upgrade to purchasedUpgrades when purchased', () => {
+      gameState$.scrap.set(200);
+      gameState$.upgrades.set([mockUpgrade]);
+      gameState$.purchasedUpgrades.set([]);
+
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      const buyButton = screen.getByText('Buy');
+      fireEvent.press(buyButton);
+
+      expect(gameState$.purchasedUpgrades.get()).toContain('test-upgrade-1');
+    });
+
+    test('prevents double purchase', () => {
+      gameState$.scrap.set(200);
+      gameState$.upgrades.set([mockUpgrade]);
+      gameState$.purchasedUpgrades.set([]);
+
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      const buyButton = screen.getByText('Buy');
+      fireEvent.press(buyButton);
+      fireEvent.press(buyButton);
+
+      expect(gameState$.purchasedUpgrades.get().length).toBe(1);
+      expect(gameState$.scrap.get()).toBe(100);
+    });
+
+    test('allows purchase when scrap equals cost', () => {
       gameState$.scrap.set(100);
-      gameState$.upgrades.set([]);
+      gameState$.upgrades.set([mockUpgrade]);
+      gameState$.purchasedUpgrades.set([]);
 
-      render(<ShopScreen onNavigateBack={() => {}} />);
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
 
-      // Check header
-      expect(screen.getByRole('header')).toBeTruthy();
+      const buyButton = screen.getByText('Buy');
+      fireEvent.press(buyButton);
 
-      // Check text elements
-      const textElements = screen.getAllByRole('text');
-      expect(textElements.length).toBeGreaterThan(0);
+      expect(gameState$.scrap.get()).toBe(0);
+      expect(gameState$.purchasedUpgrades.get()).toContain('test-upgrade-1');
+    });
+  });
+
+  describe('reactive updates', () => {
+    test('scrap display updates when scrap changes', () => {
+      gameState$.scrap.set(100);
+      const { rerender } = render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      expect(screen.getByText('100')).toBeTruthy();
+
+      gameState$.scrap.set(200);
+      rerender(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      expect(screen.getByText('200')).toBeTruthy();
+    });
+
+    test('button label changes from "Buy" to "Owned" after purchase', () => {
+      gameState$.scrap.set(200);
+      gameState$.upgrades.set([mockUpgrade]);
+      gameState$.purchasedUpgrades.set([]);
+
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      expect(screen.getByText('Buy')).toBeTruthy();
+
+      const buyButton = screen.getByText('Buy');
+      fireEvent.press(buyButton);
+
+      expect(screen.getByText('Owned')).toBeTruthy();
+      expect(screen.queryByText('Buy')).toBeNull();
+    });
+  });
+
+  describe('accessibility', () => {
+    test('back button has correct accessibility attributes', () => {
+      const { getByLabelText } = render(
+        <ShopScreen onNavigateBack={mockNavigateBack} />
+      );
+
+      const backButton = getByLabelText('Back to main screen');
+      expect(backButton).toBeTruthy();
+      expect(backButton.props.accessibilityRole).toBe('button');
+    });
+
+    test('purchase button has correct accessibility label', () => {
+      gameState$.scrap.set(200);
+      gameState$.upgrades.set([mockUpgrade]);
+      gameState$.purchasedUpgrades.set([]);
+
+      const { getByLabelText } = render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      const button = getByLabelText(`Buy ${mockUpgrade.name} for ${mockUpgrade.cost} scrap`);
+      expect(button).toBeTruthy();
+      expect(button.props.accessibilityRole).toBe('button');
+    });
+  });
+
+  describe('Upgrade Effects Integration', () => {
+    beforeEach(() => {
+      gameState$.set({
+        petCount: 0,
+        scrap: 5000,
+        upgrades: UPGRADES,
+        purchasedUpgrades: [],
+      });
+    });
+
+    test('purchasing scrap multiplier upgrade updates computed observable', () => {
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      const buyButton = screen.getByLabelText(/Buy Scrap Finder/i);
+      fireEvent.press(buyButton);
+
+      expect(totalScrapMultiplier$.get()).toBe(0.1);
+      expect(gameState$.scrap.get()).toBe(4900); // 5000 - 100
+      expect(gameState$.purchasedUpgrades.get()).toContain('scrap-boost-1');
+    });
+
+    test('purchasing pet bonus upgrade updates computed observable', () => {
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      const buyButton = screen.getByLabelText(/Buy Extra Feed/i);
+      fireEvent.press(buyButton);
+
+      expect(totalPetBonus$.get()).toBe(1);
+      expect(gameState$.scrap.get()).toBe(4800); // 5000 - 200
+      expect(gameState$.purchasedUpgrades.get()).toContain('pet-boost-1');
+    });
+
+    test('purchasing multiple upgrades stacks effects', () => {
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      fireEvent.press(screen.getByLabelText(/Buy Scrap Finder/i));
+      fireEvent.press(screen.getByLabelText(/Buy Scrap Magnet/i));
+
+      expect(totalScrapMultiplier$.get()).toBeCloseTo(0.25, 5); // 0.1 + 0.15
+      expect(gameState$.scrap.get()).toBe(4400); // 5000 - 100 - 500
+    });
+
+    test('displays all 5 upgrades from definitions', () => {
+      render(<ShopScreen onNavigateBack={mockNavigateBack} />);
+
+      expect(screen.getByText('Scrap Finder')).toBeTruthy();
+      expect(screen.getByText('Scrap Magnet')).toBeTruthy();
+      expect(screen.getByText('Scrap Amplifier')).toBeTruthy();
+      expect(screen.getByText('Extra Feed')).toBeTruthy();
+      expect(screen.getByText('Double Feed')).toBeTruthy();
     });
   });
 });
