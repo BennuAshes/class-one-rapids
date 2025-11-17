@@ -49,7 +49,7 @@ ONLY proceed if validation passes:
 
 1. **Explore Existing Code**:
    - Use Glob/Grep to find components/screens mentioned in task
-   - Example: Task mentions "ShopScreen" → Search: `Glob **/*Shop*.tsx`
+   - Example: Task mentions "TodoListScreen" → Search: `Glob **/*TodoList*.tsx`
    - Read existing files to understand current implementation
    - Identify integration points (App.tsx, navigation, existing screens)
 
@@ -61,13 +61,13 @@ ONLY proceed if validation passes:
    Does component with this name/purpose already exist?
    ├─ YES → Should I update existing or create new?
    │   ├─ Same purpose → UPDATE existing component
-   │   │   └─ Document: "UPDATING: modules/shop/ShopScreen.tsx (adding upgrade functionality)"
+   │   │   └─ Document: "UPDATING: modules/todo/TodoListScreen.tsx (adding filtering functionality)"
    │   └─ Different purpose → CREATE new with distinct name
-   │       └─ Document: "CREATING: modules/upgrades/UpgradeManagementScreen.tsx (distinct from shop)"
+   │       └─ Document: "CREATING: modules/todo/TodoManagementScreen.tsx (distinct from list)"
    │
    └─ NO → Where should new component live?
-       ├─ Task spec location (modules/upgrades/) if it's primary owner
-       ├─ Related module (modules/shop/) if it extends existing feature
+       ├─ Task spec location (modules/todo/) if it's primary owner
+       ├─ Related module (modules/filters/) if it extends existing feature
        └─ Shared location if used across features
    ```
 
@@ -75,12 +75,12 @@ ONLY proceed if validation passes:
    Before writing code, create mental model:
    ```
    INTEGRATION PLAN:
-   ✓ Explored: modules/shop/ShopScreen.tsx exists (currently shows empty state)
-   ✓ Analyzed: App.tsx imports from modules/shop/ShopScreen.tsx
-   ✓ Decision: UPDATE existing ShopScreen to show upgrades
-   ✓ Location: modules/shop/ShopScreen.tsx (owns shop UI)
-   ✓ New files: modules/upgrades/components/UpgradeCard.tsx (reusable component)
-   ✓ Rationale: Shop screen is the integration point, upgrades are feature components
+   ✓ Explored: modules/todo/TodoListScreen.tsx exists (currently shows empty state)
+   ✓ Analyzed: App.tsx imports from modules/todo/TodoListScreen.tsx
+   ✓ Decision: UPDATE existing TodoListScreen to show items
+   ✓ Location: modules/todo/TodoListScreen.tsx (owns list UI)
+   ✓ New files: modules/todo/components/TodoCard.tsx (reusable component)
+   ✓ Rationale: Todo list screen is the integration point, todo items are feature components
    ```
 
    **Integration Simplicity Check**:
@@ -90,7 +90,7 @@ ONLY proceed if validation passes:
 
    Example:
    - Request: "button and counter" → Mount SingularityPet directly in App.tsx
-   - Request: "shop screen with upgrades" → Create screen + navigation
+   - Request: "todo list screen with filters" → Create screen + navigation
 
 4. **Validation**:
    - Verify integration points are wired correctly
@@ -189,7 +189,7 @@ ONLY proceed if validation passes:
 2. **Determine Implementation Directory**: Extract module directory from task file path (validated in Step 3 above)
    - Parse the task file path to find the parent of `specs/` folder
    - This is WHERE ALL implementation files will be created
-   - Example: `modules/attack-button/specs/tasks.md` → implement in `modules/attack-button/`
+   - Example: `modules/todo/specs/tasks.md` → implement in `modules/todo/`
 3. **Check Task Status**: Look for [COMPLETED] or [PARTIAL] prefixes in task titles
 4. **Identify Target**: Determine which tasks to execute (all tasks from the list)
 5. **Skip Completed Tasks**: Tasks marked [COMPLETED] should be skipped
@@ -217,14 +217,14 @@ The task list should have a section like:
 ## 🔍 Architecture Decisions (from TDD Section 2)
 
 Based on codebase exploration in TDD:
-- UPDATE: modules/shop/ShopScreen.tsx (shop module owns shop UI)
-- CREATE: modules/upgrades/components/UpgradeCard.tsx (new component)
-- CREATE: modules/upgrades/hooks/useUpgradeEffects.ts (new logic)
+- UPDATE: modules/todo/TodoListScreen.tsx (todo module owns list UI)
+- CREATE: modules/todo/components/TodoCard.tsx (new component)
+- CREATE: modules/todo/hooks/useTodoActions.ts (new logic)
 
 Store Properties (verified in TDD):
-- scrapStore.scrap (NOT scrapCount)
-- shopStore.availableUpgrades
-- shopStore.purchasedUpgrades
+- todoStore.items (NOT itemList)
+- todoStore.completed
+- todoStore.active
 ```
 
 **STEP 2: Use These Decisions Throughout Execution**
@@ -239,7 +239,7 @@ When implementing each task:
 **STEP 3: Light Validation Only (Optional)**
 
 If you want to double-check before implementing:
-- Read the file mentioned (e.g., verify `modules/shop/ShopScreen.tsx` exists)
+- Read the file mentioned (e.g., verify `modules/todo/TodoListScreen.tsx` exists)
 - Verify basic structure matches expectations
 - **DO NOT** run full exploration or duplicate the design phase work
 
@@ -288,7 +288,7 @@ For EACH task, before starting implementation:
 
 **2. Light Dependency Check (Optional)**:
    - If task mentions updating an existing file, optionally verify it exists:
-     - Example: `Read modules/shop/ShopScreen.tsx` to confirm it exists
+     - Example: `Read modules/todo/TodoListScreen.tsx` to confirm it exists
    - If file doesn't exist when it should, flag for user review
    - Keep this light - just file existence, not full analysis
 
@@ -328,18 +328,60 @@ Before implementing ANY feature that reads from or writes to existing stores:
 
 **Example of CORRECT validation**:
 ```typescript
-// 1. Read scrap.store.ts first - see it defines: scrap: persist({...})
+// 1. Read todo.store.ts first - see it defines: items: persist({...})
 // 2. Use exact property name in implementation:
-const currentScrap = scrapStore.scrap.get()  // ✅ Matches store
+const currentItems = todoStore.items.get()  // ✅ Matches store
 // 3. Use exact property name in test:
-scrapStore.scrap.set(150)  // ✅ Matches store
+todoStore.items.set([...])  // ✅ Matches store
 ```
 
 **Example of WRONG approach (causes bugs)**:
 ```typescript
-// ❌ Never read scrap.store.ts, guessed "scrapCount"
-const currentScrap = scrapStore.scrapCount.get()  // Creates new property!
-scrapStore.scrapCount.set(150)  // Test passes but feature broken
+// ❌ Never read todo.store.ts, guessed "itemList"
+const currentItems = todoStore.itemList.get()  // Creates new property!
+todoStore.itemList.set([...])  // Test passes but feature broken
+```
+
+**CRITICAL: Pre-execution Persistence Pattern Validation**
+
+Before implementing ANY feature that persists data (AsyncStorage, database, files):
+
+1. **USE Read tool to find existing persistence patterns**
+   - Search for `persist({` or `AsyncStorage` in codebase
+   - Example: `Grep "persist\(" --glob="**/*.ts" --glob="**/*.tsx"`
+   - Example: Read `usePersistedCounter.ts` to see the pattern
+
+2. **Document the persistence mechanism discovered**
+   - Example: "Uses Legend-State persist() with AsyncStorage"
+   - Example: "Uses custom useEffect + AsyncStorage.setItem"
+   - Example: "Uses Legend-State syncObservable pattern"
+
+3. **Copy the existing pattern exactly**
+   - Don't invent new persistence approaches
+   - Use the same API (persist() vs manual setItem)
+   - Use the same debounce/batching strategy
+   - Match the storage key naming convention
+
+4. **Test persistence by LOAD, not by SAVE mock call checks**
+   - If "loads persisted data on mount" test passes → persistence works
+   - Don't add flaky "waitFor AsyncStorage.setItem called" tests
+   - See "CRITICAL: Persistence Testing Exception" section above for details
+
+**Example of finding and copying persistence pattern**:
+```bash
+# Step 1: Search for existing persistence
+Grep "persist\(" modules/todo/
+
+# Found: usePersistedTodos.ts uses:
+# const todos$ = observable(persist({ items: [] }, { local: 'todo-items' }));
+
+# Step 2: Copy this pattern for new feature
+const completed$ = observable(
+  persist(
+    { items: [] },
+    { local: 'completed-items' }  // Match naming: kebab-case
+  )
+);
 ```
 
 **Pre-implementation State Management Check** (see @docs/architecture/state-management-hooks-guide.md):
@@ -387,41 +429,110 @@ The guideline in CLAUDE.md states: "Don't make tests just for hooks, they should
 2. ✅ **SECONDARY: Integration tests** - Multiple components using same store
 3. ❌ **NEVER: Isolated hook tests** - `useFeature.test.ts` testing hook alone
 
-**Example of BUG (what happened with scrapCount vs scrap)**:
+**Example of BUG (what happened with itemList vs items)**:
 ```typescript
 // ❌ BAD: Standalone hook test - BUG HIDDEN
-// useShopActions.test.ts
+// useTodoActions.test.ts
 beforeEach(() => {
-  scrapStore.scrapCount.set(0)  // Creates NEW property (wrong name)
+  todoStore.itemList.set([])  // Creates NEW property (wrong name)
 })
-test('can afford upgrade', () => {
-  scrapStore.scrapCount.set(150)  // Uses wrong property
-  const { result } = renderHook(() => useShopActions())
-  expect(result.current.canAfford(upgrade)).toBe(true)  // ✅ Passes!
+test('can add item', () => {
+  todoStore.itemList.set([])  // Uses wrong property
+  const { result } = renderHook(() => useTodoActions())
+  result.current.addItem(item)
+  expect(result.current.itemList.length).toBe(1)  // ✅ Passes!
 })
 
-// useShopActions.ts implementation
-const canAfford = () => scrapStore.scrapCount.get() >= cost  // Wrong property
+// useTodoActions.ts implementation
+const addItem = () => todoStore.itemList.set([...])  // Wrong property
 
-// RESULT: Test passes, but real app broken because actual store uses "scrap"
+// RESULT: Test passes, but real app broken because actual store uses "items"
 ```
 
 **Example of CORRECT approach**:
 ```typescript
 // ✅ GOOD: Test through component using REAL store
-// ShopScreen.test.tsx
+// TodoListScreen.test.tsx
 beforeEach(() => {
-  scrapStore.scrap.set(0)  // MUST use real property (from store file)
+  todoStore.items.set([])  // MUST use real property (from store file)
 })
-test('purchase button enabled when affordable', () => {
-  scrapStore.scrap.set(150)  // Real property
-  render(<ShopScreen />)  // Component uses useShopActions hook
-  expect(screen.getByTestId('purchase-button').props.disabled).toBe(false)
+test('add button creates new item', () => {
+  todoStore.items.set([])  // Real property
+  render(<TodoListScreen />)  // Component uses useTodoActions hook
+  fireEvent.press(screen.getByText('Add Item'))
+  expect(screen.getAllByTestId('todo-card').length).toBe(1)
 })
 
 // If implementation uses wrong property, test FAILS immediately:
-// "Cannot read property 'get' of undefined" because scrapCount doesn't exist
+// "Cannot read property 'get' of undefined" because itemList doesn't exist
 ```
+
+**CRITICAL: Persistence Testing Exception**
+
+If a hook uses AsyncStorage, database, or other persistence:
+
+❌ **NEVER test persistence by mocking AsyncStorage and checking call counts**
+- Legend-State `persist()` may debounce/batch writes asynchronously
+- Timing-based tests (`waitFor` with mock call checks) are unreliable
+- Mocks don't validate actual persistence behavior
+- You're testing the mock's behavior, not the real persistence
+
+✅ **ALWAYS test persistence through integration**:
+1. Test through component that uses the hook (or direct hook test is acceptable for persistence)
+2. Use REAL AsyncStorage (or in-memory mock that actually stores data)
+3. Test by unmounting/remounting and verifying data survives
+4. Verify "loads persisted data on mount" test PASSES (proves persistence works bidirectionally)
+
+**Example** (from useTodos persistence bug):
+```typescript
+// ❌ BAD: Mock call count test (flaky, timing-dependent)
+test('persists completed items to AsyncStorage', async () => {
+  act(() => {
+    result.current.actions.completeItem('item-1');
+  });
+
+  // This is FLAKY - Legend-State persist() may debounce writes!
+  await waitFor(() => {
+    expect(AsyncStorage.setItem).toHaveBeenCalledWith(...);  // UNRELIABLE!
+  }, { timeout: 2000 });
+});
+
+// ✅ GOOD: Integration test proving persistence works
+test('loads persisted completed items on mount', async () => {
+  // Pre-populate AsyncStorage with real data
+  await AsyncStorage.setItem('completed-items', JSON.stringify(['item-1']));
+
+  // Hook should load this on mount
+  const { result } = renderHook(() => useTodos());
+
+  await waitFor(() => {
+    expect(result.current.completedItems$.get().has('item-1')).toBe(true);
+  });
+  // ✅ This test PASSING proves persistence works bidirectionally!
+});
+
+// ✅ ALSO GOOD: Round-trip persistence test
+test('persists and loads completed items', async () => {
+  // First render: complete an item
+  const { unmount, result } = renderHook(() => useTodos());
+  act(() => {
+    result.current.actions.completeItem('item-1');
+  });
+
+  // Wait for persistence (give it time to save)
+  await new Promise(resolve => setTimeout(resolve, 100));
+  unmount();
+
+  // Second render: verify it loads
+  const { result: result2 } = renderHook(() => useTodos());
+  await waitFor(() => {
+    expect(result2.current.completedItems$.get().has('item-1')).toBe(true);
+  });
+  // ✅ Proves data survived unmount/remount cycle
+});
+```
+
+**If "loads on mount" test passes, persistence IS working** - don't add flaky mock call count tests.
 
 **Test Structure**:
 ```typescript
@@ -446,7 +557,7 @@ describe("[ComponentName]", () => {
 4. **Write the test code** for the FIRST requirement only
 5. **USE Bash tool** to run the test and confirm it fails with expected error
    - **IMPORTANT**: Use cmd.exe to run jest tests for better performance on Windows/WSL
-   - Example: `cmd.exe /c "cd /d C:\dev\cor-worktrees\upgrade-factory\frontend && node node_modules/jest/bin/jest.js modules/path/to/test.test.ts"`
+   - Example: `cmd.exe /c "cd /d C:\path\to\project\frontend && node node_modules/jest/bin/jest.js modules/path/to/test.test.ts"`
 6. Only then proceed to GREEN phase
 
 ### Step 2: GREEN - Write Minimal Code to Pass
@@ -456,7 +567,7 @@ describe("[ComponentName]", () => {
 **State Management Priority**:
 
 1. Start with `useState` for component-local state
-2. Extract to custom hooks (e.g., `useEnemy()`) when logic gets complex
+2. Extract to custom hooks (e.g., `useFilteredTodos()`) when logic gets complex
 3. Use Legend-State ONLY when state needs sharing across features
 4. NEVER create service classes - use hooks for stateful logic
 
@@ -467,7 +578,7 @@ describe("[ComponentName]", () => {
 3. **NO extra features** or premature optimization
 4. **USE Bash tool** to run the test and confirm it now passes
    - **IMPORTANT**: Use cmd.exe to run jest tests for better performance on Windows/WSL
-   - Example: `cmd.exe /c "cd /d C:\dev\cor-worktrees\upgrade-factory\frontend && node node_modules/jest/bin/jest.js modules/path/to/test.test.ts"`
+   - Example: `cmd.exe /c "cd /d C:\path\to\project\frontend && node node_modules/jest/bin/jest.js modules/path/to/test.test.ts"`
 5. Verify all existing tests still pass
 
 ### Step 3: REFACTOR - Improve Code Quality
