@@ -1,24 +1,24 @@
-import { gameState$, scrapRate$, availableUpgrades$ } from '../store/gameStore';
+import { gameState$ } from '../store/gameStore';
 
 /**
- * Hook for accessing shared game state
- * Provides reactive observables for pet count, scrap, scrap rate, and shop state
+ * Custom hook to access game state observables.
+ * Provides access to individual observable properties of the game state.
  *
- * @returns Reactive observables for game state
+ * @returns Object containing observable references for each game state property
  *
  * @example
- * const { petCount$, scrap$, scrapRate$ } = useGameState();
- * const petCount = petCount$.get();  // Read current value
- * petCount$.set(5);                  // Write new value
- * petCount$.set(prev => prev + 1);   // Functional update
+ * ```tsx
+ * function MyComponent() {
+ *   const { petCount$ } = useGameState();
+ *   return <Text>Count: {petCount$.get()}</Text>;
+ * }
+ * ```
  */
 export function useGameState() {
   return {
     petCount$: gameState$.petCount,
     scrap$: gameState$.scrap,
-    scrapRate$: scrapRate$,
     upgrades$: gameState$.upgrades,
     purchasedUpgrades$: gameState$.purchasedUpgrades,
-    availableUpgrades$: availableUpgrades$,
   };
 }

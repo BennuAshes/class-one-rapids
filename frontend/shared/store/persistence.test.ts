@@ -1,5 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { savePurchases, loadPurchases, clearPurchases } from './persistence';
+import { saveGameState, loadGameState, clearGameState, isStorageAvailable, StorageQuotaError } from './persistence';
+import { GameState, PersistedGameState, STORAGE_KEYS } from '../types/game';
+import { gameState$, initializeGameState } from './gameStore';
+import { UPGRADES } from '../../modules/shop/upgradeDefinitions';
 
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage');
@@ -7,127 +10,306 @@ jest.mock('@react-native-async-storage/async-storage');
 describe('persistence', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
   });
 
-  afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
-  });
+  describe('saveGameState', () => {
+    test('saves state to AsyncStorage', async () => {
+      const state: GameState = {
+        petCount: 10,
+        scrap: 50,
+        upgrades: [],
+        purchasedUpgrades: [],
+      };
 
-  describe('savePurchases', () => {
-    test('writes to AsyncStorage with correct key', async () => {
-      const savePromise = savePurchases(['scrap-boost-1', 'pet-boost-1']);
-
-      jest.advanceTimersByTime(1000);
-      await savePromise;
+      await saveGameState(state);
 
       expect(AsyncStorage.setItem).toHaveBeenCalledWith(
-        'purchased-upgrades-v1',
-        expect.stringContaining('"scrap-boost-1"')
+        STORAGE_KEYS.GAME_STATE,
+        expect.stringContaining('"petCount":10')
       );
     });
 
-    test('debounces multiple rapid saves', async () => {
-      savePurchases(['scrap-boost-1']);
-      savePurchases(['scrap-boost-1', 'scrap-boost-2']);
-      const finalSave = savePurchases(['scrap-boost-1', 'scrap-boost-2', 'pet-boost-1']);
+    test('includes version and timestamp', async () => {
+      const state: GameState = {
+        petCount: 5,
+        scrap: 0,
+        upgrades: [],
+        purchasedUpgrades: [],
+      };
 
-      jest.advanceTimersByTime(1000);
-      await finalSave;
+      await saveGameState(state);
 
-      expect(AsyncStorage.setItem).toHaveBeenCalledTimes(1);
+      const savedCall = (AsyncStorage.setItem as jest.Mock).mock.calls[0];
+      const savedData = JSON.parse(savedCall[1]);
+
+      expect(savedData.version).toBe(1);
+      expect(typeof savedData.timestamp).toBe('number');
+      expect(savedData.timestamp).toBeGreaterThan(0);
     });
 
-    test('includes version and timestamp in saved data', async () => {
-      const savePromise = savePurchases(['scrap-boost-1']);
+    test('serializes state as JSON', async () => {
+      const state: GameState = {
+        petCount: 42,
+        scrap: 100,
+        upgrades: [],
+        purchasedUpgrades: ['upgrade1'],
+      };
 
-      jest.advanceTimersByTime(1000);
-      await savePromise;
+      await saveGameState(state);
 
-      const savedData = (AsyncStorage.setItem as jest.Mock).mock.calls[0][1];
-      const parsed = JSON.parse(savedData);
+      const savedCall = (AsyncStorage.setItem as jest.Mock).mock.calls[0];
+      const savedData = JSON.parse(savedCall[1]);
 
-      expect(parsed.version).toBe(1);
-      expect(parsed.timestamp).toBeDefined();
-      expect(parsed.purchasedUpgrades).toEqual(['scrap-boost-1']);
+      expect(savedData.data).toEqual(state);
     });
 
-    test('handles save errors gracefully', async () => {
-      (AsyncStorage.setItem as jest.Mock).mockRejectedValue(new Error('Storage full'));
+    test('throws StorageQuotaError when quota exceeded', async () => {
+      const state: GameState = {
+        petCount: 1,
+        scrap: 0,
+        upgrades: [],
+        purchasedUpgrades: [],
+      };
 
-      const savePromise = savePurchases(['scrap-boost-1']);
-      jest.advanceTimersByTime(1000);
+      const quotaError = new Error('QuotaExceededError');
+      quotaError.name = 'QuotaExceededError';
+      (AsyncStorage.setItem as jest.Mock).mockRejectedValue(quotaError);
 
-      await expect(savePromise).rejects.toThrow();
+      await expect(saveGameState(state)).rejects.toThrow(StorageQuotaError);
+    });
+
+    test('saves with correct storage key', async () => {
+      (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
+
+      const state: GameState = {
+        petCount: 0,
+        scrap: 0,
+        upgrades: [],
+        purchasedUpgrades: [],
+      };
+
+      await saveGameState(state);
+
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+        STORAGE_KEYS.GAME_STATE,
+        expect.any(String)
+      );
     });
   });
 
-  describe('loadPurchases', () => {
-    test('reads from AsyncStorage with correct key', async () => {
-      const mockData = {
+  describe('loadGameState', () => {
+    test('loads and parses saved state', async () => {
+      const persisted: PersistedGameState = {
         version: 1,
-        purchasedUpgrades: ['scrap-boost-1'],
+        data: { petCount: 42, scrap: 100, upgrades: [], purchasedUpgrades: [] },
         timestamp: Date.now(),
       };
 
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(mockData));
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
+        JSON.stringify(persisted)
+      );
 
-      const purchases = await loadPurchases();
+      const loaded = await loadGameState();
 
-      expect(AsyncStorage.getItem).toHaveBeenCalledWith('purchased-upgrades-v1');
-      expect(purchases).toEqual(['scrap-boost-1']);
+      expect(loaded?.petCount).toBe(42);
+      expect(loaded?.scrap).toBe(100);
     });
 
-    test('returns empty array if no data exists', async () => {
+    test('returns null when no saved state exists', async () => {
       (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
 
-      const purchases = await loadPurchases();
+      const loaded = await loadGameState();
 
-      expect(purchases).toEqual([]);
+      expect(loaded).toBeNull();
     });
 
-    test('handles corrupted data gracefully', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue('invalid json');
-
-      const purchases = await loadPurchases();
-
-      expect(purchases).toEqual([]);
-    });
-
-    test('handles unknown version gracefully', async () => {
-      const mockData = {
-        version: 999,
-        purchasedUpgrades: ['scrap-boost-1'],
+    test('sanitizes invalid values (negative numbers)', async () => {
+      const persisted: PersistedGameState = {
+        version: 1,
+        data: { petCount: -5, scrap: -10, upgrades: [], purchasedUpgrades: [] },
+        timestamp: Date.now(),
       };
 
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(mockData));
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
+        JSON.stringify(persisted)
+      );
 
-      const purchases = await loadPurchases();
+      const loaded = await loadGameState();
 
-      expect(purchases).toEqual([]);
+      expect(loaded?.petCount).toBe(0); // Clamped to minimum
+      expect(loaded?.scrap).toBe(0);
     });
 
-    test('handles load errors gracefully', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockRejectedValue(new Error('Read error'));
+    test('handles corrupted JSON gracefully', async () => {
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
+        'invalid json {{{}'
+      );
 
-      const purchases = await loadPurchases();
+      const loaded = await loadGameState();
 
-      expect(purchases).toEqual([]);
+      expect(loaded).toBeNull();
+    });
+
+    test('returns null for invalid state structure', async () => {
+      const invalidState = {
+        version: 1,
+        data: { notAGameState: true },
+        timestamp: Date.now(),
+      };
+
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
+        JSON.stringify(invalidState)
+      );
+
+      const loaded = await loadGameState();
+
+      expect(loaded).toBeNull();
+    });
+
+    test('returns null for unknown version', async () => {
+      const futureVersion: PersistedGameState = {
+        version: 999,
+        data: { petCount: 10, scrap: 0, upgrades: [], purchasedUpgrades: [] },
+        timestamp: Date.now(),
+      };
+
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
+        JSON.stringify(futureVersion)
+      );
+
+      const loaded = await loadGameState();
+
+      expect(loaded).toBeNull();
+    });
+
+    test('validates petCount is within safe integer range', async () => {
+      const persisted: PersistedGameState = {
+        version: 1,
+        data: {
+          petCount: Number.MAX_SAFE_INTEGER + 1000,
+          scrap: 0,
+          upgrades: [],
+          purchasedUpgrades: [],
+        },
+        timestamp: Date.now(),
+      };
+
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
+        JSON.stringify(persisted)
+      );
+
+      const loaded = await loadGameState();
+
+      expect(loaded?.petCount).toBe(Number.MAX_SAFE_INTEGER);
     });
   });
 
-  describe('clearPurchases', () => {
-    test('removes data from AsyncStorage', async () => {
-      await clearPurchases();
+  describe('clearGameState', () => {
+    test('removes state from storage', async () => {
+      await clearGameState();
 
-      expect(AsyncStorage.removeItem).toHaveBeenCalledWith('purchased-upgrades-v1');
+      expect(AsyncStorage.removeItem).toHaveBeenCalledWith(
+        STORAGE_KEYS.GAME_STATE
+      );
     });
 
-    test('handles clear errors gracefully', async () => {
-      (AsyncStorage.removeItem as jest.Mock).mockRejectedValue(new Error('Clear error'));
+    test('uses correct storage key', async () => {
+      await clearGameState();
 
-      await expect(clearPurchases()).resolves.not.toThrow();
+      expect(AsyncStorage.removeItem).toHaveBeenCalledWith(
+        STORAGE_KEYS.GAME_STATE
+      );
+    });
+
+    test('handles errors gracefully', async () => {
+      const error = new Error('Storage error');
+      (AsyncStorage.removeItem as jest.Mock).mockRejectedValue(error);
+
+      await expect(clearGameState()).rejects.toThrow('Storage error');
+    });
+  });
+
+  describe('isStorageAvailable', () => {
+    test('returns true when storage works', async () => {
+      (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
+      (AsyncStorage.removeItem as jest.Mock).mockResolvedValue(undefined);
+
+      const available = await isStorageAvailable();
+
+      expect(available).toBe(true);
+    });
+
+    test('returns false when storage fails', async () => {
+      (AsyncStorage.setItem as jest.Mock).mockRejectedValue(
+        new Error('Storage unavailable')
+      );
+
+      const available = await isStorageAvailable();
+
+      expect(available).toBe(false);
+    });
+
+    test('cleans up test key after check', async () => {
+      (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
+      (AsyncStorage.removeItem as jest.Mock).mockResolvedValue(undefined);
+
+      await isStorageAvailable();
+
+      expect(AsyncStorage.removeItem).toHaveBeenCalledWith('__storage_test__');
+    });
+  });
+
+  describe('Upgrade Persistence', () => {
+    beforeEach(async () => {
+      await AsyncStorage.clear();
+      gameState$.set({
+        petCount: 0,
+        scrap: 0,
+        upgrades: [],
+        purchasedUpgrades: [],
+      });
+    });
+
+    test('purchased upgrades persist across sessions', async () => {
+      gameState$.upgrades.set(UPGRADES);
+      gameState$.purchasedUpgrades.set(['scrap-boost-1', 'pet-boost-1']);
+      gameState$.scrap.set(500);
+
+      await saveGameState(gameState$.get());
+
+      // Reset state (simulate app restart)
+      gameState$.set({
+        petCount: 0,
+        scrap: 0,
+        upgrades: [],
+        purchasedUpgrades: [],
+      });
+
+      const loaded = await loadGameState();
+      if (loaded) {
+        gameState$.set({
+          ...gameState$.get(),
+          ...loaded,
+        });
+      }
+
+      await initializeGameState();
+
+      expect(gameState$.purchasedUpgrades.get()).toEqual([
+        'scrap-boost-1',
+        'pet-boost-1',
+      ]);
+      expect(gameState$.scrap.get()).toBe(500);
+      expect(gameState$.upgrades.get()).toHaveLength(5);
+    });
+
+    test('upgrades array populates on first load', async () => {
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+
+      await initializeGameState();
+
+      expect(gameState$.upgrades.get()).toHaveLength(5);
+      expect(gameState$.upgrades.get()).toEqual(UPGRADES);
     });
   });
 });

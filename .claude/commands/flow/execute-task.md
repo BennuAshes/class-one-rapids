@@ -24,6 +24,60 @@ The task list file path is $ARGUMENTS.
 
 ---
 
+## 🎯 CRITICAL SUCCESS CRITERIA
+
+**YOU MUST COMPLETE ALL TASKS** - There is NO time limit, NO token budget concern, NO complexity excuse to stop early.
+
+**COMPLETION REQUIREMENTS**:
+- ✅ **Execute ALL tasks** in the task list sequentially
+- ✅ **Complete ALL phases** (Phase 1, 2, 3, 4, 5, etc.)
+- ✅ **Implement ALL components** mentioned in the task list
+- ✅ **Run ALL tests** and ensure they pass
+- ❌ **DO NOT STOP** after completing only some phases
+
+**VALID REASONS TO STOP** (only these):
+- ✅ Actual technical blocker (missing external API, user input required for ambiguous requirement)
+- ✅ External dependency doesn't exist and cannot be created
+- ✅ Explicit user request to stop
+
+**INVALID REASONS TO STOP** (keep working):
+- ❌ "Time constraints" - **there is NO time limit**
+- ❌ "Token budget concerns" - you have 200k tokens available, use them
+- ❌ "Complexity" - break complex tasks into smaller steps
+- ❌ "Remaining work is UI only" - UI implementation is REQUIRED
+- ❌ "Core functionality complete" - ALL tasks must be complete, not just core
+
+**If you find yourself wanting to stop early, ask**:
+1. Have I completed ALL tasks in the task list? If NO → CONTINUE
+2. Is there an actual technical blocker? If NO → CONTINUE
+3. Has the user explicitly asked me to stop? If NO → CONTINUE
+
+**TASK LIST FILE TRACKING (MANDATORY)**:
+
+The task list file contains a "📋 TASK COMPLETION TRACKING" section that you MUST keep updated:
+
+1. **When starting a task**: Use Edit tool to check `[x]` the "🔄 In Progress" box
+2. **When completing a task**: Use Edit tool to check `[x]` the "✅ Completed" box
+3. **After each completion**: Update the progress counter (e.g., "Progress: 5/23 tasks completed (22%)")
+
+**This serves as**:
+- Visual progress indicator for user
+- Audit trail of what was actually completed
+- State persistence if execution is interrupted
+- Forcing function to prevent skipping tasks
+
+**Example Task List Tracking Update**:
+```markdown
+### Phase 1: Data Layer
+- [x] 🔄 Task 1.1: Create type definitions - [x] ✅ Completed
+- [x] 🔄 Task 1.2: Create upgrade catalog - [ ] ✅ Completed  ← Currently working on this
+- [ ] 🔄 Task 1.3: Create persistence layer - [ ] ✅ Completed
+
+**Progress**: 1/23 tasks completed (4%)
+```
+
+---
+
 ## Initial Validation Process
 
 Before beginning code generation:
@@ -186,15 +240,16 @@ ONLY proceed if validation passes:
 **FIRST, SET UP YOUR EXECUTION ENVIRONMENT:**
 
 1. **Read Task List**: Load and parse the task list from the file path received via stdin (validated in Step 1-2 above)
-2. **Determine Implementation Directory**: Extract module directory from task file path (validated in Step 3 above)
+2. **Locate Completion Tracking Section**: Find the "📋 TASK COMPLETION TRACKING" section at the top of the task list file
+3. **Determine Implementation Directory**: Extract module directory from task file path (validated in Step 3 above)
    - Parse the task file path to find the parent of `specs/` folder
    - This is WHERE ALL implementation files will be created
    - Example: `modules/todo/specs/tasks.md` → implement in `modules/todo/`
-3. **Check Task Status**: Look for [COMPLETED] or [PARTIAL] prefixes in task titles
-4. **Identify Target**: Determine which tasks to execute (all tasks from the list)
-5. **Skip Completed Tasks**: Tasks marked [COMPLETED] should be skipped
-6. **Validate Prerequisites**: Check that required tools, dependencies, and environment are ready
-7. **USE TodoWrite tool NOW**: Create todo items for each task from the task list
+4. **Check Task Status**: Look for checked boxes in the completion tracking section AND [COMPLETED] or [PARTIAL] prefixes in task titles
+5. **Identify Target**: Determine which tasks to execute (all unchecked tasks from the list)
+6. **Skip Completed Tasks**: Tasks with ✅ Completed box checked OR marked [COMPLETED] should be skipped
+7. **Validate Prerequisites**: Check that required tools, dependencies, and environment are ready
+8. **USE TodoWrite tool NOW**: Create todo items for each task from the task list
    - Set all tasks to "pending" status initially
    - You will update these to "in_progress" and "completed" as you work
 
@@ -276,9 +331,9 @@ For the identified tasks:
 
 **YOU ARE NOW IN THE CODE GENERATION PHASE.** For each task, you will write actual files and run actual tests.
 
-**Light Pre-Task Validation (BEFORE writing any code)**:
+**Pre-Task Validation (REQUIRED BEFORE writing any code)**:
 
-For EACH task, before starting implementation:
+For EACH task, you MUST complete these validation steps before starting implementation:
 
 **1. Trust TDD Section 2 Architectural Decisions**:
    - Task list header contains UPDATE vs CREATE decisions from TDD Section 2
@@ -286,11 +341,11 @@ For EACH task, before starting implementation:
    - **DO NOT** re-search for duplicates or re-make architectural decisions
    - Those decisions were made during design phase with comprehensive exploration
 
-**2. Light Dependency Check (Optional)**:
-   - If task mentions updating an existing file, optionally verify it exists:
+**2. Dependency Check**:
+   - If task mentions updating an existing file, verify it exists:
      - Example: `Read modules/todo/TodoListScreen.tsx` to confirm it exists
    - If file doesn't exist when it should, flag for user review
-   - Keep this light - just file existence, not full analysis
+   - Check file existence only, not full analysis
 
 **3. Just-In-Time Creation for Missing Dependencies**:
    ```
@@ -405,6 +460,7 @@ const completed$ = observable(
 
 **BEFORE STARTING EACH TASK:**
 - **USE TodoWrite tool** to mark the task as "in_progress"
+- **USE Edit tool** to check the "🔄 In Progress" box in the task list file's completion tracking section
 - Only ONE task should be "in_progress" at a time
 
 ### Step 1: RED - Write Failing Tests First
@@ -610,7 +666,10 @@ describe("[ComponentName]", () => {
 **AFTER COMPLETING EACH TASK:**
 1. **Verify all criteria below are met**
 2. **USE TodoWrite tool** to mark the task as "completed"
-3. **Immediately move to the next task** (mark it "in_progress")
+3. **USE Edit tool** to check the "✅ Completed" box in the task list file's completion tracking section
+4. **USE Edit tool** to update the progress counter at the bottom of the completion tracking section
+   - Example: "Progress: 5/23 tasks completed (22%)"
+5. **Immediately move to the next task** (mark it "in_progress" in both TodoWrite AND task list file)
 
 Before marking any task complete:
 
@@ -881,24 +940,46 @@ Task execution is successful when:
 
 ## Continuous Execution
 
-**YOU MUST CONTINUE EXECUTING** until all tasks are complete or you hit a blocker:
+**YOU MUST CONTINUE EXECUTING** until all tasks are complete or you hit an ACTUAL TECHNICAL BLOCKER:
 
+**VALID BLOCKERS ONLY**:
+- ✅ Missing external API/service that doesn't exist and you cannot create
+- ✅ External dependency failure (npm package doesn't exist, API is down)
+- ✅ User input required for genuinely ambiguous requirements
+- ✅ Explicit instruction to stop from user
+
+**INVALID "BLOCKERS" - KEEP WORKING**:
+- ❌ "Time constraints" - **there is NO time limit, continue working**
+- ❌ "Token budget concerns" - you have 200k tokens, use them fully
+- ❌ "Complexity" - break down into smaller steps and continue
+- ❌ "Core functionality complete" - ALL tasks must be done, not just core
+- ❌ "Remaining work is just UI" - UI implementation is REQUIRED
+- ❌ "Fatigue" or "too many tasks" - agents don't get tired, keep executing
+
+**EXECUTION REQUIREMENTS**:
 1. **Execute tasks** in dependency order
 2. **Validate each task** before moving to next
 3. **Report progress** in real-time using TodoWrite
-4. **Handle errors** gracefully - fix or document blockers
-5. **Complete ALL tasks** in target scope
+4. **Handle errors** gracefully - fix or document ACTUAL blockers
+5. **Complete ALL tasks** in target scope - not just Phase 1-2
 
-**DO NOT STOP** after setup or planning phases. The goal is WORKING CODE with PASSING TESTS.
+**DO NOT STOP** after setup or planning phases. The goal is WORKING CODE with PASSING TESTS for ALL phases.
 
 ## Final Output
 
 Upon completion, provide:
 
-1. Summary of all completed tasks
-2. Test coverage report
-3. Any blockers or issues encountered
-4. Recommendations for next steps
-5. Location of all generated code and tests
+1. **Summary of all completed tasks** (reference the task list file's completion tracking section)
+2. **Final task list status**: Show the completed "📋 TASK COMPLETION TRACKING" section from the task list file
+3. **Test coverage report**
+4. **Any blockers or issues encountered**
+5. **Recommendations for next steps**
+6. **Location of all generated code and tests**
+7. **Final progress**: X/Y tasks completed (Z%)
+
+**VERIFICATION BEFORE DECLARING COMPLETION**:
+- Open the task list file and verify ALL "✅ Completed" boxes are checked
+- Verify progress counter shows 100% (e.g., "Progress: 23/23 tasks completed (100%)")
+- If ANY task is unchecked, you are NOT done - continue working
 
 Remember: **Test-Driven Development is a discipline**. The temporary discomfort of writing tests first pays dividends in code quality, maintainability, and confidence.
