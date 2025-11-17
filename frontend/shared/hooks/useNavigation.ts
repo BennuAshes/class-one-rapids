@@ -15,6 +15,14 @@ interface UseNavigationReturn {
 const currentScreen$ = observable<Screen>('clicker');
 
 /**
+ * Reset navigation state to default (clicker screen).
+ * Useful for testing or app resets.
+ */
+export function resetNavigation(): void {
+  currentScreen$.set('clicker');
+}
+
+/**
  * Hook for managing simple state-based navigation between screens.
  * Uses Legend-State observable for reactive screen switching.
  *
