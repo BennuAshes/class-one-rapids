@@ -1,0 +1,526 @@
+{
+  "name": "Claude Code Feature Generator v1",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-feature",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "🎯 Webhook - Receive Feature Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "claude-code-feature-gen"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.body.feature_description}}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{$json.body.codebase_path}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "validate-input",
+      "name": "✅ Validate - Input Schema",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "error",
+              "value": "Missing required fields: feature_description and codebase_path"
+            },
+            {
+              "name": "status",
+              "value": "error"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "validation-error",
+      "name": "⚠️ Set - Validation Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [650, 450]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "send-validation-error",
+      "name": "✉️ Send - Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 450]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && ls -la",
+        "timeout": 5000
+      },
+      "id": "verify-codebase",
+      "name": "📂 Verify - Codebase Path Exists",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [650, 150]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && echo \"={{$json.body.feature_description}}\" > .claude/temp_feature_request.md",
+        "timeout": 5000
+      },
+      "id": "write-feature-file",
+      "name": "📝 Write - Feature Description File",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [850, 150]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && claude /flow:prd < .claude/temp_feature_request.md",
+        "timeout": 300000
+      },
+      "id": "execute-prd-command",
+      "name": "🤖 Execute - Claude PRD Generation",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1050, 150]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.stdout || '';\nconst errorOutput = $input.item.json.stderr || '';\n\n// Extract PRD file path from output\nconst prdPathMatch = output.match(/(?:prd_[a-z0-9_]+_\\d{8}\\.md)/);\nconst prdFilePath = prdPathMatch ? prdPathMatch[0] : null;\n\nif (!prdFilePath) {\n  throw new Error('Failed to extract PRD file path from command output');\n}\n\nreturn {\n  prd_file_path: prdFilePath,\n  prd_output: output,\n  error_output: errorOutput,\n  status: 'prd_generated'\n};"
+      },
+      "id": "parse-prd-output",
+      "name": "📝 Parse - PRD Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 150]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && echo \"={{$json.prd_file_path}}\" | claude /flow:design",
+        "timeout": 300000
+      },
+      "id": "execute-design-command",
+      "name": "🤖 Execute - Claude Design Generation",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1450, 150]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.stdout || '';\nconst errorOutput = $input.item.json.stderr || '';\n\n// Extract TDD file path from output\nconst tddPathMatch = output.match(/(?:tdd_[a-z0-9_]+_\\d{8}\\.md)/);\nconst tddFilePath = tddPathMatch ? tddPathMatch[0] : null;\n\nif (!tddFilePath) {\n  throw new Error('Failed to extract TDD file path from command output');\n}\n\nreturn {\n  tdd_file_path: tddFilePath,\n  tdd_output: output,\n  error_output: errorOutput,\n  status: 'design_generated'\n};"
+      },
+      "id": "parse-tdd-output",
+      "name": "📝 Parse - TDD Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1650, 150]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && echo \"={{$json.tdd_file_path}}\" | claude /flow:tasks",
+        "timeout": 300000
+      },
+      "id": "execute-tasks-command",
+      "name": "🤖 Execute - Claude Tasks Generation",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1850, 150]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.stdout || '';\nconst errorOutput = $input.item.json.stderr || '';\n\n// Extract tasks file path from output\nconst tasksPathMatch = output.match(/(?:tasks_[a-z0-9_]+_\\d{8}\\.md)/);\nconst tasksFilePath = tasksPathMatch ? tasksPathMatch[0] : null;\n\nif (!tasksFilePath) {\n  throw new Error('Failed to extract tasks file path from command output');\n}\n\nreturn {\n  tasks_file_path: tasksFilePath,\n  tasks_output: output,\n  error_output: errorOutput,\n  status: 'tasks_generated'\n};"
+      },
+      "id": "parse-tasks-output",
+      "name": "📝 Parse - Tasks Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2050, 150]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && echo \"={{$json.tasks_file_path}}\" | claude /flow:execute-task",
+        "timeout": 1800000
+      },
+      "id": "execute-tasks",
+      "name": "🤖 Execute - Claude Code Generation",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2250, 150]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.stdout || '';\nconst errorOutput = $input.item.json.stderr || '';\nconst exitCode = $input.item.json.exitCode || 0;\n\n// Check if execution was successful\nconst success = exitCode === 0;\n\nreturn {\n  execution_output: output,\n  error_output: errorOutput,\n  exit_code: exitCode,\n  status: success ? 'code_generated' : 'execution_failed',\n  success: success,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "parse-execution-output",
+      "name": "📝 Parse - Execution Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2450, 150]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && rm -f .claude/temp_feature_request.md",
+        "timeout": 5000
+      },
+      "id": "cleanup-temp-files",
+      "name": "🧹 Cleanup - Temp Files",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2650, 150]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "message",
+              "value": "Feature code generated successfully"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "format-success-response",
+      "name": "✨ Format - Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [2850, 150]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{{\n  \"status\": $json.status,\n  \"message\": $json.message,\n  \"prd_file\": $('parse-prd-output').item.json.prd_file_path,\n  \"tdd_file\": $('parse-tdd-output').item.json.tdd_file_path,\n  \"tasks_file\": $('parse-tasks-output').item.json.tasks_file_path,\n  \"execution_summary\": $('parse-execution-output').item.json.execution_output.substring(0, 500),\n  \"timestamp\": $('parse-execution-output').item.json.timestamp\n}}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "send-success-response",
+      "name": "✉️ Send - Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [3050, 150]
+    },
+    {
+      "parameters": {
+        "mode": "catchError",
+        "errorMessage": "={{$json.message || 'Unknown error occurred'}}",
+        "options": {}
+      },
+      "id": "error-trigger",
+      "name": "⚠️ On Error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [1450, 450]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "error"
+            },
+            {
+              "name": "message",
+              "value": "={{$json.error?.message || 'Workflow execution failed'}}"
+            },
+            {
+              "name": "step",
+              "value": "={{$json.error?.node || 'unknown'}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "format-error-response",
+      "name": "⚠️ Format - Error Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1650, 450]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$('webhook-trigger').item.json.body.codebase_path}}\" && rm -f .claude/temp_feature_request.md",
+        "timeout": 5000,
+        "continueOnFail": true
+      },
+      "id": "cleanup-on-error",
+      "name": "🧹 Cleanup - On Error",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1850, 450]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "send-error-response",
+      "name": "✉️ Send - Error Response Final",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2050, 450]
+    }
+  ],
+  "connections": {
+    "🎯 Webhook - Receive Feature Request": {
+      "main": [
+        [
+          {
+            "node": "✅ Validate - Input Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Validate - Input Schema": {
+      "main": [
+        [
+          {
+            "node": "📂 Verify - Codebase Path Exists",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "⚠️ Set - Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚠️ Set - Validation Error": {
+      "main": [
+        [
+          {
+            "node": "✉️ Send - Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📂 Verify - Codebase Path Exists": {
+      "main": [
+        [
+          {
+            "node": "📝 Write - Feature Description File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Write - Feature Description File": {
+      "main": [
+        [
+          {
+            "node": "🤖 Execute - Claude PRD Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 Execute - Claude PRD Generation": {
+      "main": [
+        [
+          {
+            "node": "📝 Parse - PRD Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Parse - PRD Output": {
+      "main": [
+        [
+          {
+            "node": "🤖 Execute - Claude Design Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 Execute - Claude Design Generation": {
+      "main": [
+        [
+          {
+            "node": "📝 Parse - TDD Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Parse - TDD Output": {
+      "main": [
+        [
+          {
+            "node": "🤖 Execute - Claude Tasks Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 Execute - Claude Tasks Generation": {
+      "main": [
+        [
+          {
+            "node": "📝 Parse - Tasks Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Parse - Tasks Output": {
+      "main": [
+        [
+          {
+            "node": "🤖 Execute - Claude Code Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 Execute - Claude Code Generation": {
+      "main": [
+        [
+          {
+            "node": "📝 Parse - Execution Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Parse - Execution Output": {
+      "main": [
+        [
+          {
+            "node": "🧹 Cleanup - Temp Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧹 Cleanup - Temp Files": {
+      "main": [
+        [
+          {
+            "node": "✨ Format - Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✨ Format - Success Response": {
+      "main": [
+        [
+          {
+            "node": "✉️ Send - Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚠️ On Error": {
+      "main": [
+        [
+          {
+            "node": "⚠️ Format - Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚠️ Format - Error Response": {
+      "main": [
+        [
+          {
+            "node": "🧹 Cleanup - On Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧹 Cleanup - On Error": {
+      "main": [
+        [
+          {
+            "node": "✉️ Send - Error Response Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "AI Automation",
+      "id": "ai-automation"
+    },
+    {
+      "name": "Code Generation",
+      "id": "code-gen"
+    },
+    {
+      "name": "Claude Code",
+      "id": "claude-code"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-11-16T00:00:00.000Z",
+  "versionId": "1"
+}

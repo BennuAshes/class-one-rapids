@@ -4,7 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameState } from '../../shared/hooks/useGameState';
 import { observer } from '@legendapp/state/react';
 
-export const ClickerScreen = observer(function ClickerScreen() {
+interface ClickerScreenProps {
+  onNavigateToShop: () => void;
+}
+
+export const ClickerScreen = observer(function ClickerScreen({
+  onNavigateToShop
+}: ClickerScreenProps) {
   const { petCount$, scrap$, scrapRate$ } = useGameState();
 
   // Scrap generation timer
@@ -46,6 +52,15 @@ export const ClickerScreen = observer(function ClickerScreen() {
           accessibilityLabel="feed button"
         >
           <Text style={styles.buttonText}>feed</Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.shopButton}
+          onPress={onNavigateToShop}
+          accessibilityRole="button"
+          accessibilityLabel="Open shop"
+        >
+          <Text style={styles.shopButtonText}>Shop</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -89,6 +104,22 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  shopButton: {
+    minWidth: 44,
+    minHeight: 44,
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  shopButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
     color: '#FFFFFF',
   },
 });
