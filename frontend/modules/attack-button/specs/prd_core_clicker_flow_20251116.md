@@ -1,12 +1,12 @@
 # Product Requirements Document: Core Clicker Flow
 
-| Version | Date | Author | Status |
-|---------|------|--------|--------|
-| v1.0 | 2025-11-16 | Claude | Draft |
+| Version | Author | Date | Status |
+|---------|--------|------|--------|
+| v1.0 | Claude | 2025-11-16 | Draft |
 
 ## Executive Summary
 
-This PRD defines a minimal viable clicker interaction featuring a single button labeled "feed" and a counter display showing "Singularity Pet Count". The feature delivers the foundational mechanic for user engagement through tap-to-increment gameplay.
+This PRD defines a minimal clicker interaction featuring a single button labeled "feed" that increments a counter displayed as "Singularity Pet Count". This delivers the foundational interaction pattern for the application with zero additional features beyond what was explicitly requested.
 
 ---
 
@@ -14,28 +14,21 @@ This PRD defines a minimal viable clicker interaction featuring a single button 
 
 ### Problem Statement
 
-Users need a simple, engaging interaction mechanism that provides immediate feedback and allows for incremental progression. Without a core clicker mechanic, there is no foundation for user engagement or progression tracking in the application.
+Users need a simple, tactile way to interact with the application through a basic increment mechanism. Currently, there is no interactive element that provides immediate feedback for user actions.
 
 ### User Impact
 
-- **Who's Affected**: All application users
-- **Frequency**: Every session (primary interaction)
-- **Current State**: No interaction mechanism exists
+This affects all users who launch the application. Without this foundational interaction, users have no way to engage with the core gameplay loop. Users expect immediate visual feedback when they perform an action.
 
 ### Business Impact
 
-Without this foundational feature, the application cannot:
-- Engage users in core gameplay
-- Track user progression
-- Establish baseline for future features
-- Validate user engagement metrics
+Without a working clicker interaction, the application has no user engagement mechanism. This represents a critical blocker to any user retention or progression features. Every minute without this feature results in zero user interaction time.
 
 ### Evidence
 
-Based on similar clicker applications:
-- Users engage with primary click actions 50-200 times per session
-- First-time retention correlates strongly with initial click feedback (within first 30 seconds)
-- Average session length: 3-5 minutes for core clicker mechanics
+- Estimated user interaction frequency: 10-100+ taps per minute for engaged users
+- Expected immediate visual feedback latency: < 100ms
+- Platform standard for touch responsiveness: 60fps, < 16ms per frame
 
 ---
 
@@ -43,24 +36,21 @@ Based on similar clicker applications:
 
 ### Approach
 
-Implement a single-screen interface with:
-1. A "feed" button that increments a counter on each press
-2. A label displaying "Singularity Pet Count: [number]"
-3. Immediate visual feedback on button interaction
-4. State persistence across app sessions
+Implement a single-screen interface with two elements:
+1. A pressable button labeled "feed"
+2. A text label displaying "Singularity Pet Count: [number]"
+
+When the button is pressed, the counter increments by 1 and the display updates immediately.
 
 ### Value Proposition
 
-Users can:
-- Experience immediate, satisfying feedback from button presses
-- See tangible progress through incrementing counter
-- Return to app and continue from previous count
+Users get instant gratification from a simple, responsive interaction. Each tap provides clear visual feedback through the incrementing number, establishing the core engagement pattern.
 
 ### Key Differentiators
 
-- Minimal, focused interaction (no clutter or complexity)
-- Instant response time (<100ms from press to update)
-- Clean, accessible design meeting WCAG standards
+- Minimal cognitive load: single action, single outcome
+- Zero learning curve: immediately obvious what to do
+- Instant feedback: no loading states or delays
 
 ---
 
@@ -68,133 +58,144 @@ Users can:
 
 | Metric | Current | Target | Timeline | Type |
 |--------|---------|--------|----------|------|
-| Button press response time | N/A | <100ms | Launch | Primary |
-| Counter update accuracy | N/A | 100% (no missed taps) | Launch | Primary |
-| Session engagement (taps/session) | N/A | 20+ taps | Week 1 | Secondary |
-| Multi-session retention | N/A | 40% return after 24hrs | Week 2 | Secondary |
-| UI render performance | N/A | 60fps sustained | Launch | Counter-metric |
-| Crash rate from rapid tapping | N/A | <0.1% | Launch | Counter-metric |
+| Button press latency | N/A | < 100ms | Launch | Primary |
+| UI framerate during interaction | N/A | 60fps | Launch | Primary |
+| Counter accuracy | N/A | 100% (no missed increments) | Launch | Primary |
+| Time to first interaction | N/A | < 2 seconds after app launch | Launch | Secondary |
+| Touch target accessibility | N/A | 44x44pt minimum | Launch | Secondary |
+| Interaction success rate | N/A | 100% (all taps register) | Launch | Counter |
 
 ---
 
 ## User Stories & Requirements
 
-### Story: Increment Counter
+### Story: Basic Increment Interaction
 
-**As a** user
-**I want to** tap the "feed" button
-**So that I can** see the Singularity Pet Count increase
-
-**Acceptance Criteria:**
-- Given I am viewing the main screen, when I press the "feed" button, then the counter increments by 1
-- Given I tap the button rapidly 10 times, when all taps complete, then the counter shows exactly +10 from starting value
-- Given the counter is at any value, when I press the button, then I see visual feedback within 100ms
-
-### Story: View Current Count
-
-**As a** user
-**I want to** see the current Singularity Pet Count
-**So that I can** track my progress
+As a user
+I want to tap a button labeled "feed"
+So that I can see a counter increase
 
 **Acceptance Criteria:**
-- Given I open the app, when the screen loads, then I see a label reading "Singularity Pet Count: [number]"
-- Given the counter updates, when the value changes, then the display updates immediately to show the new value
-- Given I have previously used the app, when I reopen it, then the counter shows my last saved value
+- [ ] Given the app is launched, when I view the screen, then I see a button labeled "feed"
+- [ ] Given the app is launched, when I view the screen, then I see a label "Singularity Pet Count" with a number
+- [ ] Given I tap the "feed" button, when the tap completes, then the counter increases by exactly 1
+- [ ] Given I tap rapidly, when I tap 10 times, then the counter shows 10 (or previous count + 10)
+- [ ] Given I tap the button, when the action completes, then I see the updated count within 100ms
 
-### Story: Persist Progress
+### Story: Visual Feedback
 
-**As a** user
-**I want to** have my count saved automatically
-**So that I can** continue my progress across sessions
+As a user
+I want immediate visual confirmation of my action
+So that I know my tap was registered
 
 **Acceptance Criteria:**
-- Given I have tapped the button 50 times, when I close and reopen the app, then the counter shows 50
-- Given the app crashes or is force-closed, when I reopen it, then the counter shows my last value (within 1 second of crash)
-- Given I haven't used the app before, when I first open it, then the counter starts at 0
+- [ ] Given I tap the "feed" button, when I press down, then the button shows a visual pressed state
+- [ ] Given I tap the "feed" button, when I release, then the counter updates before the press animation ends
+- [ ] Given I perform rapid taps, when tapping at any speed, then every tap is counted accurately
 
 ---
 
 ## Functional Requirements
 
-### Core Interaction
+### Button Interaction
+- **FR-1**: Button must be labeled with the text "feed"
+- **FR-2**: Button must provide visual feedback on press (opacity, scale, or color change)
+- **FR-3**: Button must meet minimum touch target size of 44x44pt
+- **FR-4**: Button press must trigger counter increment with < 100ms latency
 
-- **R1.1**: Button labeled "feed" must be visible on the main screen
-- **R1.2**: Button must respond to press events with tactile feedback (platform-specific)
-- **R1.3**: Each button press increments the counter by exactly 1
-- **R1.4**: Counter updates must be visible within 100ms of button press
-- **R1.5**: Button must handle rapid successive presses (10+ taps per second) without dropping inputs
+### Counter Display
+- **FR-5**: Label must display "Singularity Pet Count" followed by the current count
+- **FR-6**: Counter must start at 0 on first launch
+- **FR-7**: Counter must increment by exactly 1 per button press
+- **FR-8**: Counter display must update synchronously with button press
+- **FR-9**: Counter must handle values from 0 to at least 999,999 without visual breaking
 
-### Display Requirements
-
-- **R2.1**: Label displays text "Singularity Pet Count" followed by the current count value
-- **R2.2**: Count value updates reactively when state changes
-- **R2.3**: Count value displays as integer (no decimals)
-- **R2.4**: Initial count value is 0 for new users
-
-### State Persistence
-
-- **R3.1**: Counter value persists to local storage on each increment
-- **R3.2**: Counter value loads from local storage on app launch
-- **R3.3**: Persistence occurs automatically without user action
-- **R3.4**: Failed storage operations do not crash the app or block the UI
+### Layout
+- **FR-10**: Button and counter must both be visible without scrolling
+- **FR-11**: Components must be arranged in a clear, readable layout
+- **FR-12**: Layout must work on both small (iPhone SE) and large (iPad) screens
 
 ---
 
 ## Non-Functional Requirements
 
 ### Performance
-
-- **60fps UI rendering** during interactions (platform baseline)
-- **<100ms response time** from button press to counter update (platform baseline)
-- **No dropped frames** during rapid tapping sequences
+- UI must maintain 60fps during button interactions
+- Touch response must be < 100ms (platform baseline)
+- Counter update must be synchronous (< 16ms render time)
 
 ### Accessibility
+- Button touch target must be ≥ 44x44pt (WCAG minimum)
+- Text contrast ratio must be ≥ 4.5:1 against background
+- Button must have `accessibilityRole="button"`
+- Counter label must have `accessibilityRole="text"`
+- Screen reader must announce current count
 
-- **Minimum touch target**: 44x44 points for feed button (WCAG baseline)
-- **Color contrast**: 4.5:1 minimum ratio for text (WCAG AA baseline)
-- **Screen reader support**: Button has accessibilityRole="button" and accessibilityLabel="Feed"
-- **Screen reader support**: Counter has accessibilityRole="text" and accessibilityLabel="Singularity Pet Count: [value]"
-
-### Platform Support
-
-- **iOS**: iOS 13+ (Expo SDK 54 requirement)
-- **Android**: Android 6.0+ (Expo SDK 54 requirement)
-- **Web**: Modern browsers (Chrome, Safari, Firefox latest 2 versions)
+### Browser/Device Support
+- iOS (React Native, Expo SDK 54+)
+- Android (React Native, Expo SDK 54+)
+- Web (React Native Web, if applicable)
 
 ---
 
 ## Scope Definition
 
+### CRITICAL VALIDATION
+
+**Original Feature Request:**
+> "I want a button 'feed' and a label with a count. The label should say 'Singularity Pet Count'."
+
+**Explicit Exclusions:** None mentioned in feature description.
+
 ### MVP (Must Have - P0)
 
-- **P0**: Feed button that increments counter on press
-- **P0**: Display showing "Singularity Pet Count: [number]"
-- **P0**: State persistence using AsyncStorage
-- **P0**: Counter starts at 0 for new users
+**VALIDATION REQUIREMENT**: Each feature below quotes the exact request from the feature description.
 
-### Nice to Have (P1-P2)
+- **P0**: Button labeled "feed" - QUOTE: "I want a button 'feed'"
+- **P0**: Label displaying count - QUOTE: "a label with a count"
+- **P0**: Label text "Singularity Pet Count" - QUOTE: "The label should say 'Singularity Pet Count'"
+- **P0**: Button increments counter when pressed (implied by "button" + "count" = increment interaction)
+- **P0**: Minimum accessibility compliance (44x44pt touch target, screen reader support)
+- **P0**: Platform performance baseline (60fps, < 100ms interaction)
 
-- **P1**: Visual press animation on button (scale/opacity effect)
-- **P1**: Haptic feedback on button press (iOS/Android)
-- **P2**: Count animation when value changes (number transitions)
+### Nice to Have (P1/P2)
+
+**P1: Future Enhancements** (not in original request)
+- Visual animations on button press (scale, bounce effects)
+- Sound effects on tap
+- Haptic feedback
+- Visual count-up animation
+- Button styling variations
+- Custom fonts or themes
+
+**P2: Potential Future Features** (explicitly NOT requested)
+- Multiple buttons
+- Different increment amounts
+- Decrement functionality
+- Reset button
+- Counter statistics or history
 
 ### Out of Scope
 
-- Multiple counters or statistics
-- Undo/redo functionality
-- Counter reset button
-- Maximum count limits or caps
-- Achievement system
-- Visual representation of pet/character
-- Sound effects or audio feedback
-- Analytics or tracking beyond basic usage
-- Multi-device synchronization
-- Offline mode banner (app works offline by default with local storage)
-- Error recovery UI beyond preventing crashes
-- Custom animations beyond platform defaults
-- Shop, inventory, or resource systems
-- Additional screens or navigation
-- Settings or configuration options
+The following are explicitly **NOT** included in this release:
+
+- **Persistence**: Counter does NOT persist across app restarts (user did not request "save" or "remember")
+- **Navigation**: Single screen only, no navigation to other screens
+- **Authentication**: No user accounts or login
+- **Analytics**: No tracking or metrics collection
+- **Multi-device sync**: Counter is local only
+- **Offline support**: No special offline handling required
+- **Undo/Redo**: No action history
+- **Settings**: No configuration options
+- **Achievements**: No progress tracking or rewards
+- **Social features**: No sharing or leaderboards
+- **Multiple pets or entities**: Single counter only
+- **Shop or currency system**: No economy features
+- **Auto-incrementing**: Manual taps only, no idle/passive generation
+- **Upgrades or multipliers**: Base increment of 1 only
+- **Visual pet representation**: No graphics beyond button and label
+- **Animation sequences**: No complex animations
+- **Tutorial or onboarding**: Interaction is self-evident
 
 ---
 
@@ -202,41 +203,42 @@ Users can:
 
 | Type | Description | Owner | Mitigation | Status |
 |------|-------------|-------|------------|--------|
-| Technical | AsyncStorage compatibility across platforms | Engineering | Use Expo's async-storage wrapper with fallback | Not Started |
-| Technical | Legend-State reactive updates performance | Engineering | Test with rapid tap sequences (100+ taps) | Not Started |
-| UX | Button placement and size on various screen sizes | Design | Test on smallest supported device (iPhone SE) | Not Started |
+| Technical | React Native touch handling accuracy | Development | Use Pressable API, test on real devices | Not Started |
+| Technical | State management performance at high tap rates | Development | Use optimized state updates, test rapid tapping | Not Started |
+| UX | User confusion if no visual feedback | Design/Dev | Implement clear pressed state on button | Not Started |
 
 ---
 
 ## Timeline & Milestones
 
 - **Discovery & Design**: 0.5 weeks
-  - Confirm button styling and placement
-  - Define persistence strategy
+  - Component layout design
+  - Accessibility review
 
-- **Development**: 1 week
-  - Implement button and counter UI
-  - Add state management with Legend-State
-  - Integrate AsyncStorage persistence
-  - Test on iOS/Android/Web
+- **Development**: 0.5-1 weeks
+  - Implement button component
+  - Implement counter display
+  - Wire up state management
+  - Add accessibility attributes
 
 - **Testing & QA**: 0.5 weeks
-  - Verify tap accuracy and performance
-  - Test persistence across app restarts
-  - Accessibility audit
+  - Manual testing on iOS/Android
+  - Accessibility testing
+  - Performance testing (rapid taps)
 
-- **Launch**: Week 3 start
+- **Launch**: Week 2-3
 
-**Total**: 2 weeks
+**Total**: 1.5-2 weeks
 
 ---
 
 ## Open Questions
 
-- [ ] Should the counter have a visual maximum value (display limit)?
-- [ ] What happens if counter exceeds Number.MAX_SAFE_INTEGER (9,007,199,254,740,991)?
-- [ ] Should button be disabled during any loading states?
-- [ ] What is the preferred button color scheme (follow app theme or custom)?
+- [ ] Should the counter display include any formatting (e.g., commas for thousands)?
+- [ ] What is the maximum expected counter value (impacts display formatting)?
+- [ ] Should button have any specific visual style (color, shape, icon)?
+- [ ] What happens at counter overflow (if reaching JavaScript MAX_SAFE_INTEGER)?
+- [ ] Should there be any sound or haptic feedback?
 
 ---
 
@@ -244,23 +246,26 @@ Users can:
 
 ### Glossary
 
-- **Clicker**: A game genre where primary interaction is clicking/tapping to increment values
-- **Legend-State**: Fine-grained reactive state management library used in the application
-- **AsyncStorage**: Persistent key-value storage for React Native
-- **Feed**: The action of pressing the button to increment the pet count
+- **Clicker**: A game or interaction pattern where the primary action is clicking/tapping
+- **Touch Target**: The interactive area of a UI element
+- **Increment**: Increase a value by a fixed amount (in this case, +1)
+- **WCAG**: Web Content Accessibility Guidelines - accessibility standards
+- **fps**: Frames per second - measure of animation smoothness
 
 ### References
 
-- React Native UI Guidelines: `/docs/architecture/react-native-ui-guidelines.md`
-- State Management Guide: `/docs/architecture/state-management-hooks-guide.md`
-- Lean Development Principles: `/docs/architecture/lean-task-generation-guide.md`
+- React Native Pressable API: https://reactnative.dev/docs/pressable
+- WCAG 2.1 Touch Target Guidelines: https://www.w3.org/WAI/WCAG21/Understanding/target-size.html
+- React Native Accessibility: https://reactnative.dev/docs/accessibility
 
 ### Related Documents
 
-- Feature Description: `feature-attack.md` (same directory)
-- Technical Design Document: (To be created)
-- Task List: (To be created)
+- `/docs/architecture/lean-task-generation-guide.md` - Development approach
+- `/docs/architecture/file-organization-patterns.md` - Code structure
+- `/docs/architecture/state-management-hooks-guide.md` - State management patterns
+- `/docs/architecture/react-native-ui-guidelines.md` - UI component selection
 
 ---
 
-*Generated: 2025-11-16*
+*PRD Generated: 2025-11-16*
+*Feature Source: `/mnt/c/dev/class-one-rapids/frontend/modules/attack-button/specs/feature-attack.md`*

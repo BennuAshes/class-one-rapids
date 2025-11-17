@@ -78,7 +78,7 @@ First, analyze the feature description to extract (following @docs/architecture/
 - ❌ DO NOT add complex error recovery beyond preventing crashes
 - ❌ DO NOT add navigation/routing if user didn't mention multiple screens or navigation
 - ❌ DO NOT add additional screens/views beyond what user specified
-- ❌ DO NOT add shop/store/inventory systems unless explicitly requested
+- ❌ DO NOT add shop/store/inventory/game systems unless explicitly requested
 - ❌ DO NOT add multi-screen architecture for single-screen requests
 
 **WHEN TO ADD BEYOND USER REQUEST** (minimal platform requirements only):
@@ -191,21 +191,21 @@ Before writing ANY feature in the MVP section below, you MUST:
 3. **Check for explicit EXCLUSIONS** in the feature description:
    - Look for phrases like: "Don't [do X]", "Not yet", "Skip [Y]", "Without [Z]", "Except", "Avoid"
    - Any feature explicitly excluded MUST be listed in "Out of Scope" section
-   - Example: "Don't create any upgrades yet" → upgrade definitions go in "Out of Scope"
+   - Example: "Don't create any items yet" → item definitions go in "Out of Scope"
 
 **Validation Example**:
 ```
-Original request: "Create a shop screen that links from the main one. Don't create any upgrades yet."
+Original request: "Create a todo list screen that links from the main one. Don't create any items yet."
 
 ✅ CORRECT MVP:
-- P0: Shop screen with navigation from main screen (quoted: "Create a shop screen that links from the main one")
-- P0: Empty/placeholder upgrade list (infrastructure for future upgrades)
+- P0: Todo list screen with navigation from main screen (quoted: "Create a todo list screen that links from the main one")
+- P0: Empty/placeholder todo list (infrastructure for future items)
 
 ✅ CORRECT Out of Scope:
-- Specific upgrade definitions (quoted exclusion: "Don't create any upgrades yet")
+- Specific todo item definitions (quoted exclusion: "Don't create any items yet")
 
 ❌ WRONG MVP:
-- P0: 5 upgrade definitions with costs and effects (EXPLICITLY EXCLUDED!)
+- P0: 5 todo item definitions with titles and descriptions (EXPLICITLY EXCLUDED!)
 ```
 
 **MVP (Must Have - USER REQUESTED FEATURES ONLY):**

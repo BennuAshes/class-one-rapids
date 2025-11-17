@@ -158,14 +158,14 @@ Copy the relevant parts of TDD Section 2 into the generated task list header:
 ## 🔍 Architecture Decisions (from TDD Section 2)
 
 Based on codebase exploration in TDD:
-- UPDATE: modules/shop/ShopScreen.tsx (shop module owns shop UI)
-- CREATE: modules/upgrades/components/UpgradeCard.tsx (new component)
-- CREATE: modules/upgrades/hooks/useUpgradeEffects.ts (new logic)
+- UPDATE: modules/todo/TodoListScreen.tsx (todo module owns list UI)
+- CREATE: modules/todo/components/TodoCard.tsx (new component)
+- CREATE: modules/todo/hooks/useTodoActions.ts (new logic)
 
 Store Properties (verified in TDD):
-- scrapStore.scrap (NOT scrapCount)
-- shopStore.availableUpgrades
-- shopStore.purchasedUpgrades
+- todoStore.items (NOT todoList)
+- todoStore.completed
+- todoStore.active
 ```
 
 ### Implementation Check
@@ -213,15 +213,15 @@ For EACH component mentioned in TDD, Section 2 "Codebase Exploration & Integrati
 ```markdown
 Component Analysis Example (from TDD Section 2):
 
-TDD Section 2 documents: "ShopScreen"
-- Existing: modules/shop/ShopScreen.tsx (shows empty state)
-- Integration: App.tsx imports from modules/shop/ShopScreen
+TDD Section 2 documents: "TodoListScreen"
+- Existing: modules/todo/TodoListScreen.tsx (shows empty state)
+- Integration: App.tsx imports from modules/todo/TodoListScreen
 - DECISION: UPDATE existing file
-- RATIONALE: Shop module owns shop UI, avoid duplication
+- RATIONALE: Todo module owns list UI, avoid duplication
 
 Decision for tasks:
-✓ DO: Update existing modules/shop/ShopScreen.tsx (per TDD Section 2)
-✗ DON'T: Create new modules/upgrades/ShopScreen.tsx
+✓ DO: Update existing modules/todo/TodoListScreen.tsx (per TDD Section 2)
+✗ DON'T: Create new modules/categories/TodoListScreen.tsx
 Reason: TDD Section 2 specifies UPDATE decision
 ```
 
@@ -261,18 +261,18 @@ For EACH task that creates/modifies files, include explicit location guidance:
 **FILES TO CREATE/UPDATE** (based on TDD Section 2):
 
 IF updating existing (per TDD Section 2):
-- UPDATE: modules/shop/ShopScreen.tsx
-  - Reason: Shop module owns shop UI (documented in TDD Section 2)
-  - Changes: Add upgrade list display using UpgradeCard components
+- UPDATE: modules/todo/TodoListScreen.tsx
+  - Reason: Todo module owns list UI (documented in TDD Section 2)
+  - Changes: Add list display using TodoCard components
 
 IF creating new (per TDD Section 2):
-- CREATE: modules/upgrades/components/UpgradeCard.tsx
-  - Reason: Reusable upgrade-specific component (documented in TDD Section 2)
-  - Location: Task's module (modules/upgrades/)
+- CREATE: modules/todo/components/TodoCard.tsx
+  - Reason: Reusable todo-specific component (documented in TDD Section 2)
+  - Location: Task's module (modules/todo/)
 
-- CREATE: modules/upgrades/hooks/useUpgradeEffects.ts
-  - Reason: New business logic for upgrade effects (documented in TDD Section 2)
-  - Location: Task's module (modules/upgrades/)
+- CREATE: modules/todo/hooks/useTodoActions.ts
+  - Reason: New business logic for todo actions (documented in TDD Section 2)
+  - Location: Task's module (modules/todo/)
 ```
 
 **Decision Criteria (from TDD Section 2)**:
@@ -576,6 +576,11 @@ For features with ≥ 10 items (organized by type):
 - [ ] Read all files mentioned in task context (App.tsx, stores, services)
 - [ ] Verify assumed infrastructure exists (navigation, state management)
 - [ ] Check that imports referenced in code examples actually exist
+- [ ] **If feature uses persistence (AsyncStorage, database, files)**:
+  - [ ] Search for existing persistence patterns: `Grep "persist\(" --glob="**/*.ts"`
+  - [ ] Document the pattern used (e.g., "Legend-State persist() with AsyncStorage")
+  - [ ] Copy the exact pattern for consistency (API, naming, debouncing)
+  - [ ] Plan to test persistence via "loads on mount" test, NOT mock call counts
 - [ ] Document any missing dependencies that need just-in-time creation
 
 **IF ANY DEPENDENCY IS MISSING**:
@@ -596,7 +601,7 @@ Before writing ANY tests, if your feature uses existing stores:
 4. **Test through components**, not isolated hooks (per CLAUDE.md)
 
 **Why Integration-First**:
-- Catches property name mismatches immediately (e.g., `scrap` vs `scrapCount`)
+- Catches property name mismatches immediately (e.g., `items` vs `itemList`)
 - Forces use of real stores, not mocked/isolated environments
 - Verifies feature works with actual system, not just in tests
 - Prevents bugs where tests pass but app breaks
@@ -616,21 +621,21 @@ import { realStore } from '../path/to/real.store';  // ✅ Real store
 describe('[ComponentName]', () => {
   beforeEach(() => {
     // Reset REAL store using VERIFIED property names
-    // Example: After reading scrap.store.ts, saw property is "scrap" not "scrapCount"
-    realStore.scrap.set(0);  // ✅ Correct: matches store definition
-    // realStore.scrapCount.set(0);  // ❌ Wrong: creates new property, hides bugs
+    // Example: After reading todo.store.ts, saw property is "items" not "itemList"
+    realStore.items.set([]);  // ✅ Correct: matches store definition
+    // realStore.itemList.set([]);  // ❌ Wrong: creates new property, hides bugs
   });
 
   test('should [specific behavior from requirement]', async () => {
     // INTEGRATION TEST: Use REAL store with VERIFIED property name
-    realStore.scrap.set(150);  // ✅ Must match actual store property
+    realStore.items.set([{ id: '1', title: 'Buy milk' }]);  // ✅ Must match actual store property
 
     const user = userEvent.setup();
     render(<ComponentName />);
 
     // Test user-visible behavior
     // If implementation uses wrong property name, this test WILL FAIL
-    expect(screen.getByText('Scrap: 150')).toBeTruthy();
+    expect(screen.getByText('Buy milk')).toBeTruthy();
   });
 });
 ```
@@ -748,8 +753,8 @@ Or use Markdown table format for simpler requirements:
 | **Size**      | 44x44px minimum               | WCAG touch target   |
 | **Color**     | Glowing yellow/gold (#FFD700) | High contrast       |
 | **Animation** | Pulsing glow                  | 2-3 second duration |
-| **Position**  | Random on enemy               | Constrained to body |
-| **Feedback**  | Flash on hit                  | 200ms duration      |
+| **Position**  | Top-right corner              | Fixed positioning   |
+| **Feedback**  | Flash on tap                  | 200ms duration      |
 | **Opacity**   | 0.8 default, 1.0 on hover     | Smooth transition   |
 ```
 
@@ -1129,10 +1134,10 @@ Example:
 Evidence: src/services/InputService.ts, src/**tests**/services/InputService.test.ts
 (This task can be skipped during execution)
 
-### Task 2.2: [PARTIAL: missing UI components] Enemy Component with Weakness System
+### Task 2.2: [PARTIAL: missing UI components] Todo Item Component with Status System
 
-Completed: Type definitions, EnemyStore
-Missing: Enemy.tsx component, WeaknessSpot.tsx, animations
+Completed: Type definitions, TodoStore
+Missing: TodoItem.tsx component, StatusBadge.tsx, animations
 
 ```
 

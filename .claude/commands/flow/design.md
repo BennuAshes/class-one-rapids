@@ -121,7 +121,7 @@ Generate a comprehensive Technical Design Document based on the PRD.
 4. **Scope Creep Check**:
    - ❌ If PRD added screens not in original request → STOP and report
    - ❌ If PRD added navigation not in original request → STOP and report
-   - ❌ If PRD added systems (shop, inventory, etc.) not in original request → STOP and report
+   - ❌ If PRD added systems (authentication, notifications, etc.) not in original request → STOP and report
    - ✅ If PRD only contains requested features + platform minimums → PROCEED
 
 5. **Explicit Exclusion Check** (NEW - CRITICAL):
@@ -130,16 +130,16 @@ Generate a comprehensive Technical Design Document based on the PRD.
    - **Extract all explicitly excluded items** from original request
    - **Check PRD MVP/P0 features** against exclusion list:
      - ❌ If PRD includes ANY explicitly excluded item → STOP and report
-     - Example: Original says "Don't create upgrades yet" but PRD MVP includes "5 upgrade definitions" → STOP
+     - Example: Original says "Don't create items yet" but PRD MVP includes "5 item definitions" → STOP
    - **Quote the exclusion** in error message for clarity
 
    **Exclusion Detection Example**:
    ```
-   Original: "Create a shop screen. Don't create any upgrades yet."
-   Excluded items: ["upgrade definitions", "specific upgrades"]
-   PRD MVP includes: "Define 5 initial upgrades with costs"
-   Result: STOP - "ERROR: PRD includes excluded feature 'upgrade definitions'.
-           Original request explicitly said: 'Don't create any upgrades yet'"
+   Original: "Create a todo list screen. Don't create any items yet."
+   Excluded items: ["item definitions", "specific items"]
+   PRD MVP includes: "Define 5 initial todo items with titles"
+   Result: STOP - "ERROR: PRD includes excluded feature 'item definitions'.
+           Original request explicitly said: 'Don't create any items yet'"
    ```
 
 6. **Architecture Creep Check**:
@@ -191,7 +191,7 @@ I need to explore the codebase before generating the Technical Design Document.
 
 **SEARCH METHODOLOGY**:
 
-For each component/screen mentioned (e.g., ShopScreen, UpgradeCard):
+For each component/screen mentioned (e.g., TodoListScreen, TodoCard):
 1. Global search: Glob **/*{ComponentName}*.{ts,tsx}
 2. Search variations: Glob **/*{component-name}*.{ts,tsx}
 3. If found: Read file to understand current implementation
@@ -201,7 +201,7 @@ For each component/screen mentioned (e.g., ShopScreen, UpgradeCard):
 For stores mentioned:
 1. Find all stores: Glob **/*.store.ts
 2. Read each store file
-3. Document EXACT property names (e.g., "scrap" not "scrapCount")
+3. Document EXACT property names (e.g., "items" not "itemList")
 4. List observable properties with types
 
 For hooks mentioned:
@@ -255,7 +255,7 @@ OR
   - RATIONALE: [new feature, belongs in X module because...]
 
 **Store Property Validation**:
-- storeName.property ✅ (verified in store.ts line X)
+- todoStore.items ✅ (verified in store.ts line X)
 
 ## CRITICAL QUESTIONS ANSWERED
 - Are there duplicate/similar components that would conflict?
@@ -541,29 +541,29 @@ describe('App Navigation Integration', () => {
     expect(getByText(/count/i)).toBeTruthy(); // Or whatever default screen shows
   });
 
-  test('can navigate to shop screen', () => {
+  test('can navigate to todo list screen', () => {
     const { getByText } = render(<App />);
 
-    // This test FAILS if ShopScreen doesn't exist or isn't imported
-    const shopButton = getByText(/shop/i);
-    fireEvent.press(shopButton);
+    // This test FAILS if TodoListScreen doesn't exist or isn't imported
+    const todoButton = getByText(/todo/i);
+    fireEvent.press(todoButton);
 
-    // Verify shop screen is displayed
-    expect(getByText(/shop screen/i)).toBeTruthy();
+    // Verify todo list screen is displayed
+    expect(getByText(/todo list/i)).toBeTruthy();
   });
 
-  test('can navigate back to clicker screen', () => {
+  test('can navigate back to main screen', () => {
     const { getByText } = render(<App />);
 
-    // Navigate to shop
-    fireEvent.press(getByText(/shop/i));
+    // Navigate to todo list
+    fireEvent.press(getByText(/todo/i));
 
-    // Navigate back to clicker
-    const clickerButton = getByText(/clicker/i);
-    fireEvent.press(clickerButton);
+    // Navigate back to main
+    const mainButton = getByText(/main/i);
+    fireEvent.press(mainButton);
 
-    // Verify clicker screen is displayed
-    expect(getByText(/feed/i)).toBeTruthy();
+    // Verify main screen is displayed
+    expect(getByText(/home/i)).toBeTruthy();
   });
 
   test('all navigation targets are importable', () => {
@@ -732,15 +732,15 @@ describe('App Navigation Integration', () => {
     expect(() => render(<App />)).not.toThrow();
   });
 
-  test('displays clicker screen by default', () => {
+  test('displays main screen by default', () => {
     const { getByText } = render(<App />);
-    expect(getByText(/feed/i)).toBeTruthy();
+    expect(getByText(/todo/i)).toBeTruthy();
   });
 
-  test('can navigate to shop screen', () => {
+  test('can navigate to settings screen', () => {
     const { getByText } = render(<App />);
-    fireEvent.press(getByText(/shop/i));
-    expect(getByText(/shop/i)).toBeTruthy();
+    fireEvent.press(getByText(/settings/i));
+    expect(getByText(/settings/i)).toBeTruthy();
   });
 });
 ```
@@ -773,13 +773,13 @@ describe('App Navigation Integration', () => {
 
 Example Feature Breakdown:
 
-- **[Feature 1]**: Shop Screen
-  - **App Test 1**: Can navigate from clicker to shop (WRITE FIRST)
-  - **App Test 2**: Can navigate from shop back to clicker (WRITE FIRST)
-  - Component Test 1: Shop screen renders upgrade list
-  - Component Test 2: Selecting upgrade shows details
-  - Component Test 3: Purchase button works correctly
-  - Integration Test 1: Purchasing upgrade updates global state
+- **[Feature 1]**: Todo List Screen
+  - **App Test 1**: Can navigate to todo list (WRITE FIRST)
+  - **App Test 2**: Can navigate back to main (WRITE FIRST)
+  - Component Test 1: Todo list screen renders items
+  - Component Test 2: Selecting item shows details
+  - Component Test 3: Complete button works correctly
+  - Integration Test 1: Completing item updates global state
 
 #### Phase 3: Enhancement with TDD [X weeks]
 
