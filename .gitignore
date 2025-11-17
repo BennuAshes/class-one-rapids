@@ -46,3 +46,4 @@ convos
 venv/
 __pycache__/
 .pytest_cache/
+NOTEPAD.md

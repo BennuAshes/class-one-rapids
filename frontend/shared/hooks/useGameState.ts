@@ -1,8 +1,8 @@
-import { gameState$, scrapRate$ } from '../store/gameStore';
+import { gameState$, scrapRate$, availableUpgrades$ } from '../store/gameStore';
 
 /**
  * Hook for accessing shared game state
- * Provides reactive observables for pet count, scrap, and scrap rate
+ * Provides reactive observables for pet count, scrap, scrap rate, and shop state
  *
  * @returns Reactive observables for game state
  *
@@ -17,5 +17,8 @@ export function useGameState() {
     petCount$: gameState$.petCount,
     scrap$: gameState$.scrap,
     scrapRate$: scrapRate$,
+    upgrades$: gameState$.upgrades,
+    purchasedUpgrades$: gameState$.purchasedUpgrades,
+    availableUpgrades$: availableUpgrades$,
   };
 }

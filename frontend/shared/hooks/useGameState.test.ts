@@ -1,12 +1,14 @@
-import { renderHook } from '@testing-library/react-native';
+import { renderHook, act } from '@testing-library/react-native';
 import { useGameState } from './useGameState';
-import { gameState$ } from '../store/gameStore';
+import { gameState$, Upgrade } from '../store/gameStore';
 
 describe('useGameState', () => {
   beforeEach(() => {
     // Reset game state before each test
     gameState$.petCount.set(0);
     gameState$.scrap.set(0);
+    gameState$.upgrades.set([]);
+    gameState$.purchasedUpgrades.set([]);
   });
 
   test('returns petCount$ observable', () => {
@@ -52,5 +54,47 @@ describe('useGameState', () => {
 
     result.current.petCount$.set(12);
     expect(result.current.scrapRate$.get()).toBe(12);
+  });
+
+  describe('useGameState shop state access', () => {
+    test('exposes upgrades$ observable', () => {
+      const { result } = renderHook(() => useGameState());
+
+      expect(result.current.upgrades$).toBeDefined();
+      expect(result.current.upgrades$.get()).toEqual([]);
+    });
+
+    test('exposes purchasedUpgrades$ observable', () => {
+      const { result } = renderHook(() => useGameState());
+
+      expect(result.current.purchasedUpgrades$).toBeDefined();
+      expect(result.current.purchasedUpgrades$.get()).toEqual([]);
+    });
+
+    test('exposes availableUpgrades$ computed', () => {
+      const { result } = renderHook(() => useGameState());
+
+      expect(result.current.availableUpgrades$).toBeDefined();
+      expect(result.current.availableUpgrades$.get()).toEqual([]);
+    });
+
+    test('upgrades$ updates when state changes', () => {
+      const { result } = renderHook(() => useGameState());
+
+      const testUpgrade: Upgrade = {
+        id: 'test',
+        name: 'Test Upgrade',
+        description: 'Test',
+        scrapCost: 100,
+        type: 'scrap-per-pet',
+        effectValue: 0.5,
+      };
+
+      act(() => {
+        gameState$.upgrades.set([testUpgrade]);
+      });
+
+      expect(result.current.upgrades$.get()).toEqual([testUpgrade]);
+    });
   });
 });

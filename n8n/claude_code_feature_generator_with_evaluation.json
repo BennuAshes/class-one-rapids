@@ -1,0 +1,816 @@
+{
+  "name": "Claude Code Feature Generator with Evaluation v1",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-feature",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "🎯 Webhook - Receive Feature Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "claude-code-feature-gen"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.body.feature_description}}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{$json.body.codebase_path}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "validate-input",
+      "name": "✅ Validate - Input Schema",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "error",
+              "value": "Missing required fields: feature_description and codebase_path"
+            },
+            {
+              "name": "status",
+              "value": "error"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "validation-error",
+      "name": "⚠️ Set - Validation Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [650, 450]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "send-validation-error",
+      "name": "✉️ Send - Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 450]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && ls -la",
+        "timeout": 5000
+      },
+      "id": "verify-codebase",
+      "name": "📂 Verify - Codebase Path Exists",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [650, 150]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && echo \"={{$json.body.feature_description}}\" > .claude/temp_feature_request.md",
+        "timeout": 5000
+      },
+      "id": "write-feature-file",
+      "name": "📝 Write - Feature Description File",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [850, 150]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && claude /flow:prd < .claude/temp_feature_request.md",
+        "timeout": 300000
+      },
+      "id": "execute-prd-command",
+      "name": "🤖 Execute - Claude PRD Generation",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1050, 150]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.stdout || '';\nconst errorOutput = $input.item.json.stderr || '';\n\n// Extract PRD file path from output\nconst prdPathMatch = output.match(/(?:prd_[a-z0-9_]+_\\d{8}\\.md)/);\nconst prdFilePath = prdPathMatch ? prdPathMatch[0] : null;\n\nif (!prdFilePath) {\n  throw new Error('Failed to extract PRD file path from command output');\n}\n\nreturn {\n  prd_file_path: prdFilePath,\n  prd_output: output,\n  error_output: errorOutput,\n  status: 'prd_generated'\n};"
+      },
+      "id": "parse-prd-output",
+      "name": "📝 Parse - PRD Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 150]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && echo \"={{$json.prd_file_path}}\" | claude /flow:design",
+        "timeout": 300000
+      },
+      "id": "execute-design-command",
+      "name": "🤖 Execute - Claude Design Generation",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1450, 150]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.stdout || '';\nconst errorOutput = $input.item.json.stderr || '';\n\n// Extract TDD file path from output\nconst tddPathMatch = output.match(/(?:tdd_[a-z0-9_]+_\\d{8}\\.md)/);\nconst tddFilePath = tddPathMatch ? tddPathMatch[0] : null;\n\nif (!tddFilePath) {\n  throw new Error('Failed to extract TDD file path from command output');\n}\n\nreturn {\n  tdd_file_path: tddFilePath,\n  tdd_output: output,\n  error_output: errorOutput,\n  status: 'design_generated'\n};"
+      },
+      "id": "parse-tdd-output",
+      "name": "📝 Parse - TDD Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1650, 150]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && echo \"={{$json.tdd_file_path}}\" | claude /flow:tasks",
+        "timeout": 300000
+      },
+      "id": "execute-tasks-command",
+      "name": "🤖 Execute - Claude Tasks Generation",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1850, 150]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.stdout || '';\nconst errorOutput = $input.item.json.stderr || '';\n\n// Extract tasks file path from output\nconst tasksPathMatch = output.match(/(?:tasks_[a-z0-9_]+_\\d{8}\\.md)/);\nconst tasksFilePath = tasksPathMatch ? tasksPathMatch[0] : null;\n\nif (!tasksFilePath) {\n  throw new Error('Failed to extract tasks file path from command output');\n}\n\nreturn {\n  tasks_file_path: tasksFilePath,\n  tasks_output: output,\n  error_output: errorOutput,\n  status: 'tasks_generated'\n};"
+      },
+      "id": "parse-tasks-output",
+      "name": "📝 Parse - Tasks Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2050, 150]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && echo \"={{$json.tasks_file_path}}\" | claude /flow:execute-task",
+        "timeout": 1800000
+      },
+      "id": "execute-tasks",
+      "name": "🤖 Execute - Claude Code Generation",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2250, 150]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.stdout || '';\nconst errorOutput = $input.item.json.stderr || '';\nconst exitCode = $input.item.json.exitCode || 0;\n\n// Check if execution was successful\nconst success = exitCode === 0;\n\nreturn {\n  execution_output: output,\n  error_output: errorOutput,\n  exit_code: exitCode,\n  status: success ? 'code_generated' : 'execution_failed',\n  success: success,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "parse-execution-output",
+      "name": "📝 Parse - Execution Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2450, 150]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.body.enable_evaluation}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-evaluation-enabled",
+      "name": "🔀 Check - Evaluation Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2650, 150]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && npm test 2>&1",
+        "timeout": 600000
+      },
+      "id": "run-tests",
+      "name": "🧪 Execute - Run Tests",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2850, 50]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.stdout || '';\nconst errorOutput = $input.item.json.stderr || '';\nconst exitCode = $input.item.json.exitCode || 0;\n\n// Parse test results\nconst testsPassed = exitCode === 0;\nconst testsRun = (output.match(/Tests:\\s+(\\d+)\\s+passed/) || [null, '0'])[1];\nconst testsFailed = (output.match(/(\\d+)\\s+failed/) || [null, '0'])[1];\nconst coverage = (output.match(/All files\\s+\\|\\s+([\\d.]+)/) || [null, 'N/A'])[1];\n\nreturn {\n  tests_passed: testsPassed,\n  tests_run: parseInt(testsRun) || 0,\n  tests_failed: parseInt(testsFailed) || 0,\n  coverage_percent: coverage,\n  test_output: output.substring(0, 1000),\n  test_errors: errorOutput.substring(0, 500)\n};"
+      },
+      "id": "parse-test-results",
+      "name": "📊 Parse - Test Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3050, 50]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && npm run lint 2>&1",
+        "timeout": 120000
+      },
+      "id": "run-lint",
+      "name": "🔍 Execute - Run Linter",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [3250, 50]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.stdout || '';\nconst errorOutput = $input.item.json.stderr || '';\nconst exitCode = $input.item.json.exitCode || 0;\n\n// Parse lint results\nconst lintPassed = exitCode === 0;\nconst errors = (output.match(/(\\d+)\\s+error/) || [null, '0'])[1];\nconst warnings = (output.match(/(\\d+)\\s+warning/) || [null, '0'])[1];\n\nreturn {\n  lint_passed: lintPassed,\n  lint_errors: parseInt(errors) || 0,\n  lint_warnings: parseInt(warnings) || 0,\n  lint_output: output.substring(0, 1000)\n};"
+      },
+      "id": "parse-lint-results",
+      "name": "📊 Parse - Lint Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3450, 50]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && npx tsc --noEmit 2>&1",
+        "timeout": 120000
+      },
+      "id": "run-typecheck",
+      "name": "⚙️ Execute - Type Check",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [3650, 50]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.stdout || '';\nconst errorOutput = $input.item.json.stderr || '';\nconst exitCode = $input.item.json.exitCode || 0;\n\n// Parse typecheck results\nconst typecheckPassed = exitCode === 0;\nconst typeErrors = (output.match(/Found (\\d+) error/) || [null, '0'])[1];\n\nreturn {\n  typecheck_passed: typecheckPassed,\n  type_errors: parseInt(typeErrors) || 0,\n  typecheck_output: output.substring(0, 1000)\n};"
+      },
+      "id": "parse-typecheck-results",
+      "name": "📊 Parse - TypeCheck Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3850, 50]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate all evaluation results\nconst testResults = $('parse-test-results').item.json;\nconst lintResults = $('parse-lint-results').item.json;\nconst typecheckResults = $('parse-typecheck-results').item.json;\n\n// Calculate overall quality score (0-100)\nlet score = 0;\nlet maxScore = 100;\n\n// Tests: 40 points max\nif (testResults.tests_passed) {\n  score += 40;\n} else {\n  score += Math.max(0, 40 - (testResults.tests_failed * 5));\n}\n\n// Linting: 30 points max\nif (lintResults.lint_passed) {\n  score += 30;\n} else {\n  score += Math.max(0, 30 - (lintResults.lint_errors * 3) - (lintResults.lint_warnings * 1));\n}\n\n// Type checking: 30 points max\nif (typecheckResults.typecheck_passed) {\n  score += 30;\n} else {\n  score += Math.max(0, 30 - (typecheckResults.type_errors * 2));\n}\n\n// Determine quality level\nlet quality_level = 'Poor';\nif (score >= 90) quality_level = 'Excellent';\nelse if (score >= 75) quality_level = 'Good';\nelse if (score >= 60) quality_level = 'Fair';\n\nreturn {\n  evaluation_score: Math.round(score),\n  quality_level: quality_level,\n  all_checks_passed: testResults.tests_passed && lintResults.lint_passed && typecheckResults.typecheck_passed,\n  test_summary: {\n    passed: testResults.tests_passed,\n    run: testResults.tests_run,\n    failed: testResults.tests_failed,\n    coverage: testResults.coverage_percent\n  },\n  lint_summary: {\n    passed: lintResults.lint_passed,\n    errors: lintResults.lint_errors,\n    warnings: lintResults.lint_warnings\n  },\n  typecheck_summary: {\n    passed: typecheckResults.typecheck_passed,\n    errors: typecheckResults.type_errors\n  },\n  evaluation_timestamp: new Date().toISOString()\n};"
+      },
+      "id": "aggregate-evaluation",
+      "name": "📈 Aggregate - Evaluation Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4050, 50]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.all_checks_passed}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-quality-threshold",
+      "name": "🎯 Check - Quality Threshold",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [4250, 50]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "evaluation_result",
+              "value": "PASSED"
+            },
+            {
+              "name": "message",
+              "value": "Code quality meets all standards"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-evaluation-passed",
+      "name": "✅ Set - Evaluation Passed",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [4450, 50]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "evaluation_result",
+              "value": "FAILED"
+            },
+            {
+              "name": "message",
+              "value": "Code quality checks failed - review required"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-evaluation-failed",
+      "name": "❌ Set - Evaluation Failed",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [4450, 200]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && rm -f .claude/temp_feature_request.md",
+        "timeout": 5000
+      },
+      "id": "cleanup-temp-files",
+      "name": "🧹 Cleanup - Temp Files",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [4650, 150]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "message",
+              "value": "Feature code generated successfully"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "format-success-response",
+      "name": "✨ Format - Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [4850, 150]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{{\n  \"status\": $json.status,\n  \"message\": $json.message,\n  \"prd_file\": $('parse-prd-output').item.json.prd_file_path,\n  \"tdd_file\": $('parse-tdd-output').item.json.tdd_file_path,\n  \"tasks_file\": $('parse-tasks-output').item.json.tasks_file_path,\n  \"execution_summary\": $('parse-execution-output').item.json.execution_output.substring(0, 500),\n  \"timestamp\": $('parse-execution-output').item.json.timestamp,\n  \"evaluation\": $('check-evaluation-enabled').item.json.body.enable_evaluation ? {\n    \"enabled\": true,\n    \"result\": $('aggregate-evaluation').item.json.evaluation_result || 'N/A',\n    \"score\": $('aggregate-evaluation').item.json.evaluation_score || 0,\n    \"quality_level\": $('aggregate-evaluation').item.json.quality_level || 'N/A',\n    \"all_checks_passed\": $('aggregate-evaluation').item.json.all_checks_passed || false,\n    \"test_summary\": $('aggregate-evaluation').item.json.test_summary || {},\n    \"lint_summary\": $('aggregate-evaluation').item.json.lint_summary || {},\n    \"typecheck_summary\": $('aggregate-evaluation').item.json.typecheck_summary || {}\n  } : {\n    \"enabled\": false\n  }\n}}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "send-success-response",
+      "name": "✉️ Send - Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [5050, 150]
+    },
+    {
+      "parameters": {
+        "mode": "catchError",
+        "errorMessage": "={{$json.message || 'Unknown error occurred'}}",
+        "options": {}
+      },
+      "id": "error-trigger",
+      "name": "⚠️ On Error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [1450, 450]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "error"
+            },
+            {
+              "name": "message",
+              "value": "={{$json.error?.message || 'Workflow execution failed'}}"
+            },
+            {
+              "name": "step",
+              "value": "={{$json.error?.node || 'unknown'}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "format-error-response",
+      "name": "⚠️ Format - Error Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1650, 450]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$('webhook-trigger').item.json.body.codebase_path}}\" && rm -f .claude/temp_feature_request.md",
+        "timeout": 5000,
+        "continueOnFail": true
+      },
+      "id": "cleanup-on-error",
+      "name": "🧹 Cleanup - On Error",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1850, 450]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "send-error-response",
+      "name": "✉️ Send - Error Response Final",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2050, 450]
+    }
+  ],
+  "connections": {
+    "🎯 Webhook - Receive Feature Request": {
+      "main": [
+        [
+          {
+            "node": "✅ Validate - Input Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Validate - Input Schema": {
+      "main": [
+        [
+          {
+            "node": "📂 Verify - Codebase Path Exists",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "⚠️ Set - Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚠️ Set - Validation Error": {
+      "main": [
+        [
+          {
+            "node": "✉️ Send - Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📂 Verify - Codebase Path Exists": {
+      "main": [
+        [
+          {
+            "node": "📝 Write - Feature Description File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Write - Feature Description File": {
+      "main": [
+        [
+          {
+            "node": "🤖 Execute - Claude PRD Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 Execute - Claude PRD Generation": {
+      "main": [
+        [
+          {
+            "node": "📝 Parse - PRD Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Parse - PRD Output": {
+      "main": [
+        [
+          {
+            "node": "🤖 Execute - Claude Design Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 Execute - Claude Design Generation": {
+      "main": [
+        [
+          {
+            "node": "📝 Parse - TDD Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Parse - TDD Output": {
+      "main": [
+        [
+          {
+            "node": "🤖 Execute - Claude Tasks Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 Execute - Claude Tasks Generation": {
+      "main": [
+        [
+          {
+            "node": "📝 Parse - Tasks Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Parse - Tasks Output": {
+      "main": [
+        [
+          {
+            "node": "🤖 Execute - Claude Code Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 Execute - Claude Code Generation": {
+      "main": [
+        [
+          {
+            "node": "📝 Parse - Execution Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Parse - Execution Output": {
+      "main": [
+        [
+          {
+            "node": "🔀 Check - Evaluation Enabled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔀 Check - Evaluation Enabled": {
+      "main": [
+        [
+          {
+            "node": "🧪 Execute - Run Tests",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🧹 Cleanup - Temp Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧪 Execute - Run Tests": {
+      "main": [
+        [
+          {
+            "node": "📊 Parse - Test Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Parse - Test Results": {
+      "main": [
+        [
+          {
+            "node": "🔍 Execute - Run Linter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Execute - Run Linter": {
+      "main": [
+        [
+          {
+            "node": "📊 Parse - Lint Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Parse - Lint Results": {
+      "main": [
+        [
+          {
+            "node": "⚙️ Execute - Type Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚙️ Execute - Type Check": {
+      "main": [
+        [
+          {
+            "node": "📊 Parse - TypeCheck Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Parse - TypeCheck Results": {
+      "main": [
+        [
+          {
+            "node": "📈 Aggregate - Evaluation Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📈 Aggregate - Evaluation Results": {
+      "main": [
+        [
+          {
+            "node": "🎯 Check - Quality Threshold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎯 Check - Quality Threshold": {
+      "main": [
+        [
+          {
+            "node": "✅ Set - Evaluation Passed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "❌ Set - Evaluation Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Set - Evaluation Passed": {
+      "main": [
+        [
+          {
+            "node": "🧹 Cleanup - Temp Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "❌ Set - Evaluation Failed": {
+      "main": [
+        [
+          {
+            "node": "🧹 Cleanup - Temp Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧹 Cleanup - Temp Files": {
+      "main": [
+        [
+          {
+            "node": "✨ Format - Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✨ Format - Success Response": {
+      "main": [
+        [
+          {
+            "node": "✉️ Send - Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚠️ On Error": {
+      "main": [
+        [
+          {
+            "node": "⚠️ Format - Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚠️ Format - Error Response": {
+      "main": [
+        [
+          {
+            "node": "🧹 Cleanup - On Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧹 Cleanup - On Error": {
+      "main": [
+        [
+          {
+            "node": "✉️ Send - Error Response Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "AI Automation",
+      "id": "ai-automation"
+    },
+    {
+      "name": "Code Generation",
+      "id": "code-gen"
+    },
+    {
+      "name": "Claude Code",
+      "id": "claude-code"
+    },
+    {
+      "name": "Code Evaluation",
+      "id": "code-eval"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-11-16T00:00:00.000Z",
+  "versionId": "1"
+}
