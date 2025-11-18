@@ -2,6 +2,8 @@ import { observable, computed } from '@legendapp/state';
 import { GameState } from '../types/game';
 import { loadGameState, saveGameState } from './persistence';
 import { UPGRADES } from '../../modules/shop/upgradeDefinitions';
+import { SKILLS } from '../../modules/singularity/skillDefinitions';
+import { SINGULARITY_CONFIG } from '../../modules/singularity/singularityConfig';
 
 /**
  * Maximum value for pet count (JavaScript safe integer limit)
@@ -24,9 +26,14 @@ let saveTimeout: NodeJS.Timeout | null = null;
  */
 export const gameState$ = observable<GameState>({
   petCount: 0,
+  bigPetCount: 0,
+  singularityPetCount: 0,
   scrap: 0,
   upgrades: [],
   purchasedUpgrades: [],
+  skills: [],
+  unlockedSkills: [],
+  activeSkills: [],
 });
 
 /**
@@ -73,6 +80,35 @@ export const totalPetBonus$ = computed(() => {
     .reduce((sum, u) => sum + u.effectValue, 0);
 });
 
+/**
+ * Computed observable for total singularity rate multiplier from upgrades
+ */
+export const totalSingularityRateMultiplier$ = computed(() => {
+  const purchased = gameState$.purchasedUpgrades.get();
+  const upgrades = gameState$.upgrades.get();
+
+  return upgrades
+    .filter(u => purchased.includes(u.id) && u.effectType === 'singularityRateMultiplier')
+    .reduce((sum, u) => sum + u.effectValue, 0);
+});
+
+/**
+ * Computed observable for whether combination is unlocked
+ */
+export const isCombinationUnlocked$ = computed(() => {
+  const purchased = gameState$.purchasedUpgrades.get();
+  const upgrades = gameState$.upgrades.get();
+
+  return upgrades.some(u => purchased.includes(u.id) && u.effectType === 'unlockCombination');
+});
+
+/**
+ * Computed observable for total pets across all tiers
+ */
+export const totalPets$ = computed(() => {
+  return gameState$.petCount.get() + gameState$.bigPetCount.get() + gameState$.singularityPetCount.get();
+});
+
 // Set up auto-persistence with debouncing
 // This will save the state 1 second after the last change
 gameState$.onChange(() => {
@@ -112,9 +148,14 @@ export function resetPetCount(): void {
 export function resetGameState(): void {
   gameState$.set({
     petCount: 0,
+    bigPetCount: 0,
+    singularityPetCount: 0,
     scrap: 0,
-    upgrades: [],
+    upgrades: UPGRADES,
     purchasedUpgrades: [],
+    skills: SKILLS,
+    unlockedSkills: [],
+    activeSkills: [],
   });
 }
 
@@ -128,9 +169,23 @@ export function isPetCountAtMax(): boolean {
 }
 
 /**
+ * Calculates scrap generation per second for all pet tiers
+ */
+export function calculateScrapPerSecond(): number {
+  const state = gameState$.get();
+  const baseScrap =
+    (state.petCount * SINGULARITY_CONFIG.AI_PET_SCRAP_RATE) +
+    (state.bigPetCount * SINGULARITY_CONFIG.BIG_PET_SCRAP_RATE) +
+    (state.singularityPetCount * SINGULARITY_CONFIG.SINGULARITY_PET_SCRAP_RATE);
+
+  const multiplier = totalScrapMultiplier$.get();
+  return baseScrap * (1 + multiplier);
+}
+
+/**
  * Initializes the game state from persistent storage.
  * Loads saved state if available, otherwise continues with defaults.
- * Populates upgrades array from UPGRADES definition if empty.
+ * Populates upgrades and skills arrays if empty.
  * Never throws errors - failures are logged and gracefully handled.
  */
 export async function initializeGameState(): Promise<void> {
@@ -149,12 +204,20 @@ export async function initializeGameState(): Promise<void> {
     if (gameState$.upgrades.get().length === 0) {
       gameState$.upgrades.set(UPGRADES);
     }
+
+    // Populate skills array if empty
+    if (gameState$.skills.get().length === 0) {
+      gameState$.skills.set(SKILLS);
+    }
   } catch (error) {
     console.error('Error initializing game state:', error);
 
-    // On error, still try to ensure upgrades are populated for playable state
+    // On error, still try to ensure upgrades and skills are populated
     if (gameState$.upgrades.get().length === 0) {
       gameState$.upgrades.set(UPGRADES);
+    }
+    if (gameState$.skills.get().length === 0) {
+      gameState$.skills.set(SKILLS);
     }
   }
 }

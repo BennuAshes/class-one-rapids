@@ -9,16 +9,21 @@ import { gameState$ } from '../store/gameStore';
  * @example
  * ```tsx
  * function MyComponent() {
- *   const { petCount$ } = useGameState();
- *   return <Text>Count: {petCount$.get()}</Text>;
+ *   const { petCount$, bigPetCount$, singularityPetCount$ } = useGameState();
+ *   return <Text>AI Pets: {petCount$.get()}</Text>;
  * }
  * ```
  */
 export function useGameState() {
   return {
     petCount$: gameState$.petCount,
+    bigPetCount$: gameState$.bigPetCount,
+    singularityPetCount$: gameState$.singularityPetCount,
     scrap$: gameState$.scrap,
     upgrades$: gameState$.upgrades,
     purchasedUpgrades$: gameState$.purchasedUpgrades,
+    skills$: gameState$.skills,
+    unlockedSkills$: gameState$.unlockedSkills,
+    activeSkills$: gameState$.activeSkills,
   };
 }

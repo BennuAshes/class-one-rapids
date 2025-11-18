@@ -1,0 +1,1 @@
+Create a tab in the shop that lets you buy consumables. Populate it with 3 examples.

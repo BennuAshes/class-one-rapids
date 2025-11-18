@@ -53,12 +53,13 @@ The PRD file path will be provided as the first line of stdin input.
    - **When to use useState vs custom hooks vs Legend-State stores**
    - **Hook naming focuses on BEHAVIOR not entity**: `usePersistedCounter` not `usePet`
    - Fine-grained reactivity patterns
-   - **Effect hooks**: See §🔄 Advanced Hook Patterns - Effect Hooks Pattern (lines 759-830)
+   - **Effect hooks**: See §🔄 Advanced Hook Patterns - Effect Hooks Pattern
 
-5. **Legend-State Implementation**: @docs/research/expo_legend_state_v3_guide_20250917_225656.md
+5. **Legend-State Sync & Persistence**: @docs/architecture/legend-state-sync.md
 
-   - Legend-State v3 patterns for data model design
-   - Observable primitives and persistence
+   - Observable basics: `observable()`, `computed()`, `.set()`, `.get()`
+   - Manual persistence patterns with AsyncStorage
+   - Debouncing saves with `onChange()` listeners
 
 6. **React Native Testing**: @docs/research/react_native_testing_library_guide_20250918_184418.md
    - Testing best practices for TDD strategy

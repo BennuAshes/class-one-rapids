@@ -1,69 +1,165 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { observer } from '@legendapp/state/react';
 import { useGameState } from '../../shared/hooks/useGameState';
-import { totalScrapMultiplier$, totalPetBonus$ } from '../../shared/store/gameStore';
+import {
+  totalScrapMultiplier$,
+  totalPetBonus$,
+  totalSingularityRateMultiplier$,
+  calculateScrapPerSecond,
+  gameState$
+} from '../../shared/store/gameStore';
+import { processSingularityTick, applySingularityBoostFromFeeding } from '../singularity/singularityEngine';
+import { checkAndUnlockSkills, isSkillActive } from '../singularity/skillEngine';
+import { canCombinePets, combinePets, getCombineCost } from '../singularity/combinationLogic';
+import { CombineConfirmationDialog } from '../singularity/components/CombineConfirmationDialog';
+import PaintingCanvas, { PaintingCanvasRef } from '../singularity/components/PaintingCanvas';
+import { getSkillById } from '../singularity/skillDefinitions';
 
 interface AttackButtonScreenProps {
   onNavigateToShop: () => void;
+  onNavigateToSkills?: () => void;
 }
 
 /**
  * Main screen for the Attack Button (Singularity Pet feeding) feature.
- * Displays a counter and a button to increment it.
- * Integrates with upgrade system for scrap multipliers and pet bonuses.
+ * Displays multi-tier pet counts and a button to increment them.
+ * Integrates with upgrade system, singularity progression, and skill unlocks.
  */
-export const AttackButtonScreen = observer(({ onNavigateToShop }: AttackButtonScreenProps) => {
-  const { petCount$, scrap$ } = useGameState();
+export const AttackButtonScreen = observer(({ onNavigateToShop, onNavigateToSkills }: AttackButtonScreenProps) => {
+  const { petCount$, bigPetCount$, singularityPetCount$, scrap$, activeSkills$ } = useGameState();
+  const [showCombineDialog, setShowCombineDialog] = useState(false);
+  const paintingCanvasRef = useRef<PaintingCanvasRef>(null);
 
   /**
    * Handles feeding the Singularity Pet.
    * Base gain is 1 pet, plus any pet bonus from purchased upgrades.
+   * Also has a small chance to trigger singularity boost (1% by default).
+   * If painting skill is active, adds a visual trail at button location.
    */
-  const handleFeed = () => {
+  const handleFeed = (event?: any) => {
     const bonus = totalPetBonus$.get();
     const petsToAdd = 1 + bonus;
     petCount$.set((prev) => prev + petsToAdd);
+
+    // Check for singularity boost from feeding
+    const currentState = gameState$.get();
+    const updatedState = applySingularityBoostFromFeeding(currentState);
+
+    // Apply any changes from the boost
+    if (updatedState !== currentState) {
+      gameState$.set(updatedState);
+    }
+
+    // Add painting trail if skill is active
+    const isPaintingActive = isSkillActive(currentState, 'painting');
+    if (isPaintingActive && paintingCanvasRef.current && event?.nativeEvent) {
+      const { pageX, pageY } = event.nativeEvent;
+      paintingCanvasRef.current.addTrail(pageX, pageY);
+    }
   };
 
   /**
-   * Scrap generation timer with multiplier support
+   * Game loop timer - runs every second
    *
-   * Generates scrap passively based on current petCount.
-   * Base rate: 1 scrap per pet per second
-   * Multiplier: Applied from purchased scrap efficiency upgrades
+   * This timer handles three key systems:
+   * 1. Scrap generation from all pet tiers
+   * 2. Singularity progression (AI -> Big -> Singularity)
+   * 3. Skill unlock checks
    *
-   * Formula: petCount * (1 + totalScrapMultiplier)
-   * Example: With 10 pets and 0.25 multiplier (25%), generates 12.5 scrap/sec
-   *
-   * Timer runs for the entire component lifetime (empty dependency array).
-   * Uses .get() to read latest values on each tick (no need to depend on observables).
-   * Updates scrap using functional update to avoid race conditions.
+   * Uses .get() to read latest values on each tick.
+   * Updates state using functional updates and state replacement.
    * Cleanup function ensures timer is cleared on unmount.
    */
   useEffect(() => {
     const interval = setInterval(() => {
-      const petCount = petCount$.get(); // Read current pet count
-      const multiplier = totalScrapMultiplier$.get(); // Read current scrap multiplier
-      const scrapGenerated = petCount * (1 + multiplier); // Apply multiplier
+      // 1. Generate scrap from all pet tiers
+      const scrapGenerated = calculateScrapPerSecond();
 
-      // Only update state if scrap would actually be generated
-      // This avoids unnecessary state updates, re-renders, and saves when petCount = 0
       if (scrapGenerated > 0) {
         scrap$.set((prev) => prev + scrapGenerated);
+      }
+
+      // 2. Process singularity progression
+      const currentState = gameState$.get();
+      const multiplier = totalSingularityRateMultiplier$.get();
+      let updatedState = processSingularityTick(currentState, 1.0, multiplier);
+
+      // 3. Check for skill unlocks
+      updatedState = checkAndUnlockSkills(updatedState);
+
+      // Apply all updates atomically
+      if (updatedState !== currentState) {
+        gameState$.set(updatedState);
       }
     }, 1000);
 
     return () => clearInterval(interval);
   }, []); // Empty dependency array - timer persists for component lifetime
 
+  /**
+   * Handlers for combine functionality
+   */
+  const handleCombinePress = () => {
+    setShowCombineDialog(true);
+  };
+
+  const handleCombineConfirm = () => {
+    try {
+      const currentState = gameState$.get();
+      const updatedState = combinePets(currentState);
+      gameState$.set(updatedState);
+      setShowCombineDialog(false);
+    } catch (error) {
+      console.error('Failed to combine pets:', error);
+      setShowCombineDialog(false);
+    }
+  };
+
+  const handleCombineCancel = () => {
+    setShowCombineDialog(false);
+  };
+
   const petCount = petCount$.get();
+  const bigPetCount = bigPetCount$.get();
+  const singularityPetCount = singularityPetCount$.get();
   const scrap = scrap$.get();
+  const currentState = gameState$.get();
+
+  // Get painting skill configuration
+  const paintingSkill = getSkillById('painting');
+  const isPaintingActive = isSkillActive(currentState, 'painting');
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
+        <View style={styles.petCountsContainer}>
+          <Text
+            style={styles.aiPetText}
+            accessibilityRole="text"
+            accessibilityLabel={`AI Pets: ${petCount}`}
+          >
+            AI Pets: {petCount}
+          </Text>
+
+          <Text
+            style={styles.bigPetText}
+            accessibilityRole="text"
+            accessibilityLabel={`Big Pets: ${bigPetCount}`}
+          >
+            Big Pets: {bigPetCount}
+          </Text>
+
+          <Text
+            style={styles.singularityPetText}
+            accessibilityRole="text"
+            accessibilityLabel={`Singularity Pets: ${singularityPetCount}`}
+          >
+            Singularity Pets: {singularityPetCount}
+          </Text>
+        </View>
+
         <Text
           style={styles.counterText}
           accessibilityRole="text"
@@ -80,18 +176,64 @@ export const AttackButtonScreen = observer(({ onNavigateToShop }: AttackButtonSc
           Scrap: {scrap}
         </Text>
 
+        <View style={styles.navigationButtons}>
+          <Pressable
+            onPress={onNavigateToShop}
+            accessibilityRole="button"
+            accessibilityLabel="Shop"
+            accessibilityHint="Tap to browse and purchase upgrades"
+            style={({ pressed }) => [
+              styles.navButton,
+              pressed && styles.buttonPressed,
+            ]}
+          >
+            <Text style={styles.navButtonText}>Shop</Text>
+          </Pressable>
+
+          {onNavigateToSkills && (
+            <Pressable
+              onPress={onNavigateToSkills}
+              accessibilityRole="button"
+              accessibilityLabel="Skills"
+              accessibilityHint="View and manage your skills"
+              style={({ pressed }) => [
+                styles.navButton,
+                pressed && styles.buttonPressed,
+              ]}
+            >
+              <Text style={styles.navButtonText}>Skills</Text>
+            </Pressable>
+          )}
+        </View>
+
         <Pressable
-          onPress={onNavigateToShop}
+          onPress={handleCombinePress}
           accessibilityRole="button"
-          accessibilityLabel="Shop"
-          accessibilityHint="Tap to browse and purchase upgrades"
+          accessibilityLabel="Combine pets"
+          accessibilityHint="Combine AI Pets into Big Pets"
+          accessibilityState={{ disabled: !canCombinePets(gameState$.get()) }}
+          disabled={!canCombinePets(gameState$.get())}
           style={({ pressed }) => [
-            styles.shopButton,
+            styles.combineButton,
             pressed && styles.buttonPressed,
+            !canCombinePets(gameState$.get()) && styles.buttonDisabled,
           ]}
         >
-          <Text style={styles.shopButtonText}>Shop</Text>
+          <Text style={[
+            styles.combineButtonText,
+            !canCombinePets(gameState$.get()) && styles.buttonTextDisabled,
+          ]}>
+            Combine {getCombineCost()} AI Pets → 1 Big Pet
+          </Text>
         </Pressable>
+
+        <CombineConfirmationDialog
+          visible={showCombineDialog}
+          currentPetCount={petCount}
+          combineCost={getCombineCost()}
+          onConfirm={handleCombineConfirm}
+          onCancel={handleCombineCancel}
+        />
 
         <Pressable
           onPress={handleFeed}
@@ -106,6 +248,15 @@ export const AttackButtonScreen = observer(({ onNavigateToShop }: AttackButtonSc
           <Text style={styles.buttonText}>feed</Text>
         </Pressable>
       </View>
+
+      {/* Painting skill visual effect overlay */}
+      {paintingSkill && paintingSkill.effectConfig && (
+        <PaintingCanvas
+          ref={paintingCanvasRef}
+          isActive={isPaintingActive}
+          skillConfig={paintingSkill.effectConfig as any}
+        />
+      )}
     </SafeAreaView>
   );
 });
@@ -120,6 +271,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  petCountsContainer: {
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  aiPetText: {
+    fontSize: 16,
+    marginBottom: 5,
+    color: '#666666', // Gray for AI Pets
+  },
+  bigPetText: {
+    fontSize: 16,
+    marginBottom: 5,
+    color: '#FF9500', // Orange for Big Pets
+    fontWeight: '600',
+  },
+  singularityPetText: {
+    fontSize: 16,
+    marginBottom: 5,
+    color: '#007AFF', // Blue for Singularity Pets
+    fontWeight: '700',
   },
   counterText: {
     fontSize: 18,
@@ -158,6 +330,33 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
   },
+  navigationButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+    width: '100%',
+  },
+  navButton: {
+    flex: 1,
+    minWidth: 44,
+    minHeight: 44,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#34C759',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navButtonText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
   shopButton: {
     minWidth: 44,
     minHeight: 44,
@@ -176,5 +375,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  combineButton: {
+    minWidth: 44,
+    minHeight: 44,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: '#FF9500',
+    borderRadius: 8,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  combineButtonText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  buttonDisabled: {
+    backgroundColor: '#CCCCCC',
+    opacity: 0.6,
+  },
+  buttonTextDisabled: {
+    color: '#666666',
   },
 });

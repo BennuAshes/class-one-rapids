@@ -187,12 +187,12 @@ ONLY proceed if validation passes:
    - Hook-based architecture
    - When to use useState vs custom hooks vs Legend-State stores
    - Fine-grained reactivity patterns
-   - **Effect hooks**: See §🔄 Advanced Hook Patterns - Effect Hooks Pattern (lines 759-830)
+   - **Effect hooks**: See §🔄 Advanced Hook Patterns - Effect Hooks Pattern
 
-5. **Legend-State Implementation**: @docs/research/expo_legend_state_v3_guide_20250917_225656.md
-   - Legend-State v3 patterns
-   - Observable primitives
-   - React integration
+5. **Legend-State Sync & Persistence**: @docs/architecture/legend-state-sync.md
+   - Observable basics: `observable()`, `computed()`, `.set()`, `.get()`
+   - Manual persistence patterns with AsyncStorage
+   - Debouncing saves with `onChange()` listeners
 
 6. **React Native UI Guidelines**: @docs/architecture/react-native-ui-guidelines.md
    - **CRITICAL**: Use SafeAreaView from 'react-native-safe-area-context', NOT from 'react-native'
