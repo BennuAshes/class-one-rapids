@@ -1,0 +1,57 @@
+[
+  {
+    "id": "dark-mode",
+    "description": "Add a dark mode toggle to the settings screen",
+    "expectedFeatures": [
+      "Toggle switch component",
+      "Theme state in game store",
+      "Dark color scheme CSS",
+      "Persistence to AsyncStorage"
+    ],
+    "complexity": "medium"
+  },
+  {
+    "id": "undo-redo",
+    "description": "Implement undo/redo functionality for game actions",
+    "expectedFeatures": [
+      "History stack in game store",
+      "Undo function",
+      "Redo function",
+      "UI buttons for undo/redo"
+    ],
+    "complexity": "complex"
+  },
+  {
+    "id": "achievements",
+    "description": "Add achievements system with 5 achievements (Feed 10 pets, Reach 100 scrap, Buy first upgrade, etc)",
+    "expectedFeatures": [
+      "Achievement definitions",
+      "Achievement checking logic",
+      "Achievement display UI",
+      "Persistence of unlocked achievements"
+    ],
+    "complexity": "complex"
+  },
+  {
+    "id": "sound-effects",
+    "description": "Add sound effects for button clicks and upgrades",
+    "expectedFeatures": [
+      "Sound file loading",
+      "Play sound on feed button",
+      "Play sound on upgrade purchase",
+      "Mute toggle"
+    ],
+    "complexity": "simple"
+  },
+  {
+    "id": "statistics-screen",
+    "description": "Add a statistics screen showing total pets fed, total scrap earned, upgrades purchased",
+    "expectedFeatures": [
+      "Statistics tracking in store",
+      "Statistics display screen",
+      "Navigation to statistics",
+      "Persistence of statistics"
+    ],
+    "complexity": "medium"
+  }
+]
