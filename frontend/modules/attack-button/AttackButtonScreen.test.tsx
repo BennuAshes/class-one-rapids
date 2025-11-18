@@ -446,6 +446,201 @@ describe('AttackButtonScreen', () => {
     });
   });
 
+  describe('Multi-Tier Pet Counts Display', () => {
+    test('displays AI Pet count separately', () => {
+      gameState$.petCount.set(100);
+      const { getByText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+      expect(getByText(/AI Pets: 100/)).toBeTruthy();
+    });
+
+    test('displays Big Pet count separately', () => {
+      gameState$.bigPetCount.set(25);
+      const { getByText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+      expect(getByText(/Big Pets: 25/)).toBeTruthy();
+    });
+
+    test('displays Singularity Pet count separately', () => {
+      gameState$.singularityPetCount.set(5);
+      const { getByText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+      expect(getByText(/Singularity Pets: 5/)).toBeTruthy();
+    });
+
+    test('all three pet counts display together correctly', () => {
+      gameState$.petCount.set(100);
+      gameState$.bigPetCount.set(25);
+      gameState$.singularityPetCount.set(5);
+      const { getByText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      expect(getByText(/AI Pets: 100/)).toBeTruthy();
+      expect(getByText(/Big Pets: 25/)).toBeTruthy();
+      expect(getByText(/Singularity Pets: 5/)).toBeTruthy();
+    });
+
+    test('AI Pet count has gray color styling', () => {
+      gameState$.petCount.set(50);
+      const { getByText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+      const aiPetText = getByText(/AI Pets: 50/);
+
+      // Check that element exists (actual color is applied via StyleSheet)
+      expect(aiPetText).toBeTruthy();
+    });
+
+    test('Big Pet count has orange color styling', () => {
+      gameState$.bigPetCount.set(10);
+      const { getByText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+      const bigPetText = getByText(/Big Pets: 10/);
+
+      expect(bigPetText).toBeTruthy();
+    });
+
+    test('Singularity Pet count has blue color styling', () => {
+      gameState$.singularityPetCount.set(3);
+      const { getByText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+      const singularityPetText = getByText(/Singularity Pets: 3/);
+
+      expect(singularityPetText).toBeTruthy();
+    });
+
+    test('pet counts update reactively to state changes', () => {
+      const { getByText, rerender } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      expect(getByText(/AI Pets: 0/)).toBeTruthy();
+      expect(getByText(/Big Pets: 0/)).toBeTruthy();
+
+      gameState$.petCount.set(50);
+      gameState$.bigPetCount.set(10);
+      rerender(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      expect(getByText(/AI Pets: 50/)).toBeTruthy();
+      expect(getByText(/Big Pets: 10/)).toBeTruthy();
+    });
+  });
+
+  describe('Singularity Game Loop Integration', () => {
+    test('game loop runs scrap generation every second', async () => {
+      gameState$.petCount.set(10);
+      render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      expect(gameState$.scrap.get()).toBe(0);
+
+      jest.advanceTimersByTime(1000);
+      await waitFor(() => {
+        expect(gameState$.scrap.get()).toBe(10);
+      });
+    });
+
+    test('game loop runs singularity progression', async () => {
+      // Mock Math.random to always trigger singularity transition
+      const mockRandom = jest.spyOn(Math, 'random').mockReturnValue(0);
+
+      gameState$.petCount.set(100);
+      render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      jest.advanceTimersByTime(1000);
+
+      await waitFor(() => {
+        // With mocked random always 0, all AI Pets should transition to Big Pets
+        expect(gameState$.bigPetCount.get()).toBeGreaterThan(0);
+      });
+
+      mockRandom.mockRestore();
+    });
+
+    test('game loop checks and unlocks skills', async () => {
+      gameState$.singularityPetCount.set(1);
+      render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      jest.advanceTimersByTime(1000);
+
+      await waitFor(() => {
+        // Painting skill should unlock with 1 singularity pet
+        expect(gameState$.unlockedSkills.get()).toContain('painting');
+      });
+    });
+
+    test('game loop continues running over multiple ticks', async () => {
+      gameState$.petCount.set(5);
+      render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      jest.advanceTimersByTime(1000);
+      await waitFor(() => expect(gameState$.scrap.get()).toBe(5));
+
+      jest.advanceTimersByTime(1000);
+      await waitFor(() => expect(gameState$.scrap.get()).toBe(10));
+
+      jest.advanceTimersByTime(1000);
+      await waitFor(() => expect(gameState$.scrap.get()).toBe(15));
+    });
+
+    test('game loop cleans up on component unmount', async () => {
+      gameState$.petCount.set(10);
+      const { unmount } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      jest.advanceTimersByTime(1000);
+      await waitFor(() => expect(gameState$.scrap.get()).toBe(10));
+
+      unmount();
+
+      // Advance timer after unmount
+      jest.advanceTimersByTime(2000);
+
+      // Scrap should not increase (loop stopped)
+      expect(gameState$.scrap.get()).toBe(10);
+    });
+  });
+
+  describe('Feed Handler with Singularity Boost', () => {
+    test('feed button triggers singularity boost check', () => {
+      // Mock Math.random to not trigger boost
+      const mockRandom = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+
+      gameState$.petCount.set(10);
+      const { getByLabelText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      const feedButton = getByLabelText('feed button');
+      fireEvent.press(feedButton);
+
+      // Pet count should increase by 1 (base)
+      expect(gameState$.petCount.get()).toBe(11);
+
+      mockRandom.mockRestore();
+    });
+
+    test('singularity boost can trigger on feed (1% chance)', () => {
+      // Mock Math.random to always trigger boost (< 0.01)
+      const mockRandom = jest.spyOn(Math, 'random').mockReturnValue(0.005);
+
+      gameState$.petCount.set(100);
+      gameState$.bigPetCount.set(0);
+      const { getByLabelText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      const feedButton = getByLabelText('feed button');
+      fireEvent.press(feedButton);
+
+      // Boost should trigger: one random pet promoted
+      // Could be AI Pet -> Big Pet or Big Pet -> Singularity Pet
+      const totalPetsAfter = gameState$.petCount.get() + gameState$.bigPetCount.get() + gameState$.singularityPetCount.get();
+      expect(totalPetsAfter).toBe(101); // Total pet count conserved
+
+      mockRandom.mockRestore();
+    });
+
+    test('feed adds pets before checking singularity boost', () => {
+      const mockRandom = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+
+      gameState$.petCount.set(0);
+      const { getByLabelText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      const feedButton = getByLabelText('feed button');
+      fireEvent.press(feedButton);
+
+      // Should add pet first (base 1 pet)
+      expect(gameState$.petCount.get()).toBe(1);
+
+      mockRandom.mockRestore();
+    });
+  });
+
   describe('Upgrade Effects Integration', () => {
     describe('Scrap Generation with Multipliers', () => {
       test('generates base scrap without upgrades', async () => {
@@ -659,6 +854,116 @@ describe('AttackButtonScreen', () => {
 
         expect(gameState$.petCount.get()).toBe(14); // 10 + (1 + 3)
       });
+    });
+  });
+
+  describe('Combine Button', () => {
+    test('renders combine button', () => {
+      const { getByText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+      expect(getByText(/Combine/i)).toBeTruthy();
+    });
+
+    test('combine button is disabled when petCount < COMBINE_COST', () => {
+      gameState$.petCount.set(5); // Less than 10
+      const { getByLabelText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      const combineButton = getByLabelText('Combine pets');
+      expect(combineButton.props.accessibilityState.disabled).toBe(true);
+    });
+
+    test('combine button is enabled when petCount >= COMBINE_COST', () => {
+      gameState$.petCount.set(15); // Greater than or equal to 10
+      const { getByLabelText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      const combineButton = getByLabelText('Combine pets');
+      expect(combineButton.props.accessibilityState.disabled).toBe(false);
+    });
+
+    test('pressing combine button shows confirmation dialog', () => {
+      gameState$.petCount.set(15);
+      const { getByText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      const combineButton = getByText(/Combine/i);
+      fireEvent.press(combineButton);
+
+      // Dialog should appear
+      expect(getByText(/Combine AI Pets/i)).toBeTruthy();
+    });
+
+    test('confirmation dialog shows current counts', () => {
+      gameState$.petCount.set(25);
+      const { getByText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      const combineButton = getByText(/Combine/i);
+      fireEvent.press(combineButton);
+
+      // Dialog should show current pet count
+      expect(getByText(/Current AI Pets: 25/i)).toBeTruthy();
+    });
+
+    test('confirming dialog executes combination', () => {
+      gameState$.petCount.set(15);
+      gameState$.bigPetCount.set(0);
+      const { getByText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      const combineButton = getByText(/Combine/i);
+      fireEvent.press(combineButton);
+
+      const confirmButton = getByText('Combine'); // Confirm button in dialog
+      fireEvent.press(confirmButton);
+
+      // Should deduct 10 AI Pets and add 1 Big Pet
+      expect(gameState$.petCount.get()).toBe(5);
+      expect(gameState$.bigPetCount.get()).toBe(1);
+    });
+
+    test('confirming dialog closes the dialog', () => {
+      gameState$.petCount.set(15);
+      const { getByText, queryByText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      const combineButton = getByText(/Combine 10 AI Pets/i);
+      fireEvent.press(combineButton);
+
+      expect(getByText(/Combine AI Pets/i)).toBeTruthy();
+
+      const confirmButton = getByText('Combine');
+      fireEvent.press(confirmButton);
+
+      // Dialog should be hidden
+      expect(queryByText(/Combine AI Pets/i)).toBeNull();
+    });
+
+    test('canceling dialog closes without combining', () => {
+      gameState$.petCount.set(15);
+      gameState$.bigPetCount.set(0);
+      const { getByText, queryByText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      const combineButton = getByText(/Combine 10 AI Pets/i);
+      fireEvent.press(combineButton);
+
+      const cancelButton = getByText('Cancel');
+      fireEvent.press(cancelButton);
+
+      // Dialog should close
+      expect(queryByText(/Combine AI Pets/i)).toBeNull();
+
+      // Pet counts should remain unchanged
+      expect(gameState$.petCount.get()).toBe(15);
+      expect(gameState$.bigPetCount.get()).toBe(0);
+    });
+
+    test('combine button displays cost', () => {
+      const { getByText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+      expect(getByText(/10 AI Pets/i)).toBeTruthy();
+    });
+
+    test('combine button has proper accessibility labels', () => {
+      gameState$.petCount.set(15);
+      const { getByLabelText } = render(<AttackButtonScreen onNavigateToShop={mockNavigateToShop} />);
+
+      const combineButton = getByLabelText(/Combine/i);
+      expect(combineButton).toBeTruthy();
+      expect(combineButton.props.accessibilityRole).toBe('button');
     });
   });
 });

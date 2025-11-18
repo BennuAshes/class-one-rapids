@@ -1,0 +1,4 @@
+- Allow a series of upgrades that let you use to combine AI Pets to make "Big AI Pets".
+- These bigger tier pets have a much higher chance of reaching singularity than the regular AI Pets. 
+- Their scrap rate is typically lower.
+- This means there would be "AI Pets" count, a "Big AI Pet Count", and, "Singularity Pet Count".

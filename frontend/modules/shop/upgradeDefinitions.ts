@@ -3,12 +3,14 @@ import { Upgrade } from '../../shared/types/game';
 /**
  * Complete array of all upgrades available in the game.
  *
- * This defines the 5 core upgrades available in the shop:
+ * This defines the core upgrades available in the shop:
  * - 3 scrap efficiency upgrades (10%, 15%, 25% multipliers)
  * - 2 pet acquisition upgrades (+1, +2 pet bonuses)
+ * - 1 combination unlock upgrade
+ * - 2 singularity rate multiplier upgrades
  *
- * Total investment: 3,800 scrap
- * Maximum effects: 50% scrap multiplier, +3 pets per feed
+ * Total investment: ~15,000 scrap
+ * Maximum effects: 50% scrap multiplier, +3 pets per feed, 75% faster singularity
  */
 export const UPGRADES: Upgrade[] = [
   {
@@ -56,6 +58,33 @@ export const UPGRADES: Upgrade[] = [
     effectValue: 2,
     category: 'petAcquisition',
   },
+  {
+    id: 'unlock-combination',
+    name: 'Quantum Entanglement',
+    description: 'Unlock the ability to combine 10 AI Pets into 1 Big Pet. Big Pets have higher singularity rates!',
+    cost: 500,
+    effectType: 'unlockCombination',
+    effectValue: 1,
+    category: 'petCombination',
+  },
+  {
+    id: 'singularity-rate-1',
+    name: 'Singularity Accelerator',
+    description: 'Increase the rate at which pets transition to higher states by 25%.',
+    cost: 2500,
+    effectType: 'singularityRateMultiplier',
+    effectValue: 0.25,
+    category: 'singularityAcceleration',
+  },
+  {
+    id: 'singularity-rate-2',
+    name: 'Singularity Overdrive',
+    description: 'Further increase the singularity transition rate by an additional 50%.',
+    cost: 7500,
+    effectType: 'singularityRateMultiplier',
+    effectValue: 0.5,
+    category: 'singularityAcceleration',
+  },
 ];
 
 /**
@@ -79,7 +108,7 @@ export function getUpgradeById(id: string): Upgrade | undefined {
 /**
  * Retrieves all upgrades of a specific category.
  *
- * @param category - The category to filter by ('scrapEfficiency' or 'petAcquisition')
+ * @param category - The category to filter by
  * @returns Array of upgrades in the specified category
  *
  * @example
@@ -89,7 +118,7 @@ export function getUpgradeById(id: string): Upgrade | undefined {
  * ```
  */
 export function getUpgradesByCategory(
-  category: 'scrapEfficiency' | 'petAcquisition'
+  category: 'scrapEfficiency' | 'petAcquisition' | 'petCombination' | 'singularityAcceleration'
 ): Upgrade[] {
   return UPGRADES.filter(u => u.category === category);
 }
@@ -97,7 +126,7 @@ export function getUpgradesByCategory(
 /**
  * Retrieves all upgrades of a specific effect type.
  *
- * @param effectType - The effect type to filter by ('scrapMultiplier' or 'petBonus')
+ * @param effectType - The effect type to filter by
  * @returns Array of upgrades with the specified effect type
  *
  * @example
@@ -107,7 +136,7 @@ export function getUpgradesByCategory(
  * ```
  */
 export function getUpgradesByEffectType(
-  effectType: 'scrapMultiplier' | 'petBonus'
+  effectType: 'scrapMultiplier' | 'petBonus' | 'singularityRateMultiplier' | 'unlockCombination'
 ): Upgrade[] {
   return UPGRADES.filter(u => u.effectType === effectType);
 }

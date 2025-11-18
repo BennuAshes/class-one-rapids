@@ -44,6 +44,26 @@ interface UpgradeCardProps {
 }
 
 /**
+ * Formats the effect description based on upgrade type
+ * @param upgrade - The upgrade to format
+ * @returns Formatted effect string
+ */
+const formatEffectDescription = (upgrade: Upgrade): string => {
+  switch (upgrade.effectType) {
+    case 'scrapMultiplier':
+      return `Scrap Multiplier x${upgrade.effectValue}`;
+    case 'petBonus':
+      return `Pet Bonus +${upgrade.effectValue}`;
+    case 'singularityRateMultiplier':
+      return `Singularity Rate +${(upgrade.effectValue * 100).toFixed(0)}%`;
+    case 'unlockCombination':
+      return 'Unlocks Pet Combination';
+    default:
+      return `Effect: ${upgrade.effectValue}`;
+  }
+};
+
+/**
  * Displays a single upgrade card with purchase button.
  */
 const UpgradeCard: React.FC<UpgradeCardProps> = ({
@@ -62,10 +82,7 @@ const UpgradeCard: React.FC<UpgradeCardProps> = ({
 
       <View style={styles.effectContainer}>
         <Text style={styles.effectLabel}>
-          Effect: {upgrade.effectType === 'scrapMultiplier'
-            ? `Scrap Multiplier x${upgrade.effectValue}`
-            : `Pet Bonus +${upgrade.effectValue}`
-          }
+          Effect: {formatEffectDescription(upgrade)}
         </Text>
       </View>
 
