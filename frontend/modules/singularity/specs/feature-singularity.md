@@ -1,0 +1,5 @@
+- Add a concept of singularity to the game. The default count that starts out is a "AI Pets" count, and those pets can reach singularity over time.
+- Certain things you can do can help them reach singularity sooner.
+- This is a starting list of things that can help them reach singularity sooner:
+  - Feeding them
+  - Upgrading them

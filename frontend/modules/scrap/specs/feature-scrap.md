@@ -1,0 +1,1 @@
+Every 1 seconds you gain "scrap" based on the number of AI Pets you have. They bring you shiny stuff like ravens, which is abstracted into this value for now. You can't use it for anything yet.

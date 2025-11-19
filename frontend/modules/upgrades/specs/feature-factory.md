@@ -1,0 +1,1 @@
+Create an upgrade available in the shop called "Bot Factory" that costs 100 scrap and provides 1 extra AI Bot per Feed click.
