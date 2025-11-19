@@ -1,0 +1,543 @@
+{
+  "name": "Code Evaluation Trigger v1",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "evaluate-code",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "evaluation-webhook-trigger",
+      "name": "🎯 Webhook - Code Generation Complete",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "code-evaluation-trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.body.codebase_path}}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{$json.body.execution_id}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "validate-trigger-input",
+      "name": "✅ Validate - Trigger Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "error",
+              "value": "Missing required fields: codebase_path and execution_id"
+            },
+            {
+              "name": "status",
+              "value": "error"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "validation-error-response",
+      "name": "⚠️ Set - Validation Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [650, 450]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "send-validation-error",
+      "name": "✉️ Send - Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 450]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "evaluation_started"
+            },
+            {
+              "name": "message",
+              "value": "Code evaluation started"
+            },
+            {
+              "name": "execution_id",
+              "value": "={{$json.body.execution_id}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-ack-response",
+      "name": "📨 Set - Acknowledgment",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [650, 150]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "id": "send-ack-response",
+      "name": "✉️ Send - Accepted Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 150]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "id": "wait-for-files",
+      "name": "⏳ Wait - File System Sync",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1050, 150]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && npm test 2>&1",
+        "timeout": 600000
+      },
+      "id": "run-tests",
+      "name": "🧪 Execute - Run Tests",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1250, 150]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.stdout || '';\nconst errorOutput = $input.item.json.stderr || '';\nconst exitCode = $input.item.json.exitCode || 0;\n\n// Parse test results\nconst testsPassed = exitCode === 0;\nconst testsRunMatch = output.match(/Tests:\\s+(\\d+)\\s+passed/);\nconst testsFailedMatch = output.match(/(\\d+)\\s+failed/);\nconst coverageMatch = output.match(/All files\\s+\\|\\s+([\\d.]+)/);\n\nconst testsRun = testsRunMatch ? parseInt(testsRunMatch[1]) : 0;\nconst testsFailed = testsFailedMatch ? parseInt(testsFailedMatch[1]) : 0;\nconst coverage = coverageMatch ? coverageMatch[1] : 'N/A';\n\nreturn {\n  tests_passed: testsPassed,\n  tests_run: testsRun,\n  tests_failed: testsFailed,\n  coverage_percent: coverage,\n  test_output: output.substring(0, 1000),\n  test_errors: errorOutput.substring(0, 500),\n  exit_code: exitCode\n};"
+      },
+      "id": "parse-test-results",
+      "name": "📊 Parse - Test Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 150]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && npm run lint 2>&1",
+        "timeout": 120000
+      },
+      "id": "run-lint",
+      "name": "🔍 Execute - Run Linter",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1650, 150]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.stdout || '';\nconst errorOutput = $input.item.json.stderr || '';\nconst exitCode = $input.item.json.exitCode || 0;\n\n// Parse lint results\nconst lintPassed = exitCode === 0;\nconst errorsMatch = output.match(/(\\d+)\\s+error/);\nconst warningsMatch = output.match(/(\\d+)\\s+warning/);\n\nconst errors = errorsMatch ? parseInt(errorsMatch[1]) : 0;\nconst warnings = warningsMatch ? parseInt(warningsMatch[1]) : 0;\n\nreturn {\n  lint_passed: lintPassed,\n  lint_errors: errors,\n  lint_warnings: warnings,\n  lint_output: output.substring(0, 1000),\n  exit_code: exitCode\n};"
+      },
+      "id": "parse-lint-results",
+      "name": "📊 Parse - Lint Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1850, 150]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.body.codebase_path}}\" && npx tsc --noEmit 2>&1",
+        "timeout": 120000
+      },
+      "id": "run-typecheck",
+      "name": "⚙️ Execute - Type Check",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2050, 150]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.stdout || '';\nconst errorOutput = $input.item.json.stderr || '';\nconst exitCode = $input.item.json.exitCode || 0;\n\n// Parse typecheck results\nconst typecheckPassed = exitCode === 0;\nconst typeErrorsMatch = output.match(/Found (\\d+) error/);\nconst typeErrors = typeErrorsMatch ? parseInt(typeErrorsMatch[1]) : 0;\n\nreturn {\n  typecheck_passed: typecheckPassed,\n  type_errors: typeErrors,\n  typecheck_output: output.substring(0, 1000),\n  exit_code: exitCode\n};"
+      },
+      "id": "parse-typecheck-results",
+      "name": "📊 Parse - TypeCheck Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2250, 150]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate all evaluation results\nconst testResults = $('parse-test-results').item.json;\nconst lintResults = $('parse-lint-results').item.json;\nconst typecheckResults = $('parse-typecheck-results').item.json;\nconst triggerData = $('evaluation-webhook-trigger').item.json.body;\n\n// Calculate overall quality score (0-100)\nlet score = 0;\n\n// Tests: 40 points max\nif (testResults.tests_passed) {\n  score += 40;\n} else {\n  score += Math.max(0, 40 - (testResults.tests_failed * 5));\n}\n\n// Linting: 30 points max\nif (lintResults.lint_passed) {\n  score += 30;\n} else {\n  score += Math.max(0, 30 - (lintResults.lint_errors * 3) - (lintResults.lint_warnings * 1));\n}\n\n// Type checking: 30 points max\nif (typecheckResults.typecheck_passed) {\n  score += 30;\n} else {\n  score += Math.max(0, 30 - (typecheckResults.type_errors * 2));\n}\n\n// Determine quality level\nlet quality_level = 'Poor';\nif (score >= 90) quality_level = 'Excellent';\nelse if (score >= 75) quality_level = 'Good';\nelse if (score >= 60) quality_level = 'Fair';\n\nconst allChecksPassed = testResults.tests_passed && lintResults.lint_passed && typecheckResults.typecheck_passed;\n\nreturn {\n  execution_id: triggerData.execution_id,\n  codebase_path: triggerData.codebase_path,\n  feature_description: triggerData.feature_description || 'N/A',\n  evaluation_score: Math.round(score),\n  quality_level: quality_level,\n  all_checks_passed: allChecksPassed,\n  evaluation_result: allChecksPassed ? 'PASSED' : 'FAILED',\n  test_summary: {\n    passed: testResults.tests_passed,\n    run: testResults.tests_run,\n    failed: testResults.tests_failed,\n    coverage: testResults.coverage_percent\n  },\n  lint_summary: {\n    passed: lintResults.lint_passed,\n    errors: lintResults.lint_errors,\n    warnings: lintResults.lint_warnings\n  },\n  typecheck_summary: {\n    passed: typecheckResults.typecheck_passed,\n    errors: typecheckResults.type_errors\n  },\n  evaluation_timestamp: new Date().toISOString(),\n  details: {\n    test_output: testResults.test_output,\n    lint_output: lintResults.lint_output,\n    typecheck_output: typecheckResults.typecheck_output\n  }\n};"
+      },
+      "id": "aggregate-evaluation",
+      "name": "📈 Aggregate - Evaluation Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2450, 150]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.all_checks_passed}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-quality-threshold",
+      "name": "🎯 Check - Quality Threshold",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2650, 150]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.codebase_path}}\" && echo \"={{JSON.stringify($json)}}\" > .claude/evaluation_results/eval_{{$json.execution_id}}.json",
+        "timeout": 5000
+      },
+      "id": "save-evaluation-report-passed",
+      "name": "💾 Save - Evaluation Report (Passed)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2850, 50]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.codebase_path}}\" && echo \"={{JSON.stringify($json)}}\" > .claude/evaluation_results/eval_{{$json.execution_id}}.json",
+        "timeout": 5000
+      },
+      "id": "save-evaluation-report-failed",
+      "name": "💾 Save - Evaluation Report (Failed)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2850, 250]
+    },
+    {
+      "parameters": {
+        "resource": "channel",
+        "operation": "message",
+        "channelId": "dev-notifications",
+        "text": "✅ Code Evaluation PASSED\\n\\nScore: {{$json.evaluation_score}}/100 ({{$json.quality_level}})\\nExecution ID: {{$json.execution_id}}\\n\\nTests: {{$json.test_summary.run}} passed\\nLint: {{$json.lint_summary.errors}} errors, {{$json.lint_summary.warnings}} warnings\\nTypes: {{$json.typecheck_summary.errors}} errors",
+        "otherOptions": {}
+      },
+      "id": "notify-slack-passed",
+      "name": "📢 Notify - Slack (Passed)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [3050, 50],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "channel",
+        "operation": "message",
+        "channelId": "dev-notifications",
+        "text": "⚠️ Code Evaluation FAILED\\n\\nScore: {{$json.evaluation_score}}/100 ({{$json.quality_level}})\\nExecution ID: {{$json.execution_id}}\\n\\n❌ Tests: {{$json.test_summary.failed}} failed\\n❌ Lint: {{$json.lint_summary.errors}} errors\\n❌ Types: {{$json.typecheck_summary.errors}} errors\\n\\nReview required!",
+        "otherOptions": {}
+      },
+      "id": "notify-slack-failed",
+      "name": "📢 Notify - Slack (Failed)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [3050, 250],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "catchError",
+        "errorMessage": "={{$json.message || 'Evaluation workflow error'}}",
+        "options": {}
+      },
+      "id": "error-trigger",
+      "name": "⚠️ On Error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [1450, 450]
+    },
+    {
+      "parameters": {
+        "jsCode": "const error = $input.item.json.error || {};\nconst triggerData = $('evaluation-webhook-trigger').item.json.body || {};\n\nreturn {\n  execution_id: triggerData.execution_id || 'unknown',\n  status: 'evaluation_error',\n  error_message: error.message || 'Unknown evaluation error',\n  error_node: error.node || 'unknown',\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "format-error-response",
+      "name": "⚠️ Format - Error Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1650, 450]
+    },
+    {
+      "parameters": {
+        "command": "cd \"={{$json.codebase_path || $('evaluation-webhook-trigger').item.json.body.codebase_path}}\" && echo \"={{JSON.stringify($json)}}\" > .claude/evaluation_results/eval_error_{{$json.execution_id}}.json",
+        "timeout": 5000,
+        "continueOnFail": true
+      },
+      "id": "save-error-report",
+      "name": "💾 Save - Error Report",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1850, 450]
+    }
+  ],
+  "connections": {
+    "🎯 Webhook - Code Generation Complete": {
+      "main": [
+        [
+          {
+            "node": "✅ Validate - Trigger Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Validate - Trigger Input": {
+      "main": [
+        [
+          {
+            "node": "📨 Set - Acknowledgment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "⚠️ Set - Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚠️ Set - Validation Error": {
+      "main": [
+        [
+          {
+            "node": "✉️ Send - Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📨 Set - Acknowledgment": {
+      "main": [
+        [
+          {
+            "node": "✉️ Send - Accepted Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✉️ Send - Accepted Response": {
+      "main": [
+        [
+          {
+            "node": "⏳ Wait - File System Sync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏳ Wait - File System Sync": {
+      "main": [
+        [
+          {
+            "node": "🧪 Execute - Run Tests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧪 Execute - Run Tests": {
+      "main": [
+        [
+          {
+            "node": "📊 Parse - Test Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Parse - Test Results": {
+      "main": [
+        [
+          {
+            "node": "🔍 Execute - Run Linter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Execute - Run Linter": {
+      "main": [
+        [
+          {
+            "node": "📊 Parse - Lint Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Parse - Lint Results": {
+      "main": [
+        [
+          {
+            "node": "⚙️ Execute - Type Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚙️ Execute - Type Check": {
+      "main": [
+        [
+          {
+            "node": "📊 Parse - TypeCheck Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Parse - TypeCheck Results": {
+      "main": [
+        [
+          {
+            "node": "📈 Aggregate - Evaluation Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📈 Aggregate - Evaluation Results": {
+      "main": [
+        [
+          {
+            "node": "🎯 Check - Quality Threshold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎯 Check - Quality Threshold": {
+      "main": [
+        [
+          {
+            "node": "💾 Save - Evaluation Report (Passed)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "💾 Save - Evaluation Report (Failed)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💾 Save - Evaluation Report (Passed)": {
+      "main": [
+        [
+          {
+            "node": "📢 Notify - Slack (Passed)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💾 Save - Evaluation Report (Failed)": {
+      "main": [
+        [
+          {
+            "node": "📢 Notify - Slack (Failed)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚠️ On Error": {
+      "main": [
+        [
+          {
+            "node": "⚠️ Format - Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚠️ Format - Error Response": {
+      "main": [
+        [
+          {
+            "node": "💾 Save - Error Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Code Evaluation",
+      "id": "code-eval"
+    },
+    {
+      "name": "Quality Assurance",
+      "id": "qa"
+    },
+    {
+      "name": "CI/CD",
+      "id": "cicd"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-11-16T00:00:00.000Z",
+  "versionId": "1"
+}

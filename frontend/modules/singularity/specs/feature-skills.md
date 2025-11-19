@@ -1,0 +1,1 @@
+Pets that have reached singularity can learn skills, like "painting" which leaves a trail of various colors on the screen.

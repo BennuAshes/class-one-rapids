@@ -1,0 +1,860 @@
+{
+  "name": "Claude Code Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -128,
+        0
+      ],
+      "id": "91637644-a984-4574-9ab7-fe9218b492e3",
+      "name": "When chat message received",
+      "webhookId": "8d15caa0-8a0a-417a-8856-41d078913b6f"
+    },
+    {
+      "parameters": {
+        "content": "Feature"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        -48
+      ],
+      "id": "357319e1-8fb7-4a76-b86d-025946fa3c09",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "PRD"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        192,
+        -48
+      ],
+      "id": "b6bf61c7-d9b6-4894-a31f-fc87e901a385",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "Tech Design"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        544,
+        -48
+      ],
+      "id": "f8a0bc30-cb11-47e7-beba-d0ca43a83b65",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "Task List"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        896,
+        -48
+      ],
+      "id": "6bc587ab-2121-44f6-9798-d3e362dee040",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "Execute Tasks"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        -48
+      ],
+      "id": "bdf440bf-5420-4755-bf64-54414426b20b",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        528
+      ],
+      "id": "fb0da079-d256-4677-a12a-a5908c50a4ee",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "Lrt8TOXjBJGQXvfa",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [
+        768,
+        624
+      ],
+      "id": "5be5d5d6-7afb-4b9a-9597-85d1464204b7",
+      "name": "Knowledge - Postgres PGVector Store"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        848,
+        336
+      ],
+      "id": "416dba8b-c03e-453d-bb71-fecc43655bcf",
+      "name": "Postgres Chat Memory"
+    },
+    {
+      "parameters": {
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "d580f3cc-9741-4a45-80df-7c2146ce64ac",
+      "name": "PRD Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        560,
+        0
+      ],
+      "id": "4aa48abc-05c3-4224-9fac-88fb39b86757",
+      "name": "Tech Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        912,
+        0
+      ],
+      "id": "2f626875-1b3c-4a6e-9888-7be497acabbb",
+      "name": "Task Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1264,
+        0
+      ],
+      "id": "029e3f15-d12a-4c14-831d-a94fd855b707",
+      "name": "Execute Task Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-5-20250929",
+          "cachedResultName": "Claude Sonnet 4.5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        560,
+        -288
+      ],
+      "id": "216c2a70-0aa1-42c5-91f4-ddba5440af1d",
+      "name": "Anthropic Chat Model: Sonnet-4.5",
+      "credentials": {
+        "anthropicApi": {
+          "id": "NWyoP5iP9eyzcJNE",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-haiku-4-5-20251001",
+          "mode": "list",
+          "cachedResultName": "Claude Haiku 4.5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        1264,
+        -304
+      ],
+      "id": "9d7f2320-64c3-4437-9102-ddbb285e7bc8",
+      "name": "Anthropic Chat Model: Haiku-4.5",
+      "credentials": {
+        "anthropicApi": {
+          "id": "NWyoP5iP9eyzcJNE",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-opus-4-1-20250805",
+          "mode": "list",
+          "cachedResultName": "Claude Opus 4.1"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        912,
+        -304
+      ],
+      "id": "67b37f1d-6ff9-4ac6-bb60-85be6360468e",
+      "name": "Anthropic Chat Model: Opus-4.1",
+      "credentials": {
+        "anthropicApi": {
+          "id": "NWyoP5iP9eyzcJNE",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1888,
+        272
+      ],
+      "id": "9b99c272-7c06-431a-b2d5-1e0cae9b572a",
+      "name": "Reviewer - GPT-5-Codex"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1888,
+        16
+      ],
+      "id": "aef44276-dc8e-42d2-9f4c-5f181ee89e14",
+      "name": "Reviewer - Sonnet-4.5"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2240,
+        32
+      ],
+      "id": "6305ca33-f65f-40ff-b923-9a0b9f1e09e4",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-codex",
+          "mode": "list",
+          "cachedResultName": "gpt-5-codex"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1536,
+        -288
+      ],
+      "id": "609316ac-43b1-4ca2-b539-58cecd3f9ce5",
+      "name": "OpenAI Chat Model: GPT-5-Codex",
+      "credentials": {
+        "openAiApi": {
+          "id": "Lrt8TOXjBJGQXvfa",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5",
+          "mode": "list",
+          "cachedResultName": "gpt-5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        -256
+      ],
+      "id": "81430246-b412-46cc-a950-4a30a4fa1503",
+      "name": "OpenAI Chat Model: GPT-5",
+      "credentials": {
+        "openAiApi": {
+          "id": "Lrt8TOXjBJGQXvfa",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        2864,
+        32
+      ],
+      "id": "df74a4c6-d2c4-4c9b-993a-25fbc421a24d",
+      "name": "Refactor Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        2464,
+        32
+      ],
+      "id": "f44af5b3-9bf7-4de0-9d33-b4e7c7312994",
+      "name": "Reviewer"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        3152,
+        0
+      ],
+      "id": "063de3a2-c204-4f65-8f5f-24d2e7b7b30e",
+      "name": "Code Quality Agent"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1f657ffd-8d6c-4fb9-9cf9-21fd78f79692",
+              "leftValue": {},
+              "rightValue": 80,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3488,
+        16
+      ],
+      "id": "385b53be-5076-4c34-9b98-f84401523094",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3312,
+        304
+      ],
+      "id": "1945fc34-14ad-4641-bf33-4f53234eead4",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        3776,
+        0
+      ],
+      "id": "6fdcb11f-22d8-4142-adac-401c5577da99",
+      "name": "Pull Request Agent"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendAndWait",
+        "guildId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "channelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        4176,
+        0
+      ],
+      "id": "c2c76992-738d-4ec2-b34a-7994cdd14783",
+      "name": "Update Will",
+      "webhookId": "1a28ce92-6605-48fa-8fb7-162098c7cf0b"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendAndWait",
+        "guildId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "channelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1616,
+        0
+      ],
+      "id": "956d0e4a-e31c-43e4-816e-ff7589043741",
+      "name": "Update Will1",
+      "webhookId": "1a28ce92-6605-48fa-8fb7-162098c7cf0b"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "type": "n8n-nodes-base.evaluationTrigger",
+      "typeVersion": 4.7,
+      "position": [
+        1600,
+        224
+      ],
+      "id": "8e8a8545-19b4-42bf-9a13-f4615fa4b3f4",
+      "name": "Eval Trigger"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "type": "n8n-nodes-base.evaluationTrigger",
+      "typeVersion": 4.7,
+      "position": [
+        4176,
+        208
+      ],
+      "id": "75f65946-8618-4db2-8c97-d1599f71de60",
+      "name": "Eval Trigger1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "PRD Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Knowledge - Postgres PGVector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Knowledge - Postgres PGVector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "Task Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Tech Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Execute Task Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "PRD Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Task Agent",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "Tech Agent",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "Execute Task Agent",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "PRD Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PRD Agent": {
+      "main": [
+        [
+          {
+            "node": "Tech Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tech Agent": {
+      "main": [
+        [
+          {
+            "node": "Task Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Task Agent": {
+      "main": [
+        [
+          {
+            "node": "Execute Task Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Task Agent": {
+      "main": [
+        [
+          {
+            "node": "Update Will1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model: Sonnet-4.5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Tech Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model: Haiku-4.5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Execute Task Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Refactor Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model: Opus-4.1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Task Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Reviewer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reviewer - GPT-5-Codex": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reviewer - Sonnet-4.5": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Reviewer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model: GPT-5-Codex": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Reviewer - GPT-5-Codex",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model: GPT-5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "PRD Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reviewer": {
+      "main": [
+        [
+          {
+            "node": "Refactor Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refactor Agent": {
+      "main": [
+        [
+          {
+            "node": "Code Quality Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Quality Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Pull Request Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Reviewer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pull Request Agent": {
+      "main": [
+        [
+          {
+            "node": "Update Will",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Will1": {
+      "main": [
+        [
+          {
+            "node": "Reviewer - Sonnet-4.5",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Reviewer - GPT-5-Codex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1be07e8c-943d-4eae-ae65-c876500941d3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5b0a8484113102b69e213466f5acd2abed5f9243d1d466caeac0f8f6405adb7a"
+  },
+  "id": "D3NUGupHwnXQXFmu",
+  "tags": []
+}
