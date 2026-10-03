@@ -5,8 +5,8 @@
 ## Description
 
 - There are many CLI systems and now IDEs that let you build an app by creating requirements, design, and tasks for an agent. This repo answers the question, "How do I make my own PRP (Product Document Prompt), or spec-driven development style system using modern context engineering techniques? What commands do I need?"
-- Last tested/consistent run: 75591b7e3ac544feb0c6fbcfc4007a740a878395
-- 3 feature run - e09ffc9a4db7580baef65784cd82f3362b654ecc
+- Last tested/consistent run: e79fe448d6ecb79fa70cb72b20bbedf57753e99c
+- 3 feature run - 0f2b89ce23083b3c3f1c2f8ccdd3c4c69399837f
 
 ## How This System Was Built
 
